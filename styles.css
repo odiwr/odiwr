@@ -1,0 +1,178 @@
+/* Global styles */
+html, body {
+    height: 100%; /* Ensure the page takes up the full height of the viewport */
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f8f8f8;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+}
+
+/* Wrapper for the main content */
+.wrapper {
+    flex: 1; /* Ensures this takes up all the available space between header and footer */
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh; /* Ensure the wrapper takes full height of the page */
+}
+
+/* Navigation Bar */
+.navbar {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.navbar ul {
+    background-color: #fff;
+    padding: 10px 40px;
+    border-radius: 8px;
+    list-style: none;
+    display: flex;
+    gap: 40px;
+    margin: 0;
+}
+
+.navbar li a {
+    text-decoration: none;
+    color: #333;
+    font-weight: bold;
+}
+
+li {
+    transition: transform 0.3s ease;
+}
+
+li:hover.nav {
+    transform: scale(1.1);
+}
+
+/* Image Gallery */
+.gallery {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    padding: 20px;
+    flex-grow: 0; /* Prevent the gallery from stretching */
+}
+
+.gallery-item {
+    border-radius: 8px;
+    background-color: #fff;
+    overflow: hidden;
+}
+
+.gallery-item img {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.gallery-item:hover img {
+    transform: scale(0.95);
+}
+
+/* Caption styles */
+.caption {
+    color: black;
+    padding: 10px;
+    text-align: left;
+    font-size: 16px;
+    display: block;
+}
+
+a {
+    text-decoration: none;
+}
+
+/* Footer */
+footer {
+    padding: 10px;
+    text-align: center;
+    border-radius: 8px;
+    margin-top: 20px;
+}
+
+/* Flexbox layout for sticky footer */
+.wrapper {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh; /* Makes sure wrapper fills the full height of the page */
+}
+
+footer {
+    margin-top: auto; /* Pushes the footer to the bottom */
+}
+
+/* Add spacing below the content if content is too short */
+.gallery {
+    margin-bottom: 40px; /* Adds some space between the gallery and footer */
+}
+
+/* Canvas */
+canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: -1;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 1024px) {
+    .gallery {
+        grid-template-columns: repeat(2, 1fr); /* 2 columns on tablets */
+    }
+}
+
+@media (max-width: 768px) {
+    .navbar ul {
+        padding: 10px 20px;
+        gap: 20px; /* Reduce the gap for smaller screens */
+    }
+
+    .gallery {
+        grid-template-columns: 1fr; /* 1 column on mobile */
+    }
+
+    .gallery-item img {
+        aspect-ratio: 4 / 3; /* Adjust aspect ratio for smaller screens */
+    }
+
+    h1 {
+        font-size: 2em; /* Adjust title size for mobile */
+    }
+
+    footer {
+        font-size: 14px; /* Reduce footer text size for mobile */
+    }
+}
+
+@media (max-width: 480px) {
+    .navbar ul {
+        gap: 10px; /* Decrease the gap between nav items on very small screens */
+        padding: 10px 10px;
+    }
+
+    .navbar li a {
+        font-size: 14px; /* Reduce the font size for mobile */
+    }
+
+    .gallery-item img {
+        aspect-ratio: 1 / 1; /* Adjust to square for very small devices */
+    }
+
+    .caption {
+        font-size: 14px; /* Adjust caption size */
+    }
+
+    footer {
+        font-size: 12px;
+    }
+}
