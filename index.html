@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>odiwr</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" type="image/png" href="https://odiwr.s3.us-east-2.amazonaws.com/icons/favicon.png">
+</head>
+
+<style>
+  body {
+    margin: 0;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+  }
+
+  @font-face {
+    font-family: AGXBold;
+    src: url('AktivGrotesk-XBold.ttf');
+  }
+
+  /* Background container to hold the images */
+  #background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: black;
+    background-size: cover;
+    background-position: center;
+    filter: blur(12px); /* Apply blur to the background container */
+    transition: background-image 0.5s ease-in-out;
+    z-index: -1; /* Ensure background stays behind other elements */
+  }
+
+  h1 {
+    font-family: AGXBold;
+    color: white; /* Set the default color to white */
+    font-size: 5em;
+    position: relative;
+    z-index: 2;
+    mix-blend-mode: difference; /* Apply blend mode for color contrast */
+    transition: transform 330ms ease-in-out;
+
+  }
+
+  h1:hover {
+    transform: scale(.75);
+
+  }
+
+  .hometitle {
+    display: flex;
+    margin: 0 auto;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    position: relative;
+    z-index: 2;
+  }
+
+  canvas {
+    display: block;
+    background-color: black;
+  }
+
+  nav,
+  footer {
+    position: relative;
+    z-index: 2;
+  }
+
+  footer {
+    text-align: center;
+    color: white;
+  }
+
+  @media (max-width: 768px) {
+    h1 {
+      font-family: AGXBold;
+      color: #aab1bd;
+      font-size: 1em;
+      position: relative;
+      z-index: 2;
+    }
+  }
+</style>
+
+<body>
+
+  <!-- Background div to hold the images and apply blur -->
+  <div id="background"></div>
+
+  <canvas id="starCanvas"></canvas>
+
+  <div class="wrapper">
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+      <ul class="nav-links">
+        <li class="nav"><a href="#">Home</a></li>
+        <li class="nav"><a href="portfolio.html">Portfolio</a></li>
+        <li class="nav"><a href="contact.html">Contact</a></li>
+      </ul>
+    </nav>
+
+    <div class="hometitle">
+      <h1 id="main-title">BILL ODIWUOR KAWAKA</h1>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      <p>&copy; Bill Odiwuor Kawaka</p>
+    </footer>
+
+  </div>
+
+  <script>
+    const canvas = document.getElementById('starCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // Create an array to store stars
+    const stars = [];
+    const numStars = 200;
+
+    // Star constructor
+    function Star(x, y, radius, speed) {
+        this.x = x;
+        this.y = y;
+        this.radius = radius;
+        this.speed = speed;
+
+        // Draw the star
+        this.draw = function() {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = 'white';
+            ctx.fill();
+        }
+
+        // Update star position
+        this.update = function() {
+            this.y += this.speed;
+            if (this.y > canvas.height) {
+                this.y = 0;
+                this.x = Math.random() * canvas.width;
+            }
+            this.draw();
+        }
+    }
+
+    // Create stars and add to the array
+    for (let i = 0; i < numStars; i++) {
+        let x = Math.random() * canvas.width;
+        let y = Math.random() * canvas.height;
+        let radius = Math.random() * 2;
+        let speed = Math.random() * 2 + 0.5;
+        stars.push(new Star(x, y, radius, speed));
+    }
+
+    // Animate the stars
+    function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (let i = 0; i < stars.length; i++) {
+            stars[i].update();
+        }
+        requestAnimationFrame(animate);
+    }
+
+    animate();
+
+    // Resize canvas when window is resized
+    window.addEventListener('resize', function() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    });
+</script>
+
+</body>
+
+</html>
