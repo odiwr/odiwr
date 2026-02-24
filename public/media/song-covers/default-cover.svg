@@ -1,0 +1,6 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600">
+  <rect width="600" height="600" fill="#ffffff"/>
+  <rect x="36" y="36" width="528" height="528" rx="6" fill="#f2f2f2" stroke="#bcbcbc" stroke-width="8"/>
+  <text x="300" y="280" text-anchor="middle" font-family="Arial, sans-serif" font-size="38" fill="#222">Drop Cover Art</text>
+  <text x="300" y="330" text-anchor="middle" font-family="Arial, sans-serif" font-size="26" fill="#666">public/media/song-covers</text>
+</svg>
