@@ -37,6 +37,16 @@
       <p class="mobile-lock-line">Check it out on desktop / come back on April 2nd.</p>
     </div>
     <div id="noise-bg" aria-hidden="true"></div>
+    <button
+      class="theme-mode-toggle"
+      id="themeModeToggle"
+      type="button"
+      aria-label="Toggle dark mode"
+      aria-pressed="false"
+      title="Toggle dark mode"
+    >
+      <span class="theme-mode-dot" aria-hidden="true"></span>
+    </button>
     <div class="site-loader" id="siteLoader" aria-hidden="true">
       <div class="loader-dots" role="status" aria-live="polite">
         <span></span>
@@ -62,9 +72,17 @@
               </div>
               <div class="mobile-gif-stage" id="mobileGifStage" aria-hidden="true">
                 <img
-                  class="mobile-gif-image"
+                  class="mobile-gif-image mobile-gif-image--light"
                   src="media/Gif/Banner.gif"
                   alt="Animated GIF"
+                  loading="eager"
+                  decoding="async"
+                />
+                <img
+                  class="mobile-gif-image mobile-gif-image--dark"
+                  src="media/Gif/Banner_Gray.gif"
+                  alt=""
+                  aria-hidden="true"
                   loading="eager"
                   decoding="async"
                 />
@@ -74,9 +92,17 @@
           <div class="hero-guy-sequence" id="guySequence" aria-label="Animated frame sequence">
             <img
               id="guySequenceFrame"
-              class="hero-guy-frame"
+              class="hero-guy-frame hero-guy-frame--light"
               src="media/Gif/Banner.gif"
               alt="Animated frame"
+              loading="eager"
+              decoding="async"
+            />
+            <img
+              class="hero-guy-frame hero-guy-frame--dark"
+              src="media/Gif/Banner_Gray.gif"
+              alt=""
+              aria-hidden="true"
               loading="eager"
               decoding="async"
             />
@@ -218,7 +244,9 @@
                 </article>
                 <article class="xp-popup" data-popup-index="5">
                   <header class="xp-titlebar"><span>OdiOS</span></header>
-                  <div class="xp-body xp-body-iheartfilm"></div>
+                  <div class="xp-body xp-body-iheartfilm">
+                    <p class="xp-coming-soon">coming soon.</p>
+                  </div>
                 </article>
                 <article class="xp-popup" data-popup-index="6">
                   <header class="xp-titlebar"><span>OdiOS</span></header>

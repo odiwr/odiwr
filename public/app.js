@@ -40,16 +40,88 @@ const bubblesGameBullets = document.getElementById("bubblesGameBullets");
 const bubblesGameShip = document.getElementById("bubblesGameShip");
 const bubblesGameMode = document.getElementById("bubblesGameMode");
 const bubbleResumeTrigger = document.getElementById("bubbleResumeTrigger");
+const bubbleImageOne = document.querySelector(".bubble-image-1");
+const bubbleImageTwo = document.querySelector(".bubble-image-2");
+const bubbleImageThree = document.querySelector(".bubble-image-3");
+const themeModeToggle = document.getElementById("themeModeToggle");
 const popup2Cards = Array.from(
   document.querySelectorAll("[data-collapsible-card]")
 );
 let hasPlayedBrandIntro = false;
+const THEME_PREF_KEY = "odiwr-theme";
 
 const panelState = {
   current: 0,
   total: 9
 };
 let dvdScreensaverController = null;
+
+const isDarkThemeActive = () => document.body.classList.contains("theme-dark");
+const getBrandBaseColor = () => (isDarkThemeActive() ? "#888888" : "#000000");
+const getBrandLightColor = () => "#f2f2f2";
+const getBrandPalette = () =>
+  isDarkThemeActive()
+    ? [getBrandBaseColor(), getBrandLightColor()]
+    : [getBrandBaseColor(), "#e32078", "#2ba6d6"];
+
+const syncThemeDependentUi = () => {
+  const bubbleThemeSuffix = isDarkThemeActive() ? "TextBubbles-Dark" : "TextBubbles";
+  if (bubbleImageOne) bubbleImageOne.src = `media/images/${bubbleThemeSuffix}-01.png`;
+  if (bubbleImageTwo) bubbleImageTwo.src = `media/images/${bubbleThemeSuffix}-02.png`;
+  if (bubbleImageThree) bubbleImageThree.src = `media/images/${bubbleThemeSuffix}-03.png`;
+
+  if (brandHeading) {
+    const letters = Array.from(brandHeading.querySelectorAll(".brand-letter"));
+    const palette = getBrandPalette();
+    letters.forEach((letter) => {
+      const colorIndex = Number(letter.dataset.colorIndex || "0");
+      if (colorIndex === 0) {
+        letter.style.color = palette[0];
+      }
+    });
+  }
+};
+
+const applyThemePreference = (mode, { persist = false } = {}) => {
+  const isDark = mode === "dark";
+  document.body.classList.toggle("theme-dark", isDark);
+  if (themeModeToggle) {
+    themeModeToggle.setAttribute("aria-pressed", String(isDark));
+    themeModeToggle.setAttribute(
+      "aria-label",
+      isDark ? "Switch to light mode" : "Switch to dark mode"
+    );
+    themeModeToggle.title = isDark ? "Light mode" : "Dark mode";
+  }
+  if (persist) {
+    try {
+      window.localStorage.setItem(THEME_PREF_KEY, isDark ? "dark" : "light");
+    } catch {
+      /* Ignore storage errors. */
+    }
+  }
+  syncThemeDependentUi();
+};
+
+const setupThemeModeToggle = () => {
+  let storedTheme = "light";
+  try {
+    storedTheme = window.localStorage.getItem(THEME_PREF_KEY) || "light";
+  } catch {
+    storedTheme = "light";
+  }
+
+  applyThemePreference(storedTheme);
+
+  if (!themeModeToggle) return;
+
+  themeModeToggle.addEventListener("click", () => {
+    const nextMode = document.body.classList.contains("theme-dark")
+      ? "light"
+      : "dark";
+    applyThemePreference(nextMode, { persist: true });
+  });
+};
 
 const updatePanelCounter = () => {
   if (!panelCounter) return;
@@ -1029,7 +1101,7 @@ const setupRightPanel = () => {
 
 const setupGuySequence = () => {
   if (!guySequenceFrame) return { start: () => {} };
-  const gifPath = "media/gif/Banner.gif";
+  const gifPath = "media/Gif/Banner.gif";
 
   return {
     start: () => {
@@ -1114,7 +1186,7 @@ const setupBrandLetterClicks = () => {
   const text = (brandHeading.textContent || "").trim();
   if (!text) return;
 
-  const colors = ["#000000", "#e32078", "#2ba6d6"];
+  const colors = getBrandPalette();
   brandHeading.innerHTML = "";
 
   text.split("").forEach((char) => {
@@ -1129,10 +1201,11 @@ const setupBrandLetterClicks = () => {
     letter.dataset.colorIndex = "0";
 
     letter.addEventListener("click", () => {
+      const palette = getBrandPalette();
       const currentIndex = Number(letter.dataset.colorIndex || "0");
-      const nextIndex = (currentIndex + 1) % colors.length;
+      const nextIndex = (currentIndex + 1) % palette.length;
       letter.dataset.colorIndex = String(nextIndex);
-      letter.style.color = colors[nextIndex];
+      letter.style.color = palette[nextIndex];
       letter.classList.remove("is-pop");
       void letter.offsetWidth;
       letter.classList.add("is-pop");
@@ -1154,18 +1227,24 @@ const playBrandIntroAnimation = () => {
       letter.classList.remove("is-intro");
       void letter.offsetWidth;
       const onIntroEnd = () => {
-        letter.style.color = "#000000";
+        letter.style.color = getBrandBaseColor();
         letter.classList.remove("is-intro");
       };
       letter.addEventListener("animationend", onIntroEnd, { once: true });
       letter.classList.add("is-intro");
 
-      window.setTimeout(() => {
-        letter.style.color = "#e32078";
-      }, 40);
-      window.setTimeout(() => {
-        letter.style.color = "#2ba6d6";
-      }, 125);
+      if (isDarkThemeActive()) {
+        window.setTimeout(() => {
+          letter.style.color = getBrandLightColor();
+        }, 40);
+      } else {
+        window.setTimeout(() => {
+          letter.style.color = "#e32078";
+        }, 40);
+        window.setTimeout(() => {
+          letter.style.color = "#2ba6d6";
+        }, 125);
+      }
     }, delay);
   });
 };
@@ -1993,8 +2072,13 @@ const setupBubblesAsteroidsBackdrop = () => {
     manualUntil: 0,
     forcePlayerLock: false,
     fireCooldown: 0,
+    cloneFireCooldown: 0,
     aiFireCooldown: 0,
     shipInvuln: 0,
+    cloneShipInvuln: 0,
+    powerupCheckTimer: 3,
+    powerup: null,
+    activePowerup: null,
     ship: {
       x: 0,
       y: 0,
@@ -2003,28 +2087,52 @@ const setupBubblesAsteroidsBackdrop = () => {
       angle: -Math.PI / 2,
       radius: 13
     },
+    cloneShip: null,
     bullets: [],
-    asteroids: []
+    asteroids: [],
+    effects: []
   };
 
   const nodes = {
     asteroidPolys: [],
     bulletCircles: [],
+    effectLines: [],
+    effectCircles: [],
     shipGroup: createSvgEl("g"),
     shipHull: createSvgEl("polygon"),
     shipFlame: createSvgEl("polyline"),
-    shipPilot: createSvgEl("circle")
+    shipPilot: createSvgEl("circle"),
+    shipShield: createSvgEl("circle"),
+    cloneShipGroup: createSvgEl("g"),
+    cloneShipHull: createSvgEl("polygon"),
+    cloneShipFlame: createSvgEl("polyline"),
+    cloneShipPilot: createSvgEl("circle"),
+    cloneShipShield: createSvgEl("circle"),
+    powerupGroup: createSvgEl("g")
+  };
+
+  const POWERUP_TYPES = ["speed", "giant", "duplicate", "trishot"];
+  const POWERUP_DURATION = {
+    speed: 11,
+    giant: 6.5,
+    duplicate: 10,
+    trishot: 6.5
   };
 
   const setModeIndicator = (isUser) => {
+    const duplicateAssist = state.activePowerup?.type === "duplicate";
     bubblesGameMode.classList.toggle("is-user", isUser && !state.forcePlayerLock);
     bubblesGameMode.classList.toggle("is-player-lock", !!state.forcePlayerLock);
+    bubblesGameMode.classList.toggle("is-both", !!duplicateAssist);
     const label = bubblesGameMode.querySelector(".bubbles-game-label");
-    if (label) label.textContent = isUser ? "You" : "BOT";
+    if (label) label.textContent = duplicateAssist ? "BOT+YOU" : isUser ? "You" : "BOT";
   };
 
   const buildStars = () => {
     bubblesGameStars.innerHTML = "";
+    const darkMode = isDarkThemeActive();
+    const dotFill = darkMode ? "rgba(255,255,255,0.78)" : "rgba(0,0,0,0.22)";
+    const markStroke = darkMode ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.12)";
     const starCount = Math.max(22, Math.round((state.width * state.height) / 35000));
     for (let i = 0; i < starCount; i += 1) {
       const x = rand(8, state.width - 8);
@@ -2033,7 +2141,8 @@ const setupBubblesAsteroidsBackdrop = () => {
       dot.setAttribute("cx", `${x.toFixed(1)}`);
       dot.setAttribute("cy", `${y.toFixed(1)}`);
       dot.setAttribute("r", `${rand(0.65, 1.65).toFixed(2)}`);
-      dot.setAttribute("fill", "rgba(0,0,0,0.22)");
+      dot.setAttribute("fill", dotFill);
+      dot.dataset.starKind = "dot";
       bubblesGameStars.appendChild(dot);
 
       if (Math.random() < 0.28) {
@@ -2045,9 +2154,10 @@ const setupBubblesAsteroidsBackdrop = () => {
           `M ${x.toFixed(1)} ${y.toFixed(1)} q ${(dx * 0.5).toFixed(1)} ${(-dy * 0.2).toFixed(1)} ${dx.toFixed(1)} ${dy.toFixed(1)}`
         );
         mark.setAttribute("fill", "none");
-        mark.setAttribute("stroke", "rgba(0,0,0,0.12)");
+        mark.setAttribute("stroke", markStroke);
         mark.setAttribute("stroke-width", "1.1");
         mark.setAttribute("stroke-linecap", "round");
+        mark.dataset.starKind = "mark";
         bubblesGameStars.appendChild(mark);
       }
     }
@@ -2064,7 +2174,186 @@ const setupBubblesAsteroidsBackdrop = () => {
     return points;
   };
 
-  const spawnAsteroid = (size = rand(26, 54), x, y) => {
+  const makePowerupVisual = (type) => {
+    nodes.powerupGroup.innerHTML = "";
+    const ring = createSvgEl("circle");
+    ring.setAttribute("r", "11");
+    ring.setAttribute("fill", "rgba(255,255,255,0.9)");
+    ring.setAttribute("stroke", "rgba(0,0,0,0.25)");
+    ring.setAttribute("stroke-width", "1.5");
+    nodes.powerupGroup.appendChild(ring);
+
+    const iconStroke = "rgba(0,0,0,0.7)";
+    const iconFill = "rgba(214,36,36,0.9)";
+
+    if (type === "speed") {
+      const chevron1 = createSvgEl("polyline");
+      chevron1.setAttribute("points", "-5,-4 -1,0 -5,4");
+      chevron1.setAttribute("fill", "none");
+      chevron1.setAttribute("stroke", iconStroke);
+      chevron1.setAttribute("stroke-width", "2");
+      chevron1.setAttribute("stroke-linecap", "round");
+      chevron1.setAttribute("stroke-linejoin", "round");
+      const chevron2 = createSvgEl("polyline");
+      chevron2.setAttribute("points", "0,-4 4,0 0,4");
+      chevron2.setAttribute("fill", "none");
+      chevron2.setAttribute("stroke", iconStroke);
+      chevron2.setAttribute("stroke-width", "2");
+      chevron2.setAttribute("stroke-linecap", "round");
+      chevron2.setAttribute("stroke-linejoin", "round");
+      nodes.powerupGroup.appendChild(chevron1);
+      nodes.powerupGroup.appendChild(chevron2);
+    } else if (type === "giant") {
+      const core = createSvgEl("circle");
+      core.setAttribute("r", "4.2");
+      core.setAttribute("fill", iconFill);
+      core.setAttribute("stroke", iconStroke);
+      core.setAttribute("stroke-width", "1.2");
+      nodes.powerupGroup.appendChild(core);
+      [
+        "M 0 -9 L 0 -5",
+        "M 0 9 L 0 5",
+        "M -9 0 L -5 0",
+        "M 9 0 L 5 0"
+      ].forEach((d) => {
+        const p = createSvgEl("path");
+        p.setAttribute("d", d);
+        p.setAttribute("stroke", iconStroke);
+        p.setAttribute("stroke-width", "1.6");
+        p.setAttribute("stroke-linecap", "round");
+        p.setAttribute("fill", "none");
+        nodes.powerupGroup.appendChild(p);
+      });
+    } else if (type === "duplicate") {
+      const left = createSvgEl("rect");
+      left.setAttribute("x", "-6.5");
+      left.setAttribute("y", "-4");
+      left.setAttribute("width", "6");
+      left.setAttribute("height", "8");
+      left.setAttribute("rx", "1.2");
+      left.setAttribute("fill", iconFill);
+      left.setAttribute("stroke", iconStroke);
+      left.setAttribute("stroke-width", "1");
+      const right = createSvgEl("rect");
+      right.setAttribute("x", "0.5");
+      right.setAttribute("y", "-4");
+      right.setAttribute("width", "6");
+      right.setAttribute("height", "8");
+      right.setAttribute("rx", "1.2");
+      right.setAttribute("fill", "rgba(43,166,214,0.9)");
+      right.setAttribute("stroke", iconStroke);
+      right.setAttribute("stroke-width", "1");
+      nodes.powerupGroup.appendChild(left);
+      nodes.powerupGroup.appendChild(right);
+    } else if (type === "trishot") {
+      const fan = [
+        "-7,4 0,-8 7,4",
+        "-5,6 0,-2 5,6",
+        "-1,7 0,3 1,7"
+      ];
+      fan.forEach((pts, idx) => {
+        const poly = createSvgEl("polyline");
+        poly.setAttribute("points", pts);
+        poly.setAttribute("fill", "none");
+        poly.setAttribute("stroke", idx === 0 ? iconStroke : "rgba(0,0,0,0.45)");
+        poly.setAttribute("stroke-width", idx === 0 ? "1.8" : "1.2");
+        poly.setAttribute("stroke-linecap", "round");
+        poly.setAttribute("stroke-linejoin", "round");
+        nodes.powerupGroup.appendChild(poly);
+      });
+    }
+  };
+
+  const createHeavyAsteroid = (x, y, size = rand(74, 96)) => ({
+    x,
+    y,
+    vx: rand(-30, 30),
+    vy: rand(-30, 30),
+    angle: rand(0, Math.PI * 2),
+    spin: rand(-0.35, 0.35),
+    size,
+    hp: 7,
+    maxHp: 7,
+    heavy: true,
+    shape: makeAsteroidShape(size)
+  });
+
+  const maybeSpawnHeavyAsteroid = () => {
+    if (state.asteroids.some((a) => a.heavy)) return;
+    if (Math.random() > 0.22) return;
+    let x = rand(0, state.width);
+    let y = rand(0, state.height);
+    if (Math.hypot(x - state.ship.x, y - state.ship.y) < 150) {
+      x = (x + state.width * 0.43) % state.width;
+      y = (y + state.height * 0.37) % state.height;
+    }
+    state.asteroids.push(createHeavyAsteroid(x, y));
+  };
+
+  const spawnPowerup = () => {
+    if (state.powerup || state.activePowerup) return;
+    const type = POWERUP_TYPES[(Math.random() * POWERUP_TYPES.length) | 0];
+    const powerup = {
+      type,
+      x: rand(24, state.width - 24),
+      y: rand(24, state.height - 24),
+      vx: rand(-18, 18),
+      vy: rand(-18, 18),
+      life: 11,
+      spin: rand(-0.9, 0.9),
+      angle: rand(0, Math.PI * 2),
+      pulse: rand(0, Math.PI * 2),
+      radius: 14
+    };
+    if (Math.hypot(powerup.x - state.ship.x, powerup.y - state.ship.y) < 110) {
+      powerup.x = (powerup.x + state.width * 0.4) % state.width;
+      powerup.y = (powerup.y + state.height * 0.35) % state.height;
+    }
+    state.powerup = powerup;
+    makePowerupVisual(type);
+  };
+
+  const activatePowerup = (type) => {
+    state.activePowerup = {
+      type,
+      timeLeft: POWERUP_DURATION[type] || 6
+    };
+    state.powerup = null;
+    if (type === "duplicate") spawnCloneShip();
+  };
+
+  const addExplosionEffect = (x, y, size, color = "rgba(214,36,36,0.75)", count = 10) => {
+    for (let i = 0; i < count; i += 1) {
+      const angle = rand(0, Math.PI * 2);
+      const speed = rand(55, 180) * (size / 40);
+      state.effects.push({
+        kind: "line",
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: rand(0.25, 0.6),
+        maxLife: 0.6,
+        len: rand(4, 10) * (size / 36),
+        angle,
+        color
+      });
+    }
+    for (let i = 0; i < Math.max(2, Math.round(count / 4)); i += 1) {
+      state.effects.push({
+        kind: "ring",
+        x: x + rand(-4, 4),
+        y: y + rand(-4, 4),
+        life: rand(0.18, 0.32),
+        maxLife: 0.32,
+        r: rand(2, 5),
+        grow: rand(55, 95),
+        color
+      });
+    }
+  };
+
+  const spawnAsteroid = (size = rand(26, 54), x, y, opts = {}) => {
     const safePadding = 120;
     let ax = x ?? rand(0, state.width);
     let ay = y ?? rand(0, state.height);
@@ -2081,25 +2370,52 @@ const setupBubblesAsteroidsBackdrop = () => {
       angle: rand(0, Math.PI * 2),
       spin: rand(-0.7, 0.7),
       size,
+      hp: opts.hp ?? 1,
+      maxHp: opts.maxHp ?? (opts.hp ?? 1),
+      heavy: !!opts.heavy,
       shape: makeAsteroidShape(size)
     });
   };
 
   const seedAsteroids = () => {
     state.asteroids = [];
-    const count = Math.max(6, Math.round((state.width * state.height) / 180000));
+    const count = Math.max(7, Math.round((state.width * state.height) / 164000));
     for (let i = 0; i < count; i += 1) {
       spawnAsteroid();
     }
+    maybeSpawnHeavyAsteroid();
+  };
+
+  const resetShipEntity = (ship, invulnKey, x, y) => {
+    ship.x = x;
+    ship.y = y;
+    ship.vx = 0;
+    ship.vy = 0;
+    ship.angle = -Math.PI / 2;
+    ship.radius = ship.radius || 13;
+    state[invulnKey] = 1.6;
   };
 
   const resetShip = () => {
-    state.ship.x = state.width * 0.5;
-    state.ship.y = state.height * 0.52;
-    state.ship.vx = 0;
-    state.ship.vy = 0;
-    state.ship.angle = -Math.PI / 2;
-    state.shipInvuln = 1.6;
+    resetShipEntity(state.ship, "shipInvuln", state.width * 0.5, state.height * 0.52);
+  };
+
+  const spawnCloneShip = () => {
+    if (state.cloneShip) return;
+    state.cloneShip = {
+      x: (state.ship.x + 54) % Math.max(1, state.width),
+      y: (state.ship.y + 34) % Math.max(1, state.height),
+      vx: state.ship.vx,
+      vy: state.ship.vy,
+      angle: state.ship.angle,
+      radius: 13
+    };
+    state.cloneShipInvuln = 2;
+  };
+
+  const removeCloneShip = () => {
+    state.cloneShip = null;
+    state.cloneShipInvuln = 0;
   };
 
   const resize = () => {
@@ -2113,6 +2429,10 @@ const setupBubblesAsteroidsBackdrop = () => {
     } else {
       state.ship.x = Math.min(Math.max(state.ship.x, 0), state.width);
       state.ship.y = Math.min(Math.max(state.ship.y, 0), state.height);
+      if (state.cloneShip) {
+        state.cloneShip.x = Math.min(Math.max(state.cloneShip.x, 0), state.width);
+        state.cloneShip.y = Math.min(Math.max(state.cloneShip.y, 0), state.height);
+      }
     }
   };
 
@@ -2134,45 +2454,107 @@ const setupBubblesAsteroidsBackdrop = () => {
       bubblesGameBullets.appendChild(bullet);
       nodes.bulletCircles.push(bullet);
     }
+
+    while (nodes.effectLines.length < Math.max(36, state.effects.filter((e) => e.kind === "line").length + 8)) {
+      const line = createSvgEl("line");
+      line.setAttribute("stroke-linecap", "round");
+      line.setAttribute("stroke-width", "1.6");
+      bubblesGameBullets.appendChild(line);
+      nodes.effectLines.push(line);
+    }
+
+    while (nodes.effectCircles.length < Math.max(12, state.effects.filter((e) => e.kind === "ring").length + 4)) {
+      const circle = createSvgEl("circle");
+      circle.setAttribute("fill", "none");
+      circle.setAttribute("stroke-width", "1.3");
+      bubblesGameBullets.appendChild(circle);
+      nodes.effectCircles.push(circle);
+    }
+  };
+
+  const initShipVisual = (group, hull, flame, pilot, shield, tint = "rgba(214,36,36,0.7)") => {
+    hull.setAttribute("points", "15,0 -10,9 -5,0 -10,-9");
+    hull.setAttribute("fill", "none");
+    hull.setAttribute("stroke", "rgba(0,0,0,0.55)");
+    hull.setAttribute("stroke-width", "2");
+    hull.setAttribute("stroke-linejoin", "round");
+
+    flame.setAttribute("points", "-8,0 -17,0 -12,4 -19,0 -12,-4 -17,0");
+    flame.setAttribute("fill", "none");
+    flame.setAttribute("stroke", tint);
+    flame.setAttribute("stroke-width", "1.8");
+    flame.setAttribute("stroke-linecap", "round");
+    flame.style.display = "none";
+
+    pilot.setAttribute("cx", "4");
+    pilot.setAttribute("cy", "0");
+    pilot.setAttribute("r", "1.5");
+    pilot.setAttribute("fill", "rgba(0,0,0,0.4)");
+
+    shield.setAttribute("r", "18");
+    shield.setAttribute("fill", "none");
+    shield.setAttribute("stroke", "rgba(43,166,214,0.55)");
+    shield.setAttribute("stroke-width", "1.5");
+    shield.style.display = "none";
+
+    group.appendChild(shield);
+    group.appendChild(flame);
+    group.appendChild(hull);
+    group.appendChild(pilot);
   };
 
   const buildShip = () => {
-    nodes.shipHull.setAttribute("points", "15,0 -10,9 -5,0 -10,-9");
-    nodes.shipHull.setAttribute("fill", "none");
-    nodes.shipHull.setAttribute("stroke", "rgba(0,0,0,0.55)");
-    nodes.shipHull.setAttribute("stroke-width", "2");
-    nodes.shipHull.setAttribute("stroke-linejoin", "round");
-
-    nodes.shipFlame.setAttribute("points", "-8,0 -17,0 -12,4 -19,0 -12,-4 -17,0");
-    nodes.shipFlame.setAttribute("fill", "none");
-    nodes.shipFlame.setAttribute("stroke", "rgba(214,36,36,0.7)");
-    nodes.shipFlame.setAttribute("stroke-width", "1.8");
-    nodes.shipFlame.setAttribute("stroke-linecap", "round");
-    nodes.shipFlame.style.display = "none";
-
-    nodes.shipPilot.setAttribute("cx", "4");
-    nodes.shipPilot.setAttribute("cy", "0");
-    nodes.shipPilot.setAttribute("r", "1.5");
-    nodes.shipPilot.setAttribute("fill", "rgba(0,0,0,0.4)");
-
-    nodes.shipGroup.appendChild(nodes.shipFlame);
-    nodes.shipGroup.appendChild(nodes.shipHull);
-    nodes.shipGroup.appendChild(nodes.shipPilot);
+    initShipVisual(
+      nodes.shipGroup,
+      nodes.shipHull,
+      nodes.shipFlame,
+      nodes.shipPilot,
+      nodes.shipShield,
+      "rgba(214,36,36,0.7)"
+    );
+    initShipVisual(
+      nodes.cloneShipGroup,
+      nodes.cloneShipHull,
+      nodes.cloneShipFlame,
+      nodes.cloneShipPilot,
+      nodes.cloneShipShield,
+      "rgba(43,166,214,0.72)"
+    );
+    nodes.cloneShipGroup.style.display = "none";
+    bubblesGameShip.appendChild(nodes.cloneShipGroup);
     bubblesGameShip.appendChild(nodes.shipGroup);
+    nodes.powerupGroup.style.display = "none";
+    bubblesGameShip.appendChild(nodes.powerupGroup);
   };
 
-  const shootBullet = () => {
-    if (state.fireCooldown > 0) return false;
-    const noseX = state.ship.x + Math.cos(state.ship.angle) * 16;
-    const noseY = state.ship.y + Math.sin(state.ship.angle) * 16;
-    state.bullets.push({
-      x: noseX,
-      y: noseY,
-      vx: state.ship.vx + Math.cos(state.ship.angle) * 340,
-      vy: state.ship.vy + Math.sin(state.ship.angle) * 340,
-      life: 1.15
-    });
-    state.fireCooldown = 0.16;
+  const shootBullet = (source = "user", shipOverride = null, cooldownKey = "fireCooldown") => {
+    if ((state[cooldownKey] || 0) > 0) return false;
+    const activeType = state.activePowerup?.type || null;
+    const giant = activeType === "giant";
+    const trishot = activeType === "trishot";
+    const bulletSpeedBase = 340;
+    const bulletSpeed = giant ? 325 : bulletSpeedBase;
+    const spreadAngles = trishot ? [-0.18, 0, 0.18] : [0];
+    const shotColor = source === "bot" || source === "assist" ? "#e32078" : "#2ba6d6";
+    const shootFromShip = (ship) => {
+      const noseX = ship.x + Math.cos(ship.angle) * 16;
+      const noseY = ship.y + Math.sin(ship.angle) * 16;
+      for (const spread of spreadAngles) {
+        const a = ship.angle + spread;
+        state.bullets.push({
+          x: noseX,
+          y: noseY,
+          vx: ship.vx + Math.cos(a) * bulletSpeed,
+          vy: ship.vy + Math.sin(a) * bulletSpeed,
+          life: giant ? 1.28 : 1.15,
+          radius: giant ? 3.2 : 2,
+          damage: giant ? 2 : 1,
+          color: shotColor
+        });
+      }
+    };
+    shootFromShip(shipOverride || state.ship);
+    state[cooldownKey] = 0.16;
     return true;
   };
 
@@ -2223,11 +2605,11 @@ const setupBubblesAsteroidsBackdrop = () => {
     return Math.min(...positives);
   };
 
-  const getPredictedAimForAsteroid = (asteroid) => {
-    const { dx, dy } = getWrappedDelta(state.ship.x, state.ship.y, asteroid.x, asteroid.y);
+  const getPredictedAimForAsteroid = (asteroid, shipRef = state.ship) => {
+    const { dx, dy } = getWrappedDelta(shipRef.x, shipRef.y, asteroid.x, asteroid.y);
     const dist = Math.hypot(dx, dy);
-    const relVx = asteroid.vx - state.ship.vx;
-    const relVy = asteroid.vy - state.ship.vy;
+    const relVx = asteroid.vx - shipRef.vx;
+    const relVy = asteroid.vy - shipRef.vy;
     const bulletSpeed = 340;
     const t = solveInterceptTime(dx, dy, relVx, relVy, bulletSpeed);
 
@@ -2238,8 +2620,8 @@ const setupBubblesAsteroidsBackdrop = () => {
         dist,
         interceptTime: null,
         desiredAngle: desired,
-        aimX: state.ship.x + dx,
-        aimY: state.ship.y + dy,
+        aimX: shipRef.x + dx,
+        aimY: shipRef.y + dy,
         score: dist * 1.1 + (220 - Math.min(220, asteroid.size * 4))
       };
     }
@@ -2261,30 +2643,30 @@ const setupBubblesAsteroidsBackdrop = () => {
       dist,
       interceptTime: t,
       desiredAngle: desired,
-      aimX: state.ship.x + leadDx,
-      aimY: state.ship.y + leadDy,
+      aimX: shipRef.x + leadDx,
+      aimY: shipRef.y + leadDy,
       inLifeWindow,
       score
     };
   };
 
-  const getBestAiTarget = () => {
+  const getBestAiTarget = (shipRef = state.ship) => {
     let best = null;
     for (const asteroid of state.asteroids) {
-      const candidate = getPredictedAimForAsteroid(asteroid);
+      const candidate = getPredictedAimForAsteroid(asteroid, shipRef);
       if (!best || candidate.score < best.score) best = candidate;
     }
     return best;
   };
 
-  const getAiControl = () => {
-    const targetInfo = getBestAiTarget();
+  const getAiControl = (shipRef = state.ship) => {
+    const targetInfo = getBestAiTarget(shipRef);
     if (!targetInfo) {
       return { turn: 0.35, thrust: false, brake: false, fire: false };
     }
     const { asteroid: target, dist, desiredAngle, interceptTime, inLifeWindow } = targetInfo;
-    const diff = wrapAngle(desiredAngle - state.ship.angle);
-    const speed = Math.hypot(state.ship.vx, state.ship.vy);
+    const diff = wrapAngle(desiredAngle - shipRef.angle);
+    const speed = Math.hypot(shipRef.vx, shipRef.vy);
     let turn = 0;
     if (Math.abs(diff) > 0.07) turn = diff > 0 ? 1 : -1;
 
@@ -2309,11 +2691,36 @@ const setupBubblesAsteroidsBackdrop = () => {
     return { turn, thrust, brake, fire };
   };
 
-  const splitAsteroid = (index) => {
+  const hitAsteroid = (index, damage = 1) => {
     const asteroid = state.asteroids[index];
     if (!asteroid) return;
-    const { x, y, size } = asteroid;
+    const fxDust = isDarkThemeActive() ? "rgba(255,255,255,0.42)" : "rgba(0,0,0,0.35)";
+    const fxDustHeavy = isDarkThemeActive() ? "rgba(255,255,255,0.58)" : "rgba(0,0,0,0.5)";
+    const fxSplit = isDarkThemeActive() ? "rgba(255,255,255,0.48)" : "rgba(0,0,0,0.42)";
+    asteroid.hp = Math.max(0, (asteroid.hp ?? 1) - damage);
+    if (asteroid.hp > 0) {
+      addExplosionEffect(
+        asteroid.x,
+        asteroid.y,
+        Math.max(18, asteroid.size * 0.3),
+        fxDust,
+        asteroid.heavy ? 5 : 3
+      );
+      return;
+    }
+
+    const { x, y, size, heavy } = asteroid;
     state.asteroids.splice(index, 1);
+    if (heavy) {
+      addExplosionEffect(x, y, size * 1.1, "rgba(214,36,36,0.8)", 18);
+      addExplosionEffect(x, y, size * 0.9, fxDustHeavy, 12);
+      if (Math.random() < 0.35 && !state.powerup && !state.activePowerup) {
+        spawnPowerup();
+      }
+      return;
+    }
+
+    addExplosionEffect(x, y, size * 0.55, fxSplit, 6);
     if (size > 24) {
       spawnAsteroid(size * 0.62, x + rand(-8, 8), y + rand(-8, 8));
       spawnAsteroid(size * 0.56, x + rand(-8, 8), y + rand(-8, 8));
@@ -2321,43 +2728,86 @@ const setupBubblesAsteroidsBackdrop = () => {
     if (state.asteroids.length < 5) {
       spawnAsteroid(rand(26, 54));
     }
+    maybeSpawnHeavyAsteroid();
   };
 
   const update = (dt, now) => {
     state.fireCooldown = Math.max(0, state.fireCooldown - dt);
+    state.cloneFireCooldown = Math.max(0, state.cloneFireCooldown - dt);
     state.aiFireCooldown = Math.max(0, state.aiFireCooldown - dt);
     state.shipInvuln = Math.max(0, state.shipInvuln - dt);
+    state.cloneShipInvuln = Math.max(0, state.cloneShipInvuln - dt);
+    const endDuplicateAssist = () => {
+      if (state.activePowerup?.type !== "duplicate") return;
+      state.activePowerup = null;
+      removeCloneShip();
+    };
+    if (state.activePowerup) {
+      const expiredType = state.activePowerup.type;
+      if (expiredType !== "duplicate") {
+        state.activePowerup.timeLeft -= dt;
+      }
+      if (state.activePowerup.timeLeft <= 0) {
+        state.activePowerup = null;
+        if (expiredType === "duplicate") removeCloneShip();
+      }
+    }
+
+    if (!state.activePowerup && !state.powerup) {
+      state.powerupCheckTimer -= dt;
+      if (state.powerupCheckTimer <= 0) {
+        state.powerupCheckTimer = 3;
+        if (Math.random() < 0.62) spawnPowerup();
+      }
+    } else {
+      state.powerupCheckTimer = 3;
+    }
 
     const userActive = isManualActive(now);
+    const aiControl = getAiControl(state.ship);
+    const duplicateAssistActive = state.activePowerup?.type === "duplicate";
     setModeIndicator(userActive);
-    const control = userActive ? getUserControl() : getAiControl();
+    const userControl = userActive ? getUserControl() : null;
+    const control = userActive ? userControl : aiControl;
+    const cloneControl = state.cloneShip ? getAiControl(state.cloneShip) : null;
 
-    state.ship.angle += control.turn * 3.6 * dt;
+    const activeType = state.activePowerup?.type || null;
+    const speedBoostActive = activeType === "speed";
+    const thrustAccel = speedBoostActive ? 470 : 260;
+    const shipDragBase = speedBoostActive ? 0.997 : 0.992;
+    const shipRadius = activeType === "giant" ? 32 : 13;
+    state.ship.radius = shipRadius;
+    if (state.cloneShip) state.cloneShip.radius = shipRadius;
 
-    if (control.thrust) {
-      state.ship.vx += Math.cos(state.ship.angle) * 260 * dt;
-      state.ship.vy += Math.sin(state.ship.angle) * 260 * dt;
-    }
-
-    if (control.brake) {
-      const brakeFactor = Math.pow(0.87, dt * 60);
-      state.ship.vx *= brakeFactor;
-      state.ship.vy *= brakeFactor;
-    }
-
-    const drag = Math.pow(0.992, dt * 60);
-    state.ship.vx *= drag;
-    state.ship.vy *= drag;
-
-    state.ship.x += state.ship.vx * dt;
-    state.ship.y += state.ship.vy * dt;
-    wrapPos(state.ship, state.width, state.height);
+    const applyControlToShip = (ship, shipControl) => {
+      ship.angle += shipControl.turn * 3.6 * dt;
+      if (shipControl.thrust) {
+        ship.vx += Math.cos(ship.angle) * thrustAccel * dt;
+        ship.vy += Math.sin(ship.angle) * thrustAccel * dt;
+      }
+      if (shipControl.brake) {
+        const brakeFactor = Math.pow(0.87, dt * 60);
+        ship.vx *= brakeFactor;
+        ship.vy *= brakeFactor;
+      }
+      const drag = Math.pow(shipDragBase, dt * 60);
+      ship.vx *= drag;
+      ship.vy *= drag;
+      ship.x += ship.vx * dt;
+      ship.y += ship.vy * dt;
+      wrapPos(ship, state.width, state.height);
+    };
+    applyControlToShip(state.ship, control);
+    if (state.cloneShip && cloneControl) applyControlToShip(state.cloneShip, cloneControl);
 
     if (control.fire) {
-      const fired = shootBullet();
+      const fired = shootBullet(userActive ? "user" : "bot", state.ship, "fireCooldown");
       if (fired && !userActive) {
         state.aiFireCooldown = 0.34 + Math.random() * 0.14;
       }
+    }
+    if (duplicateAssistActive && state.cloneShip && cloneControl?.fire) {
+      shootBullet("bot", state.cloneShip, "cloneFireCooldown");
     }
 
     for (let i = state.bullets.length - 1; i >= 0; i -= 1) {
@@ -2368,6 +2818,18 @@ const setupBubblesAsteroidsBackdrop = () => {
       wrapPos(bullet, state.width, state.height);
       if (bullet.life <= 0) {
         state.bullets.splice(i, 1);
+      }
+    }
+
+    if (state.powerup) {
+      state.powerup.life -= dt;
+      state.powerup.x += state.powerup.vx * dt;
+      state.powerup.y += state.powerup.vy * dt;
+      state.powerup.angle += state.powerup.spin * dt;
+      state.powerup.pulse += dt * 4.2;
+      wrapPos(state.powerup, state.width, state.height);
+      if (state.powerup.life <= 0) {
+        state.powerup = null;
       }
     }
 
@@ -2389,26 +2851,101 @@ const setupBubblesAsteroidsBackdrop = () => {
         }
       }
       if (hitIndex >= 0) {
+        const damage = bullet.damage ?? 1;
         state.bullets.splice(bi, 1);
-        splitAsteroid(hitIndex);
+        hitAsteroid(hitIndex, damage);
       }
     }
 
-    if (state.shipInvuln <= 0) {
-      for (const asteroid of state.asteroids) {
-        if (
-          Math.hypot(state.ship.x - asteroid.x, state.ship.y - asteroid.y) <
-          asteroid.size + state.ship.radius
-        ) {
-          resetShip();
+    if (state.powerup) {
+      const collectorShips = [state.ship, ...(state.cloneShip ? [state.cloneShip] : [])];
+      for (const ship of collectorShips) {
+        const { dx, dy } = getWrappedDelta(ship.x, ship.y, state.powerup.x, state.powerup.y);
+        if (Math.hypot(dx, dy) < ship.radius + state.powerup.radius) {
+          addExplosionEffect(state.powerup.x, state.powerup.y, 18, "rgba(43,166,214,0.65)", 8);
+          activatePowerup(state.powerup.type);
           break;
         }
       }
+    }
+
+    if (!speedBoostActive) {
+      if (state.shipInvuln <= 0) {
+        for (const asteroid of state.asteroids) {
+          const { dx, dy } = getWrappedDelta(state.ship.x, state.ship.y, asteroid.x, asteroid.y);
+          if (Math.hypot(dx, dy) < asteroid.size + state.ship.radius) {
+            if (duplicateAssistActive) endDuplicateAssist();
+            resetShip();
+            break;
+          }
+        }
+      }
+      if (state.cloneShip && state.cloneShipInvuln <= 0) {
+        for (const asteroid of state.asteroids) {
+          const { dx, dy } = getWrappedDelta(state.cloneShip.x, state.cloneShip.y, asteroid.x, asteroid.y);
+          if (Math.hypot(dx, dy) < asteroid.size + state.cloneShip.radius) {
+            if (duplicateAssistActive) {
+              endDuplicateAssist();
+            } else {
+              resetShipEntity(
+                state.cloneShip,
+                "cloneShipInvuln",
+                (state.ship.x + 70) % Math.max(1, state.width),
+                (state.ship.y + 44) % Math.max(1, state.height)
+              );
+            }
+            break;
+          }
+        }
+      }
+    }
+
+    for (let i = state.effects.length - 1; i >= 0; i -= 1) {
+      const fx = state.effects[i];
+      fx.life -= dt;
+      if (fx.kind === "line") {
+        fx.x += fx.vx * dt;
+        fx.y += fx.vy * dt;
+        wrapPos(fx, state.width, state.height);
+      } else if (fx.kind === "ring") {
+        fx.r += fx.grow * dt;
+      }
+      if (fx.life <= 0) state.effects.splice(i, 1);
+    }
+
+    if (state.asteroids.length < 6) {
+      spawnAsteroid(rand(24, 50));
+    }
+    if (!state.asteroids.some((a) => a.heavy) && Math.random() < dt * 0.035) {
+      maybeSpawnHeavyAsteroid();
     }
   };
 
   const render = () => {
     ensurePools();
+    const darkMode = isDarkThemeActive();
+    const userNow = isManualActive(performance.now());
+    const duplicateAssistNow = state.activePowerup?.type === "duplicate";
+    if (state._starsDark !== darkMode) {
+      state._starsDark = darkMode;
+      const dotFill = darkMode ? "rgba(255,255,255,0.78)" : "rgba(0,0,0,0.22)";
+      const markStroke = darkMode ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.12)";
+      Array.from(bubblesGameStars.children).forEach((node) => {
+        if (node.dataset?.starKind === "dot") node.setAttribute("fill", dotFill);
+        if (node.dataset?.starKind === "mark") node.setAttribute("stroke", markStroke);
+      });
+    }
+    const asteroidStroke = darkMode ? "rgba(255,255,255,0.74)" : "rgba(0,0,0,0.35)";
+    const heavyStroke = darkMode ? "rgba(255,255,255,0.96)" : "rgba(0,0,0,0.62)";
+    const flameColor = !userNow ? "rgba(227,32,120,0.78)" : "rgba(43,166,214,0.82)";
+    const shipStrokeColor = darkMode ? "rgba(255,255,255,0.72)" : "rgba(0,0,0,0.55)";
+    const pilotFillColor = darkMode ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.4)";
+    nodes.shipHull.setAttribute("stroke", shipStrokeColor);
+    nodes.cloneShipHull.setAttribute("stroke", shipStrokeColor);
+    nodes.shipPilot.setAttribute("fill", pilotFillColor);
+    nodes.cloneShipPilot.setAttribute("fill", pilotFillColor);
+    nodes.shipFlame.setAttribute("stroke", flameColor);
+    nodes.cloneShipFlame.setAttribute("stroke", "rgba(227,32,120,0.78)");
 
     for (let i = 0; i < nodes.asteroidPolys.length; i += 1) {
       const node = nodes.asteroidPolys[i];
@@ -2428,7 +2965,16 @@ const setupBubblesAsteroidsBackdrop = () => {
         })
         .join(" ");
       node.setAttribute("points", pts);
-      node.setAttribute("stroke-width", asteroid.size > 34 ? "2.2" : "1.8");
+      node.setAttribute("stroke", asteroid.heavy ? heavyStroke : asteroidStroke);
+      node.setAttribute(
+        "stroke-width",
+        asteroid.heavy ? `${2.4 + ((asteroid.hp || 1) / (asteroid.maxHp || 1)) * 1.1}` : asteroid.size > 34 ? "2.2" : "1.8"
+      );
+      if (asteroid.heavy) {
+        node.setAttribute("opacity", `${0.45 + ((asteroid.hp || 1) / (asteroid.maxHp || 1)) * 0.55}`);
+      } else {
+        node.setAttribute("opacity", "1");
+      }
     }
 
     for (let i = 0; i < nodes.bulletCircles.length; i += 1) {
@@ -2439,24 +2985,94 @@ const setupBubblesAsteroidsBackdrop = () => {
         continue;
       }
       node.style.display = "";
+      node.setAttribute("r", `${bullet.radius ?? 2}`);
+      node.setAttribute("fill", bullet.color || "#d62424");
       node.setAttribute("cx", bullet.x.toFixed(1));
       node.setAttribute("cy", bullet.y.toFixed(1));
       node.setAttribute("opacity", `${Math.max(0.25, bullet.life / 1.15)}`);
     }
 
+    let lineIndex = 0;
+    let ringIndex = 0;
+    for (const fx of state.effects) {
+      if (fx.kind === "line") {
+        const node = nodes.effectLines[lineIndex++];
+        if (!node) continue;
+        node.style.display = "";
+        const lifeAlpha = Math.max(0, fx.life / (fx.maxLife || 0.6));
+        const dx = Math.cos(fx.angle) * fx.len * (0.45 + lifeAlpha * 0.65);
+        const dy = Math.sin(fx.angle) * fx.len * (0.45 + lifeAlpha * 0.65);
+        node.setAttribute("x1", (fx.x - dx * 0.35).toFixed(1));
+        node.setAttribute("y1", (fx.y - dy * 0.35).toFixed(1));
+        node.setAttribute("x2", (fx.x + dx).toFixed(1));
+        node.setAttribute("y2", (fx.y + dy).toFixed(1));
+        node.setAttribute("stroke", fx.color);
+        node.setAttribute("opacity", `${lifeAlpha}`);
+      } else if (fx.kind === "ring") {
+        const node = nodes.effectCircles[ringIndex++];
+        if (!node) continue;
+        node.style.display = "";
+        const lifeAlpha = Math.max(0, fx.life / (fx.maxLife || 0.32));
+        node.setAttribute("cx", fx.x.toFixed(1));
+        node.setAttribute("cy", fx.y.toFixed(1));
+        node.setAttribute("r", fx.r.toFixed(1));
+        node.setAttribute("stroke", fx.color);
+        node.setAttribute("opacity", `${lifeAlpha * 0.9}`);
+      }
+    }
+    for (let i = lineIndex; i < nodes.effectLines.length; i += 1) {
+      nodes.effectLines[i].style.display = "none";
+    }
+    for (let i = ringIndex; i < nodes.effectCircles.length; i += 1) {
+      nodes.effectCircles[i].style.display = "none";
+    }
+
+    const giantScale = state.activePowerup?.type === "giant" ? 2.25 : 1;
+    const speedShieldActive = state.activePowerup?.type === "speed";
+    nodes.shipShield.style.display = speedShieldActive ? "" : "none";
+    nodes.cloneShipShield.style.display = speedShieldActive && state.cloneShip ? "" : "none";
+    nodes.shipShield.setAttribute("r", `${state.ship.radius + 6}`);
+    nodes.cloneShipShield.setAttribute("r", `${(state.cloneShip?.radius || state.ship.radius) + 6}`);
+
     nodes.shipGroup.setAttribute(
       "transform",
-      `translate(${state.ship.x.toFixed(1)} ${state.ship.y.toFixed(1)}) rotate(${((state.ship.angle * 180) / Math.PI).toFixed(1)})`
+      `translate(${state.ship.x.toFixed(1)} ${state.ship.y.toFixed(1)}) rotate(${((state.ship.angle * 180) / Math.PI).toFixed(1)}) scale(${giantScale})`
     );
 
     const thrusting =
       controlPressed(["ArrowUp", "KeyW"]) ||
       (!isManualActive(performance.now()) && getAiControl().thrust);
     nodes.shipFlame.style.display = thrusting ? "" : "none";
+    nodes.cloneShipFlame.style.display = state.cloneShip && thrusting ? "" : "none";
     nodes.shipGroup.setAttribute(
       "opacity",
       state.shipInvuln > 0 && Math.sin(performance.now() / 55) > 0 ? "0.35" : "1"
     );
+    if (state.cloneShip) {
+      nodes.cloneShipGroup.style.display = "";
+      nodes.cloneShipGroup.setAttribute(
+        "transform",
+        `translate(${state.cloneShip.x.toFixed(1)} ${state.cloneShip.y.toFixed(1)}) rotate(${((state.cloneShip.angle * 180) / Math.PI).toFixed(1)}) scale(${giantScale})`
+      );
+      nodes.cloneShipGroup.setAttribute(
+        "opacity",
+        state.cloneShipInvuln > 0 && Math.sin((performance.now() + 85) / 55) > 0 ? "0.35" : "1"
+      );
+    } else {
+      nodes.cloneShipGroup.style.display = "none";
+    }
+
+    if (state.powerup) {
+      nodes.powerupGroup.style.display = "";
+      const pulse = 1 + Math.sin(state.powerup.pulse) * 0.07;
+      nodes.powerupGroup.setAttribute(
+        "transform",
+        `translate(${state.powerup.x.toFixed(1)} ${state.powerup.y.toFixed(1)}) rotate(${((state.powerup.angle * 180) / Math.PI).toFixed(1)}) scale(${pulse.toFixed(3)})`
+      );
+      nodes.powerupGroup.setAttribute("opacity", `${0.7 + (Math.sin(state.powerup.pulse * 0.8) * 0.15 + 0.15)}`);
+    } else {
+      nodes.powerupGroup.style.display = "none";
+    }
   };
 
   const onKeyDown = (event) => {
@@ -2562,7 +3178,10 @@ const setupPageEntryMotion = ({ aboutPanelController, deploymentCounterControlle
   const getBrandLetters = () =>
     brandHeading ? Array.from(brandHeading.querySelectorAll(".brand-letter")) : [];
 
-  const brandColors = ["#000000", "#2ba6d6", "#e32078"];
+  const getBrandIdleColors = () =>
+    isDarkThemeActive()
+      ? [getBrandBaseColor(), getBrandLightColor()]
+      : [getBrandBaseColor(), "#2ba6d6", "#e32078"];
 
   const areBrandColorsUntouched = () => {
     const letters = getBrandLetters();
@@ -2578,7 +3197,7 @@ const setupPageEntryMotion = ({ aboutPanelController, deploymentCounterControlle
       letter.classList.remove("is-idle-blink");
       if ((letter.dataset.colorIndex || "0") === "0") {
         letter.style.opacity = "1";
-        letter.style.color = "#000000";
+        letter.style.color = getBrandBaseColor();
       }
     });
   };
@@ -2589,6 +3208,7 @@ const setupPageEntryMotion = ({ aboutPanelController, deploymentCounterControlle
       return;
     }
     const letters = getBrandLetters();
+    const brandColors = getBrandIdleColors();
     letters.forEach((letter, index) => {
       const jitter = (Math.random() * 3) | 0;
       const nextColor = brandColors[(brandIdlePhase + index + jitter) % brandColors.length];
@@ -2717,6 +3337,7 @@ const init = async () => {
   const carousel = setupCarousel();
   const guySequence = setupGuySequence();
   const videos = carousel?.videos || [];
+  setupThemeModeToggle();
 
   const rightPanelController =
     rightPanel && !rightPanel.classList.contains("hero-panel-source")
