@@ -1,0 +1,208 @@
+/* audio.css — Inverted UI, truncation, and VCR volume panel */
+
+:root {
+  --black:    #0a0a0a;
+  --white:    #ffffff;
+  --blue:     rgb(0, 0, 255);
+  --pink:     #ff2d9b;
+  --red:      #ff1a00;
+  --green:    #00e620;
+  --yellow:   #ffe600;
+  --dim:      rgba(255,255,255,0.35);
+  --screen-bg: rgb(0, 0, 255);
+  --font:     'VCR OSD Mono', monospace;
+  --left-w:   28vw;
+  --left-min: 260px;
+  --left-max: 340px;
+}
+
+.player-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  width: 100%;
+}
+
+.player-header-row .about-group-title {
+  margin-top: 0;
+}
+
+.player-controls {
+  display: flex;
+  gap: 4px;
+  align-items: stretch;
+}
+
+/* All player control buttons share base style */
+.player-controls button {
+  background: var(--white);
+  color: var(--blue);
+  padding: 2px 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  font-family: var(--font) !important;
+}
+
+.left-panel.idle-dim .player-controls button,
+.left-panel.idle-dim .player-controls button * {
+  color: black !important;
+}
+
+.left-panel.idle-dim #track-info,
+.left-panel.idle-dim #track-info * {
+  color: black !important;
+}
+
+/* Fixed-width PLAY/PAUSE — sized to PAUSE */
+#play-btn {
+  width: 46px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* ── MINIMAL PLAYER ROW ── */
+#minimal-player {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+/* track-info and volume-panel share same height as player-controls */
+#track-info,
+#volume-panel {
+  height: 21px;
+  box-sizing: border-box;
+}
+
+/* ── TRACK INFO ── */
+#track-info {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  cursor: url('/assets/cursors/pointer.png') 0 0, pointer;
+  user-select: none;
+  background: var(--white);
+  color: var(--blue);
+  font-size: 11px;
+  text-transform: uppercase;
+  font-family: var(--font) !important;
+  padding: 2px 6px;
+  gap: 0;
+}
+
+/* The ">" caret — separate span so only it blinks on pause */
+#track-caret {
+  flex-shrink: 0;
+  color: var(--blue);
+  margin-right: 4px;
+}
+
+#track-info-text {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--blue);
+}
+
+/* Blink animation — used on both #track-info-text (load) and #track-caret (pause) */
+@keyframes trackBlink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+#track-info-text.blinking,
+#track-caret.blinking {
+  animation: trackBlink 1s step-end infinite;
+}
+
+/* ── VOLUME PANEL ── */
+#volume-panel {
+  display: none;
+  width: 100%;
+  background: var(--white);
+  margin-top: 1px;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+#volume-panel.vol-visible {
+  display: flex;
+}
+
+/* − and + SVG buttons — perfect square */
+.vol-btn {
+  flex-shrink: 0;
+  /* background: var(--blue) !important; */
+  /* color: var(--white) !important; */
+  color: var(--black) !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: url('/assets/cursors/pointer.png') 0 0, pointer;
+  border: none;
+  border-radius: 0 !important;
+  width: 21px;
+  height: 21px;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.vol-btn svg {
+  display: block;
+  width: 9px;
+  height: 9px;
+}
+
+.vol-btn:hover { opacity: 0.8; }
+
+/* VCR bar track */
+#vol-bars {
+  flex: 1 1 auto;
+  height: 21px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 6px;
+  cursor: url('/assets/cursors/pointer.png') 0 0, pointer;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* Individual bar segments — no rounding, same width */
+.vol-bar {
+  width: 6px;
+  flex-shrink: 0;
+  border-radius: 0 !important;
+  display: inline-block;
+}
+
+/* Filled (active) — tall vertical */
+.vol-bar.filled {
+  height: 14px;
+  background: var(--blue);
+}
+
+/* Remaining (inactive) — shorter */
+.vol-bar.empty {
+  height: 4px;
+  width: 8px;
+  background: rgba(0, 0, 255, 0.22);
+}
+
+.player-controls button:hover {
+  opacity: 0.8;
+  cursor: url('/assets/cursors/pointer.png') 0 0, pointer;
+}
+
+@media (max-width: 768px) {
+  .player-header-row,
+  #minimal-player {
+    display: none !important;
+  }
+}

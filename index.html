@@ -1,0 +1,1235 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+  <title>odiwr</title>
+  <meta name="description"
+    content="Bill Odiwuor (Odiwr) — designer, developer, creator. Portfolio of Bill Kawaka Odiwuor. Find me at odiwr.com." />
+  <meta name="keywords"
+    content="Bill Odiwuor, Odiwr, Bill Odiwr, Okiwuor, Kawaka, Bill Kawaka, Bill Kawaka Odiwuor, portfolio, designer, developer" />
+  <meta name="author" content="Bill Odiwuor" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://odiwr.com/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://odiwr.com/" />
+  <meta property="og:title" content="odiwr" />
+  <meta property="og:description" content="Bill Odiwuor (Odiwr) — designer, developer, creator." />
+  <meta property="og:image" content="https://odiwr.com/assets/images/og-image.jpg" />
+  <meta property="og:site_name" content="odiwr" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="odiwr" />
+  <meta name="twitter:description" content="Bill Odiwuor (Odiwr) — designer, developer, creator." />
+  <meta name="twitter:image" content="https://odiwr.com/assets/images/og-image.jpg" />
+
+  <link rel="icon" type="image/gif" href="/assets/icons/favicon.gif" />
+  <link rel="manifest" href="/site.webmanifest" />
+  <meta name="theme-color" content="#0000ff" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": "Bill Odiwuor",
+    "alternateName": ["Odiwr", "Bill Odiwr", "Bill Kawaka Odiwuor", "Okiwuor"],
+    "url": "https://odiwr.com",
+    "sameAs": [],
+    "jobTitle": "Designer & Developer",
+    "description": "Bill Odiwuor, known online as Odiwr, is a designer and developer."
+  }
+  </script>
+
+  <link rel="stylesheet" href="/css/reset.css" />
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="/css/mobile.css" />
+  <link rel="stylesheet" href="/css/audio.css" />
+</head>
+
+<body>
+
+  <div id="channel-flash" class="channel-flash" aria-hidden="true">
+    <img id="flash-gif" src="/assets/gifs/static/static1.gif" alt="" />
+  </div>
+
+  <div class="site-wrapper">
+
+    <!-- ════ LEFT PANEL ════ -->
+    <div class="left-panel">
+
+      <header class="logo-zone" role="banner">
+        <div class="logo-inner">
+          <span class="logo-img"><img src="assets/gifs/channels/name.gif" alt="odiwr" /></span>
+        </div>
+      </header>
+
+      <section class="about-zone" aria-labelledby="about-heading">
+        <div class="about-inner">
+          <h2 id="about-heading" class="section-label sr-only">About</h2>
+          <div class="about-text">
+            <p>
+              <a href="mailto:biz@odiwr.com">Bill O. Kawaka</a> (he/him)
+              is a Kenyan Full Stack Developer, amateur filmmaker, and alleged artist based in Central NJ (it's real).
+            </p>
+
+            <div class="player-header-row">
+            <p class="about-group-title">Now Playing... </p>
+              <div class="player-controls">
+                <button id="prev-btn" aria-label="Previous">&lt;</button>
+                <button id="play-btn" aria-label="Play/Pause">PLAY</button>
+                <button id="next-btn" aria-label="Next">&gt;</button>
+              </div>
+            </div>
+            <div id="minimal-player">
+              <div id="track-info">&gt; Loading...</div>
+            </div>
+
+            <p class="about-group-title">Reading... </p>
+            <p><img /> > Homer's "The Odyssey"</p>
+            <p><img /> > The Aeneid</p>
+            <p><img /> > Dante's Inferno</p>
+
+            <p class="about-group-title">Watching... </p>
+            <p><img /> > PLUR1BUS</p>
+            <p><img /> > SUITS (S3)</p>
+
+            <p class="about-group-title">Learning about... </p>
+            <p><img /> > ESP32 (SuperMini) dev boards</p>
+          </div>
+        </div>
+      </section>
+
+      <div class="spacer-zone" aria-hidden="true"></div>
+      <section class="contact-zone" aria-hidden="true"></section>
+      <footer class="footer-zone" role="contentinfo"></footer>
+
+    </div>
+
+    <!-- ════ RIGHT PANEL ════ -->
+    <div class="right-panel">
+
+      <nav class="nav-remote" role="navigation" aria-label="Channel remote">
+        <button class="nav-btn active" data-channel="1">MENU</button>
+        <button class="nav-btn" data-channel="2">INFO</button>
+        <button class="nav-btn" data-channel="3">RESUME</button>
+        <button class="nav-btn" data-channel="4">RESEARCH</button>
+        <button class="nav-btn nav-btn--version" data-channel="5" style="margin-left:0;"><span class="nav-label-full">VERSION</span><span class="nav-label-short">VER.</span></button>
+      </nav>
+
+      <div class="crt-screen" role="main" aria-live="polite">
+        <div class="screen-inner">
+
+          <!-- ══ CH1: MENU ══ -->
+          <div class="screen-channel" id="channel-1" data-channel="1">
+            <div class="channel-content ch1-content" id="ch1-menu-view">
+              <div class="menu-grid">
+                <a href="#" class="menu-item" data-project="p1">
+                  <img src="/assets/images/ripidks3.gif" alt="Project One" />
+                </a>
+                <!-- <a href="#" class="menu-item" data-project="p2">
+                  <img src="/assets/images/project2.gif" alt="Project Two" />
+                </a>
+                <a href="#" class="menu-item" data-project="p3">
+                  <img src="/assets/images/project3.gif" alt="Project Three" />
+                </a>
+                <a href="#" class="menu-item" data-project="p4">
+                  <img src="/assets/images/project4.gif" alt="Project Four" />
+                </a> -->
+              </div>
+              <div class="menu-guestbook">
+                <a href="https://www.yourworldoftext.com/~odiwr/" target="_blank" rel="noopener"
+                  aria-label="Sign my guestbook">
+                  <img src="assets/gifs/redirects/guestbook.gif" alt="Sign my guestbook" class="menu-gb-gif" />
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- ══ PROJECT DETAIL — full CRT panel, shown on project click ══ -->
+          <div class="screen-channel hidden" id="channel-project">
+            <div class="ch1-project-view">
+              <div class="proj-banner" id="proj-banner">
+                <img id="proj-banner-img" src="" alt="" />
+              </div>
+              <div class="proj-lower">
+                <div class="proj-description" id="proj-description"></div>
+                <div class="proj-work" id="proj-work"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ══ CH2: INFO ══ -->
+          <div class="screen-channel hidden" id="channel-2" data-channel="2">
+            <div class="channel-content ch2-content info-scroll">
+
+              <!-- § 1 WHO? -->
+              <div class="info-section">
+                <div class="info-title-bar">WHO?</div>
+                <div class="info-divider" data-char="#"></div>
+                <div class="info-who-layout">
+                  <div class="info-who-left">
+                    <p class="info-para">
+                      Bill Odiwuor — also known online as Odiwr and Kawaka.
+                      A Kenyan full-stack developer, amateur filmmaker, and alleged artist
+                      currently haunting Central New Jersey.
+                      Interested in systems, signals, and the space between making things and showing them.
+                    </p>
+                    <div class="info-tags">
+                      <div class="tag-group">
+                        <span class="tag-heading">ㅤ</span>
+                        <div class="tags">
+                          <span class="tag-img" data-label="Blender"><img src="https://www.google.com/s2/favicons?sz=32&domain_url=blender.org" alt="Blender" /></span>
+                          <span class="tag-img" data-label="Maya"><img src="https://www.google.com/s2/favicons?sz=32&domain_url=autodesk.com" alt="Maya" /></span>
+                          <span class="tag-img" data-label="Adobe CC"><img src="https://www.google.com/s2/favicons?sz=32&domain_url=adobe.com" alt="Adobe CC" /></span>
+                          <span class="tag-img" data-label="Davinci Resolve"><img src="https://www.google.com/s2/favicons?sz=32&domain_url=blackmagicdesign.com" alt="Davinci Resolve" /></span>
+                          <span class="tag-img" data-label="OpenToonz (2D Animation)"><img src="https://www.google.com/s2/favicons?sz=32&domain_url=opentoonz.github.io" alt="OpenToonz (2D Animation)" /></span>
+                          <span class="tag-img" data-label="FL Studio"><img src="https://www.google.com/s2/favicons?sz=32&domain_url=flstudio.com" alt="FL Studio" /></span>
+                          <span class="tag-img" data-label="Audacity"><img src="https://www.google.com/s2/favicons?sz=32&domain_url=audacityteam.org" alt="Audacity" /></span>
+                          <span class="tag-img" data-label="Krita"><img src="https://www.google.com/s2/favicons?sz=32&domain_url=krita.org" alt="Krita" /></span>
+                          <span class="tag-img" data-label="OBS"><img src="https://www.google.com/s2/favicons?sz=32&domain_url=obsproject.com" alt="OBS" /></span>
+                        </div>
+                      </div>
+                      <div class="tag-group">
+                        <span class="tag-heading">ㅤ</span>
+                        <div class="tags">
+                          <span class="tag-img" data-label="Github/Git"><img src="https://www.google.com/s2/favicons?sz=32&domain_url=github.com" alt="Github/Git" /></span>
+                          <span class="tag-img" data-label="Unity"><img src="https://www.google.com/s2/favicons?sz=32&domain_url=unity.com" alt="Unity" /></span>
+                          <span class="tag-img" data-label="RStudio"><img src="https://www.google.com/s2/favicons?sz=32&domain_url=posit.co" alt="RStudio" /></span>
+                          <span class="tag-img" data-label="Arduino"><img src="https://www.google.com/s2/favicons?sz=32&domain_url=arduino.cc" alt="Arduino" /></span>
+                          <span class="tag-img" data-label="Postman"><img src="https://www.google.com/s2/favicons?sz=32&domain_url=postman.com" alt="Postman" /></span>
+                          <span class="tag-img" data-label="Java"><img src="https://www.google.com/s2/favicons?sz=32&domain_url=java.com" alt="Java" /></span>
+                          <span class="tag-img" data-label="Python"><img src="https://www.google.com/s2/favicons?sz=32&domain_url=python.org" alt="Python" /></span>
+                          <span class="tag-img" data-label="VS Code"><img src="https://www.google.com/s2/favicons?sz=32&domain_url=code.visualstudio.com" alt="VS Code" /></span>
+                          <span class="tag-img" data-label="PyCharm"><img src="https://www.google.com/s2/favicons?sz=32&domain_url=jetbrains.com" alt="PyCharm" /></span>
+                          <span class="tag-img" data-label="Notion"><img src="https://www.google.com/s2/favicons?sz=32&domain_url=notion.so" alt="Notion" /></span>
+                          <span class="tag-img" data-label="Obsidian"><img src="https://www.google.com/s2/favicons?sz=32&domain_url=obsidian.md" alt="Obsidian" /></span>
+                          <span class="tag-img" data-label="Shopify"><img src="https://www.google.com/s2/favicons?sz=32&domain_url=shopify.com" alt="Shopify" /></span>
+                          <span class="tag-img" data-label="Claude"><img src="https://www.google.com/s2/favicons?sz=32&domain_url=claude.ai" alt="Claude" /></span>
+                          <span class="tag-img" data-label="ChatGPT"><img src="https://www.google.com/s2/favicons?sz=32&domain_url=chatgpt.com" alt="ChatGPT" /></span>
+                          <span class="tag-img" data-label="Gemini"><img src="https://www.google.com/s2/favicons?sz=32&domain_url=gemini.google.com" alt="Gemini" /></span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="tag-tooltip" id="tag-tooltip"></div>
+                  </div>
+                  <div class="info-who-right">
+                    <div class="char-border">
+                      <div class="char-border-top">================================</div>
+                      <div class="char-border-mid">
+                        <img src="assets/gifs/static/portrait.gif" alt="portrait" class="info-portrait" />
+                      </div>
+                      <div class="char-border-bot">================================</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- § 2 FIND ME -->
+              <div class="info-section">
+                <div class="info-title-bar">FIND ME</div>
+                <div class="info-divider" data-char="*"></div>
+                <div class="info-socials">
+                  <div class="social-row"><img src="/assets/gifs/bullets/bullet1.gif" alt="*" class="gif-bullet social-bullet" /><a href="https://github.com/" class="social-link" target="_blank" rel="noopener">github</a></div>
+                  <div class="social-row"><img src="/assets/gifs/bullets/bullet2.gif" alt="*" class="gif-bullet social-bullet" /><a href="https://twitter.com/" class="social-link" target="_blank" rel="noopener">twitter/x</a></div>
+                  <div class="social-row"><img src="/assets/gifs/bullets/bullet3.gif" alt="*" class="gif-bullet social-bullet" /><a href="https://linkedin.com/" class="social-link" target="_blank" rel="noopener">linkedin</a></div>
+                  <div class="social-row"><img src="/assets/gifs/bullets/bullet1.gif" alt="*" class="gif-bullet social-bullet" /><a href="https://instagram.com/" class="social-link" target="_blank" rel="noopener">instagram</a></div>
+                  <div class="social-row"><img src="/assets/gifs/bullets/bullet2.gif" alt="*" class="gif-bullet social-bullet" /><a href="mailto:biz@odiwr.com" class="social-link">email</a></div>
+                </div>
+              </div>
+
+              <!-- § 3 INSPIRATION -->
+              <div class="info-section">
+                <div class="info-title-bar">INSPIRATION</div>
+                <div class="info-divider" data-char="|"></div>
+                <div class="inspo-grid">
+                  <div class="inspo-col">
+                    <div class="inspo-heading">DIRECTORS</div>
+                    <div class="inspo-entry"><img src="/assets/gifs/bullets/bullet2.gif" alt="*" class="gif-bullet" /><a
+                        href="#">Wong Kar-wai</a></div>
+                    <div class="inspo-entry"><img src="/assets/gifs/bullets/bullet3.gif" alt="*" class="gif-bullet" /><a
+                        href="#">Hirokazu Kore-eda</a></div>
+                    <div class="inspo-entry"><img src="/assets/gifs/bullets/bullet1.gif" alt="*" class="gif-bullet" /><a
+                        href="#">Boots Riley</a></div>
+                  </div>
+                  <div class="inspo-col">
+                    <div class="inspo-heading">ARTISTS</div>
+                    <div class="inspo-entry"><img src="/assets/gifs/bullets/bullet2.gif" alt="*" class="gif-bullet" /><a
+                        href="#">Kara Walker</a></div>
+                    <div class="inspo-entry"><img src="/assets/gifs/bullets/bullet3.gif" alt="*" class="gif-bullet" /><a
+                        href="#">David Rudnick</a></div>
+                    <div class="inspo-entry"><img src="/assets/gifs/bullets/bullet1.gif" alt="*" class="gif-bullet" /><a
+                        href="#">Virgil Abloh</a></div>
+                  </div>
+                  <div class="inspo-col">
+                    <div class="inspo-heading">WRITERS</div>
+                    <div class="inspo-entry"><img src="/assets/gifs/bullets/bullet2.gif" alt="*" class="gif-bullet" /><a
+                        href="#">Ngugi wa Thiong'o</a></div>
+                    <div class="inspo-entry"><img src="/assets/gifs/bullets/bullet3.gif" alt="*" class="gif-bullet" /><a
+                        href="#">James Baldwin</a></div>
+                    <div class="inspo-entry"><img src="/assets/gifs/bullets/bullet1.gif" alt="*" class="gif-bullet" /><a
+                        href="#">Ursula K. Le Guin</a></div>
+                  </div>
+                  <div class="inspo-col">
+                    <div class="inspo-heading">SITES</div>
+                    <div class="inspo-entry"><img src="/assets/gifs/bullets/bullet2.gif" alt="*" class="gif-bullet" /><a
+                        href="https://mojardinico.com" target="_blank" rel="noopener">Mo
+                        Jardinico</a></div>
+                    <div class="inspo-entry"><img src="/assets/gifs/bullets/bullet3.gif" alt="*" class="gif-bullet" /><a
+                        href="https://www.are.na" target="_blank" rel="noopener">Are.na</a>
+                    </div>
+                    <div class="inspo-entry"><img src="/assets/gifs/bullets/bullet1.gif" alt="*" class="gif-bullet" /><a
+                        href="https://soulellis.com" target="_blank" rel="noopener">Paul
+                        Soulellis</a></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- § 4 RESOURCES -->
+              <div class="info-section res-section">
+                <div class="info-title-bar">RESOURCES</div>
+                <div class="info-divider" data-char="/"></div>
+
+                <div class="res-row">
+                  <div class="res-label">DESIGN:</div>
+                  <div class="res-links">
+                    <div class="res-link-entry"><a href="https://ezgif.com/" target="_blank" rel="noopener">&gt; EZGIF</a></div>
+                    <div class="res-link-entry"><a href="https://halftonemaker.com/" target="_blank" rel="noopener">&gt; HALFTONE MAKER</a></div>
+                    <div class="res-link-entry"><a href="https://barkod.studio/" target="_blank" rel="noopener">&gt; BARKOD</a></div>
+                    <div class="res-link-entry"><a href="https://cyber.dabamos.de/88x31/index3.html" target="_blank" rel="noopener">&gt; THE CYBER VANGUARD</a></div>
+                    <div class="res-link-entry"><a href="https://gifcities.org/" target="_blank" rel="noopener">&gt; GIFCITIES</a></div>
+                    <div class="res-link-entry"><a href="https://github.com/pascalorg/editor" target="_blank" rel="noopener">&gt; PASCAL EDITOR</a></div>
+                    <div class="res-link-entry"><a href="https://cutekawaiiresources.wordpress.com/category/bullet-points/" target="_blank" rel="noopener">&gt; CUTE KAWAII RESOURCES</a></div>
+                    <div class="res-link-entry"><a href="https://www.photopea.com/" target="_blank" rel="noopener">&gt; PHOTOPEA (FREE)</a></div>
+                  </div>
+                </div>
+
+                <div class="res-row">
+                  <div class="res-label">DEV:</div>
+                  <div class="res-links">
+                    <div class="res-link-entry"><a href="https://github.com/fathyb/carbonyl" target="_blank" rel="noopener">&gt; CARBONYL</a></div>
+                    <div class="res-link-entry"><a href="https://github.com/chenglou/pretext" target="_blank" rel="noopener">&gt; PRETEXT</a></div>
+                    <div class="res-link-entry"><a href="https://github.com/yousifamanuel/clawd-mochi" target="_blank" rel="noopener">&gt; CLAWD MOCHI</a></div>
+                    <div class="res-link-entry"><a href="https://esphome.io/" target="_blank" rel="noopener">&gt; ESPHOME</a></div>
+                  </div>
+                </div>
+
+                <div class="res-row">
+                  <div class="res-label">MISC:</div>
+                  <div class="res-links">
+                    <div class="res-link-entry"><a href="https://www.reddit.com/r/cyberDeck/" target="_blank" rel="noopener">&gt; R/CYBERDECK</a></div>
+                    <div class="res-link-entry"><a href="https://www.projectnomad.us/" target="_blank" rel="noopener">&gt; PROJECT NOMAD</a></div>
+                    <div class="res-link-entry"><a href="https://archive.org" target="_blank" rel="noopener">&gt; INTERNET ARCHIVE</a></div>
+                    <div class="res-link-entry"><a href="https://wiby.me/" target="_blank" rel="noopener">&gt; WIBY.ME</a></div>
+                  </div>
+                </div>
+
+                <div class="info-divider" data-char="/"></div>
+              </div>
+
+                            <!-- § 5 THIS SITE -->
+              <div class="info-section">
+                <div class="info-title-bar">THIS SITE</div>
+                <div class="info-divider" data-char="~"></div>
+
+                <div class="site-tech-row">
+                  <div class="site-tech-group">
+                    <div class="resource-heading">FONTS</div>
+                    <div class="resource-entry">VCR OSD Mono · Arial</div>
+                  </div>
+                  <div class="site-tech-group">
+                    <div class="resource-heading">TECH</div>
+                    <div class="resource-entry">HTML / CSS / Vanilla JS · Supabase</div>
+                  </div>
+                  <div class="site-tech-group">
+                    <div class="resource-heading">HOSTED ON</div>
+                    <div class="resource-entry">Github Pages</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- § 6 TAKE ME SOMEWHERE -->
+              <div class="info-section">
+                <div class="info-title-bar">TAKE ME SOMEWHERE</div>
+                <div class="info-divider" data-char="+"></div>
+                <div class="btn-garden">
+                  <a href="https://www.blender.org/" target="_blank" rel="noopener" class="garden-btn" title="Blender">
+                    <img src="assets/gifs/redirects/blender.gif" alt="Blender" />
+                  </a>
+                  <a href="https://www.mozilla.org/firefox/" target="_blank" rel="noopener" class="garden-btn"
+                    title="Get Firefox">
+                    <img src="assets/gifs/redirects/firefoxget.gif" alt="Firefox" />
+                  </a>
+                  <a href="https://www.waterfox.net/" target="_blank" rel="noopener" class="garden-btn"
+                    title="Waterfox Browser">
+                    <img src="assets/gifs/redirects/waterfox.gif" alt="Waterfox" />
+                  </a>
+                  <a href="https://www.java.com/" target="_blank" rel="noopener" class="garden-btn" title="Java Now">
+                    <img src="assets/gifs/redirects/javanow.gif" alt="Java" />
+                  </a>
+                  <a href="https://webamp.org/" target="_blank" rel="noopener" class="garden-btn" title="Winamp">
+                    <img src="assets/gifs/redirects/winamp6.gif" alt="Winamp" />
+                  </a>
+                  <a href="https://www.youtube.com/watch?v=IOOfE38cpYQ" target="_blank" rel="noopener"
+                    class="garden-btn" title="WinRAR">
+                    <img src="assets/gifs/redirects/winrar4.gif" alt="WinRAR" />
+                  </a>
+
+                  <a href="https://open.spotify.com/playlist/5H6uHOPurS7SimEbh2Snyo?si=acf305139ca84419" target="_blank"
+                    rel="noopener" class="garden-btn" title="Spotify">
+                    <img src="assets/gifs/redirects/spotify.gif" alt="Spotify" />
+                  </a>
+                  <a href="https://youtu.be/sSsTR8qqDl4?si=iDetCMD4dXa5LyPl" target="_blank" rel="noopener"
+                    class="garden-btn" title="YouTube">
+                    <img src="assets/gifs/redirects/ytbutton.gif" alt="YouTube" />
+                  </a>
+                  <a href="https://myspace.windows93.net/music.php" target="_blank" rel="noopener" class="garden-btn"
+                    title="MySpace">
+                    <img src="assets/gifs/redirects/myspace.gif" alt="MySpace" />
+                  </a>
+
+                  <a href="https://geocities.restorativland.org/Area51/Dreamworld/2274/" target="_blank" rel="noopener"
+                    class="garden-btn" title="GeoCities">
+                    <img src="assets/gifs/redirects/geocities.gif" alt="GeoCities" />
+                  </a>
+                  <a href="https://99gifshop.neocities.org/" target="_blank" rel="noopener" class="garden-btn"
+                    title="99 GIF Shop">
+                    <img src="assets/gifs/redirects/99gifshop.gif" alt="99 GIF Shop" />
+                  </a>
+                  <a href="https://www.youtube.com/watch?v=jp_AjIV2kO0" target="_blank" rel="noopener"
+                    class="garden-btn" title="Neocities">
+                    <img src="assets/gifs/redirects/nland.gif" alt="Neocities" />
+                  </a>
+                  <a href="https://www.shutitdown4palestine.org/" target="_blank" rel="noopener" class="garden-btn"
+                    title="Free Palestine">
+                    <img src="assets/gifs/redirects/free_palestine.gif" alt="Free Palestine" />
+                  </a>
+                  <a href="https://nation.africa/kenya" class="garden-btn" title="Kenya Web Network" target="_blank"
+                    rel="noopener">
+                    <img src="assets/gifs/redirects/wnkenya.gif" alt="Kenya" />
+                  </a>
+                  <a href="https://github.com/odiwr/awesome-emulators" target="_blank" rel="noopener" class="garden-btn"
+                    title="Atari">
+                    <img src="assets/gifs/redirects/atarilogo.gif" alt="Atari" />
+                  </a>
+                  <a href="https://github.com/jerosajose/onliine" target="_blank" rel="noopener" class="garden-btn"
+                    title="Wii">
+                    <img src="assets/gifs/redirects/wii.gif" alt="Wii" />
+                  </a>
+                  <a href="https://www.youtube.com/watch?v=gk-aCL6eyGc&list=RDgk-aCL6eyGc&start_radio=1&pp=ygURaXQncyBiZWVuIHNvIGxvbmegBwHSBwkJ1AoBhyohjO8%3D"
+                    target="_blank" rel="noopener" class="garden-btn" title="ScottGames">
+                    <img src="assets/gifs/redirects/scottgames.gif" alt="ScottGames" />
+                  </a>
+                  <a href="https://radio.garden/" class="garden-btn" title="3.5mm Jack" target="_blank"
+                    rel="noopener"><img src="assets/gifs/redirects/3.5mm.gif" alt="3.5mm" /></a>
+                  <a href="https://www.myretrotvs.com/" class="garden-btn" title="4x3 Fade" target="_blank"
+                    rel="noopener"><img src="assets/gifs/redirects/4x3_fade.gif" alt="4x3" /></a>
+                  <a href="#" class="garden-btn" title="Play!" target="_blank" rel="noopener"><img
+                      src="assets/gifs/redirects/12.gif" alt="Play" /></a>
+                  <a href="pages/psa.html" class="garden-btn" title="Amazing Free Stuff" target="_blank"
+                    rel="noopener"><img src="assets/gifs/redirects/amazing_free_stuff.gif" alt="Free Stuff" /></a>
+                  <a href="https://www.youtube.com/watch?v=1vzgaNfTUw4" class="garden-btn" title="AniBanner"
+                    target="_blank" rel="noopener"><img src="assets/gifs/redirects/anibanner.gif" alt="Banner" /></a>
+                  <a href="https://static.wikia.nocookie.net/010008ce-6503-4919-9cc7-f54848714a7f/scale-to-width/755"
+                    class="garden-btn" title="Blink" target="_blank" rel="noopener"><img
+                      src="assets/gifs/redirects/blink-0.gif" alt="Blink" /></a>
+                  <a href="#" class="garden-btn" title="Button 6" target="_blank" rel="noopener"><img
+                      src="assets/gifs/redirects/btn6.gif" alt="Button" /></a>
+                  <a href="#" class="garden-btn" title="Candybar Snow" target="_blank" rel="noopener"><img
+                      src="assets/gifs/redirects/candybarsnow.gif" alt="Candybar" /></a>
+                  <a href="assets/gifs/redirects/guestbook.gif" class="garden-btn" title="Sign Guestbook"
+                    target="_blank" rel="noopener"><img src="assets/gifs/redirects/guestbook.gif" alt="Guestbook" /></a>
+                  <a href="#" class="garden-btn" title="Help Wanted" target="_blank" rel="noopener"><img
+                      src="assets/gifs/redirects/helpwanted.gif" alt="Help" /></a>
+                  <a href="https://drrevivalproject.itch.io/diamond-records-revival/devlog/554116/state-of-revival-722023"
+                    class="garden-btn" title="Jojo" target="_blank" rel="noopener"><img
+                      src="assets/gifs/redirects/jojo.gif" alt="Jojo" /></a>
+                  <a href="https://jspaint.app/#local:220a5b588d4988" class="garden-btn" title="MS Paint"
+                    target="_blank" rel="noopener"><img src="assets/gifs/redirects/mspaint.gif" alt="MS Paint" /></a>
+                  <a href="https://theonion.com/l-oreal-suspends-production-of-irresistible-2-step-lip-1826324009/"
+                    class="garden-btn" title="Onion Link" target="_blank" rel="noopener"><img
+                      src="assets/gifs/redirects/onionlink1098.gif" alt="Onion" /></a>
+                  <a href="https://archive.org/details/psx_pepsiman" class="garden-btn" title="Pepsi" target="_blank"
+                    rel="noopener"><img src="assets/gifs/redirects/pepsi.gif" alt="Pepsi" /></a>
+                  <a href="https://www.incredibox.com/demo/" class="garden-btn" title="Piano" target="_blank"
+                    rel="noopener"><img src="assets/gifs/redirects/piano.gif" alt="Piano" /></a>
+                  <a href="https://www.mancinipizza.com/" class="garden-btn" title="Pizza" target="_blank"
+                    rel="noopener"><img src="assets/gifs/redirects/pizzza.gif" alt="Pizza" /></a>
+                  <a href="https://play.pokemonshowdown.com/" class="garden-btn" title="Tung" target="_blank"
+                    rel="noopener"><img src="assets/gifs/redirects/tung.gif" alt="Tung" /></a>
+                  <a href="https://www.toonamiaftermath.com/" class="garden-btn" title="U3" target="_blank"
+                    rel="noopener"><img src="assets/gifs/redirects/u3.gif" alt="U3" /></a>
+                  <a href="https://www.reddit.com/r/webdev/comments/1dhrpzp/what_vs_code_extensions_do_you_actually_enjoyuse/"
+                    class="garden-btn" title="VS Code" target="_blank" rel="noopener"><img
+                      src="assets/gifs/redirects/vscbutton.gif" alt="VS Code" /></a>
+                  <a href="https://i0.wp.com/i.kym-cdn.com/entries/icons/mobile/000/018/929/graphic_design_is_my_passion.jpg?w=688&ssl=1"
+                    class="garden-btn" title="Web Passion" target="_blank" rel="noopener"><img
+                      src="assets/gifs/redirects/webpassion.gif" alt="Passion" /></a>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- ══ CH3: RESUME ══ -->
+          <div class="screen-channel hidden" id="channel-3" data-channel="3">
+            <div class="channel-content ch3-content">
+              <div class="resume-placeholder">
+                <p class="res-coming">COME BACK SOON</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- ══ CH4: RESEARCH ══ -->
+          <div class="screen-channel hidden" id="channel-4" data-channel="4">
+            <div class="channel-content ch4-content" id="ch4-carousel-view">
+              <div class="research-stage" id="research-stage">
+                <!-- Three slots: prev | center | next — injected by JS -->
+              </div>
+            </div>
+          </div>
+
+          <!-- ══ CH4: PDF READER (shown on card click) ══ -->
+          <div class="screen-channel hidden" id="channel-pdf-reader">
+            <div class="pdf-reader-view" id="pdf-reader-view">
+              <div class="pdf-reader-inner" id="pdf-reader-inner">
+                <!-- Pages rendered by JS -->
+              </div>
+            </div>
+          </div>
+
+          <!-- ══ CH5: VERSION ══ -->
+          <div class="screen-channel hidden" id="channel-5" data-channel="5">
+            <div class="channel-content ch5-content">
+              <div class="version-block">
+                <div id="daysSinceDeployment" data-deployment-date="2026-02-24" aria-label="days since deployment">
+                </div>
+                <p class="page-three-subline" id="pageThreeSubline"
+                  role="button" tabindex="0" aria-label="Toggle portfolio label">
+                  <span>days since deployment of </span><strong>odiwr.com</strong>
+                </p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <style>
+
+  </style>
+
+  <script>
+    (function () {
+      /* ── ASCII digit data (from individual glyph files) ── */
+      var DIGITS = {
+        '0': [
+          '   __     ',
+          " /'__`\\   ",
+          '/\\ \\/\\ \\  ',
+          '\\ \\ \\ \\ \\ ',
+          ' \\ \\ \\_\\ \\',
+          '  \\ \\____/',
+          '   \\/___/ '
+        ],
+        '1': [
+          ' _     ',
+          "/' \\   ",
+          '\\_, \\  ',
+          '/_/\\ \\ ',
+          '\\ \\ \\ \\',
+          ' \\ \\_\\',
+          '  \\/_/ '
+        ],
+        '2': [
+          '   _     ',
+          " /' \\    ",
+          '/\\_, \\   ',
+          '\\/_/\\ \\  ',
+          '   \\ \\ \\ ',
+          '    \\ \\_\\',
+          '     \\/_/'
+        ],
+        '3': [
+          '   __     ',
+          " /'__`\\   ",
+          '/\\_\\L\\ \\  ',
+          '\\/_/_\\_<_ ',
+          '  /\\ \\L\\ \\',
+          '  \\ \\____/',
+          '   \\/___/ '
+        ],
+        '4': [
+          ' __ __      ',
+          '/\\ \\\\ \\     ',
+          '\\ \\ \\\\ \\    ',
+          ' \\ \\ \\\\ \\_  ',
+          '  \\ \\__ ,__\\',
+          '   \\/_/\\_\\_/',
+          '      \\/_/  '
+        ],
+        '5': [
+          ' ______    ',
+          '/\\  ___\\   ',
+          '\\ \\ \\__/   ',
+          ' \\ \\___``\\ ',
+          '  \\/___L\\ \\',
+          '   \ /\\____/',
+          '    \\/___/ '
+        ],
+        '6': [
+          '  ____    ',
+          " / ___\\   ",
+          '/\\ \\__/   ',
+          '\\ \\  _``\\ ',
+          ' \\ \\ \\L\\ \\',
+          '  \\ \\____/',
+          '   \\/___/ '
+        ],
+        '7': [
+          ' ________ ',
+          '/\\_____  \\',
+          '\\/___//\'/',
+          '     /\' /\'',
+          '    /\' /\' ',
+          '   /\\_/   ',
+          ' \\/_  '
+        ],
+        '8': [
+          '   __     ',
+          " /'_ `\\   ",
+          '/\\ \\L\\ \\  ',
+          '\\/_> _ <_ ',
+          '  /\\ \\L\\ \\',
+          '  \\ \\____/',
+          '   \\/___/ '
+        ],
+        '9': [
+          '   __      ',
+          " /'_ `\\    ",
+          '/\\ \\L\\ \\   ',
+          '\\ \\___, \\  ',
+          ' \\/__,/\\ \\ ',
+          '      \\ \\_\\',
+          '       \\/_/'
+        ]
+      };
+
+      var container = document.getElementById('daysSinceDeployment');
+      if (!container) return;
+
+      var deployDateRaw = container.getAttribute('data-deployment-date') || '2026-02-24';
+      var deployDate = new Date(deployDateRaw);
+      var now = new Date();
+
+      // Calculate days
+      var diffTime = Math.abs(now - deployDate);
+      var diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+      // Format to 3 digits (e.g., 66 becomes "066")
+      var dayString = diffDays.toString().padStart(3, '0');
+
+      // Identify leading zeros
+      var firstNonZeroIndex = dayString.search(/[1-9]/);
+      if (firstNonZeroIndex === -1) firstNonZeroIndex = dayString.length - 1;
+
+      container.innerHTML = ''; // Clear container
+
+      // Create each digit
+      dayString.split('').forEach((char, index) => {
+        var pre = document.createElement('pre');
+        pre.className = 'page-three-digit';
+
+        // If it's a leading zero, mute it. Otherwise, make it blink.
+        if (index < firstNonZeroIndex) {
+          pre.classList.add('is-muted');
+        } else {
+          pre.classList.add('is-live');
+        }
+
+        // Build the ASCII block
+        pre.textContent = (DIGITS[char] || []).join('\n');
+        container.appendChild(pre);
+      });
+
+      /* --- Subline Typewriter (Optional/Existing) --- */
+      var subline = document.getElementById('pageThreeSubline');
+      if (subline) {
+        // Save the text content but preserve the elements
+        subline.innerHTML =
+          '<span>days since deployment of </span>' +
+          '<strong class="subline-strong">odiwr.com</strong>';
+
+        // Extract the text for the typewriter animation
+        var text = subline.innerText || subline.textContent;
+        subline.innerHTML = ''; // Clear for animation
+
+        text.split('').forEach((c, i) => {
+          var s = document.createElement('span');
+          s.className = 'subline-char';
+          s.textContent = c;
+          subline.appendChild(s);
+          setTimeout(() => s.classList.add('is-visible'), 50 * i);
+        });
+      }
+    })();
+  </script>
+  <script>
+    (function () {
+      function renderInfoTitleBars() {
+        const titleBars = document.querySelectorAll('.info-title-bar');
+        titleBars.forEach((titleEl) => {
+          const rawTitle = (titleEl.dataset.rawTitle || titleEl.textContent || '').trim();
+          titleEl.dataset.rawTitle = rawTitle;
+
+          const section = titleEl.closest('.info-section');
+          const divider = section ? section.querySelector('.info-divider[data-char]') : null;
+          const ch = ((divider && divider.getAttribute('data-char')) || '-').charAt(0);
+
+          const style = window.getComputedStyle(titleEl);
+          const fontSize = parseFloat(style.fontSize) || 18;
+          const containerWidth = titleEl.clientWidth || titleEl.parentElement?.clientWidth || 0;
+          if (!containerWidth) return;
+
+          const approxCharWidth = Math.max(6, fontSize * 0.66);
+          const totalChars = Math.max(40, Math.ceil(containerWidth / approxCharWidth));
+          const sideCount = Math.max(8, Math.floor(totalChars / 2)) + 1;
+
+          const fillHtml = Array.from({ length: sideCount }, () =>
+            `<span class="info-title-char" style="background:#ffffff;color:#ffffff;">${ch}</span>`
+          ).join('');
+          titleEl.innerHTML = `
+            <span class="info-title-fill" aria-hidden="true">${fillHtml}</span>
+            <span class="info-title-text">${rawTitle}</span>
+            <span class="info-title-fill" aria-hidden="true">${fillHtml}</span>
+          `;
+        });
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', renderInfoTitleBars);
+      } else {
+        renderInfoTitleBars();
+      }
+
+      window.addEventListener('resize', renderInfoTitleBars);
+      window.renderInfoTitleBars = renderInfoTitleBars;
+    })();
+  </script>
+  <script src="/js/channels.js" defer></script>
+  <script src="/js/idle.js" defer></script>
+  <script src="/js/audio.js" defer></script>
+
+  <!-- ── PROJECT DETAIL LOGIC ── -->
+  <script>
+    (function () {
+      // ── Project data — fill in your real content here ──
+      const PROJECTS = {
+        p1: {
+          title: 'PROJECT ONE',
+          banner: '/assets/images/ripidks3.gif',
+          description: 'A short description of the project goes here. Arial text, left side. Talk about what it is, the context, the problem it solves, or the story behind it. Keep it punchy.',
+          work: [
+            'Designed the full UI/UX from scratch',
+            'Built the frontend in React + TypeScript',
+            'Integrated REST API with Node.js backend',
+            'Deployed on Vercel with CI/CD pipeline',
+          ],
+          link: 'https://example.com/project-one',
+          linkLabel: 'VIEW PROJECT →',
+        },
+        p2: {
+          title: 'PROJECT TWO',
+          banner: '/assets/images/project2.gif',
+          description: 'Description for project two. Explain what makes this one interesting, the tech stack, the challenge, or the outcome.',
+          work: [
+            'Led research and concept development',
+            'Prototyped interactive demo in p5.js',
+            'Wrote custom shader effects in GLSL',
+            'Presented at local design meetup',
+          ],
+          link: 'https://example.com/project-two',
+          linkLabel: 'VIEW PROJECT →',
+        },
+        p3: {
+          title: 'PROJECT THREE',
+          banner: '/assets/images/project3.gif',
+          description: 'Description for project three. A couple of sentences is plenty — the bullet list on the right handles the specifics.',
+          work: [
+            'Embedded firmware in C on ESP32',
+            'Designed PCB layout in KiCad',
+            'Built companion web dashboard',
+            'Documented hardware build process',
+          ],
+          link: 'https://example.com/project-three',
+          linkLabel: 'VIEW PROJECT →',
+        },
+        p4: {
+          title: 'PROJECT FOUR',
+          banner: '/assets/images/project4.gif',
+          description: 'Description for project four. This is your space — describe the vision, collaborators, or anything you want the viewer to know.',
+          work: [
+            'Directed and shot on 16mm film',
+            'Edited in DaVinci Resolve',
+            'Composed original score in Ableton',
+            'Screened at independent film festival',
+          ],
+          link: 'https://example.com/project-four',
+          linkLabel: 'VIEW PROJECT →',
+        },
+      };
+
+      const bannerImg = document.getElementById('proj-banner-img');
+      // Use the MENU nav button as the back button when inside a project
+      const backBtn = document.querySelector('.nav-btn[data-channel="1"]');
+      const descEl = document.getElementById('proj-description');
+      const workEl = document.getElementById('proj-work');
+      const projectPanel = document.getElementById('channel-project');
+      const flashEl = document.getElementById('channel-flash');
+      const flashGif = document.getElementById('flash-gif');
+
+      const STATIC_GIFS = [
+        '/assets/gifs/static/static1.gif',
+        '/assets/gifs/static/static2.gif',
+      ];
+
+      function flashThen(callback) {
+        const gif = STATIC_GIFS[Math.floor(Math.random() * STATIC_GIFS.length)];
+        flashGif.src = gif + '?t=' + Date.now();
+        flashEl.classList.add('active');
+        setTimeout(() => {
+          callback();
+          flashEl.classList.remove('active');
+        }, 280);
+      }
+
+      function openProject(id) {
+        const p = PROJECTS[id];
+        if (!p) return;
+
+        flashThen(() => {
+          // Hide all other channels
+          document.querySelectorAll('.screen-channel').forEach(el => el.classList.add('hidden'));
+
+          // Populate content
+          bannerImg.src = p.banner;
+          bannerImg.alt = p.title;
+          descEl.innerHTML = `<p class="proj-desc-text">${p.description}</p>`;
+
+          // Cycle gif bullets across work items
+          const BULLET_COUNT = 3;
+          const bullets = p.work.map((w, i) => {
+            const idx = (i % BULLET_COUNT) + 1;
+            return `<li><img src="/assets/gifs/bullets/bullet${idx}.gif" alt="*" class="gif-bullet" />${w}</li>`;
+          }).join('');
+          workEl.innerHTML = `
+          <p class="proj-work-heading">MY WORK:</p>
+          <ul class="proj-work-list">${bullets}</ul>
+          <div class="proj-ext-link-spacer"></div>
+        `;
+
+          projectPanel.classList.remove('hidden');
+
+          // Switch MENU → BACK (remove active so its !important bg doesn't kill the blink)
+          if (backBtn) {
+            backBtn.textContent = 'BACK';
+            backBtn.classList.remove('active');
+            backBtn.classList.add('nav-btn--back-mode');
+          }
+        });
+      }
+
+      function closeProject() {
+        flashThen(() => {
+          // Hide all channels, show CH1
+          document.querySelectorAll('.screen-channel').forEach(el => el.classList.add('hidden'));
+          const ch1 = document.getElementById('channel-1');
+          if (ch1) ch1.classList.remove('hidden');
+          // Keep nav button state correct
+          document.querySelectorAll('.nav-btn[data-channel]').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.channel === '1');
+          });
+          // Restore MENU label
+          if (backBtn) {
+            backBtn.textContent = 'MENU';
+            backBtn.classList.remove('nav-btn--back-mode');
+          }
+        });
+      }
+
+      // Attach click handlers to menu items
+      document.querySelectorAll('.menu-item[data-project]').forEach(el => {
+        el.addEventListener('click', e => {
+          e.preventDefault();
+          openProject(el.dataset.project);
+        });
+      });
+
+      if (backBtn) backBtn.addEventListener('click', closeProject);
+    })();
+  </script>
+  <script>
+    const vd = document.getElementById('ver-date-live');
+    if (vd) vd.textContent = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+  </script>
+
+  <script>
+    // ── TAG IMAGE TOOLTIP ──
+    (function () {
+      const tooltip = document.getElementById('tag-tooltip');
+      if (!tooltip) return;
+      // Desktop-only: disable on touch devices
+      if ('ontouchstart' in window || navigator.maxTouchPoints > 0) return;
+      document.querySelectorAll('.tag-img').forEach(el => {
+        el.addEventListener('mouseenter', function (e) {
+          tooltip.textContent = this.dataset.label;
+          tooltip.classList.add('visible');
+          positionTooltip(e);
+        });
+        el.addEventListener('mousemove', positionTooltip);
+        el.addEventListener('mouseleave', function () {
+          tooltip.classList.remove('visible');
+        });
+      });
+      function positionTooltip(e) {
+        tooltip.style.left = (e.clientX + 12) + 'px';
+        tooltip.style.top  = (e.clientY + 12) + 'px';
+      }
+    })();
+  </script>
+
+  <!-- pdf.js for research channel -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    if (window.pdfjsLib) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+  </script>
+
+  <!-- ── RESEARCH CHANNEL (CH4) ── -->
+  <script>
+  (function () {
+    /* ── PDF Data — add your PDFs here ── */
+    const PDFS = [
+      {
+        id: 'pdf1',
+        title: 'The New Web',
+        cover: 'assets/pdfs/The New Web.png',
+        src: 'assets/pdfs/The New Web.pdf',
+        status: 'COMPLETED',
+      },
+      {
+        id: 'pdf2',
+        title: 'Trapped in Memory',
+        cover: 'assets/pdfs/Trapped in Memory.png',
+        src: 'assets/pdfs/Trapped in Memory.pdf',
+        status: 'COMPLETED',
+      },
+      {
+        id: 'pdf3',
+        title: 'The Financial Fortress',
+        cover: 'assets/pdfs/The Financial Fortress.png',
+        src: 'assets/pdfs/The Financial Fortress.pdf',
+        status: 'IN PROGRESS',
+      },
+    ];
+
+    /* Always need at least 3 entries (recycle if fewer) */
+    function buildDeck(list) {
+      if (!list.length) return list;
+      const out = [...list];
+      while (out.length < 3) {
+        for (let i = 0; i < list.length && out.length < 3; i++) {
+          out.push({ ...list[i], _recycled: true });
+        }
+      }
+      return out;
+    }
+
+    const deck = buildDeck(PDFS);
+    let centerIndex = 1;
+    let isAnimating = false;
+
+    const stage = document.getElementById('research-stage');
+    const readerPanel = document.getElementById('channel-pdf-reader');
+    const readerView = document.getElementById('pdf-reader-view');
+    const readerInner = document.getElementById('pdf-reader-inner');
+    const flashEl = document.getElementById('channel-flash');
+    const flashGif = document.getElementById('flash-gif');
+    const STATIC_GIFS = ['/assets/gifs/static/static1.gif', '/assets/gifs/static/static2.gif'];
+
+    const isMobile = () => window.innerWidth <= 640;
+
+    if (!stage) return;
+
+    /* ── Animated carousel transition ── */
+    function animateAndNav(direction) {
+      if (isAnimating) return;
+      isAnimating = true;
+      const n = deck.length;
+
+      // direction: 'prev' = slide right (going back), 'next' = slide left (going forward)
+      const outClass = direction === 'next' ? 'slide-out-left' : 'slide-out-right';
+      const inClass  = direction === 'next' ? 'slide-in-right' : 'slide-in-left';
+
+      // Snapshot the current cards
+      const cards = Array.from(stage.querySelectorAll('.research-card'));
+      cards.forEach(c => c.classList.add(outClass));
+
+      setTimeout(() => {
+        if (direction === 'next') centerIndex = (centerIndex + 1) % n;
+        else centerIndex = (centerIndex - 1 + n) % n;
+        renderStage(inClass);
+        setTimeout(() => {
+          stage.querySelectorAll('.research-card').forEach(c => {
+            c.classList.remove(inClass);
+          });
+          isAnimating = false;
+        }, 240);
+      }, 180);
+    }
+
+    /* ── Render the visible slots ── */
+    function renderStage(animInClass) {
+      stage.innerHTML = '';
+      const n = deck.length;
+
+      if (isMobile()) {
+        // Mobile: single card carousel
+        const pdf = deck[centerIndex];
+        const card = document.createElement('div');
+        card.className = 'research-card research-card--mobile-single';
+        if (animInClass) card.classList.add(animInClass);
+
+        const statusHtml = pdf.status
+          ? `<div class="pdf-status-badge pdf-status--${pdf.status === 'COMPLETED' ? 'done' : 'wip'}">${pdf.status}</div>`
+          : '';
+
+        const coverHtml = pdf.cover
+          ? `<img class="pdf-cover-img" src="${pdf.cover}" alt="${pdf.title}" />`
+          : `<div class="pdf-cover-placeholder"><span class="pdf-cover-label">${pdf.title}</span></div>`;
+
+        card.innerHTML = `
+          <div class="pdf-cover-wrap">
+            ${coverHtml}
+            <div class="pdf-cover-hover-label">OPEN →</div>
+            ${statusHtml}
+          </div>`;
+        card.addEventListener('click', () => openPdf(pdf));
+        stage.appendChild(card);
+
+        // Prev/next arrow buttons for mobile
+        const prevBtn = document.createElement('button');
+        prevBtn.className = 'mobile-carousel-btn mobile-carousel-btn--prev';
+        prevBtn.innerHTML = '‹';
+        prevBtn.addEventListener('click', () => animateAndNav('prev'));
+
+        const nextBtn = document.createElement('button');
+        nextBtn.className = 'mobile-carousel-btn mobile-carousel-btn--next';
+        nextBtn.innerHTML = '›';
+        nextBtn.addEventListener('click', () => animateAndNav('next'));
+
+        stage.appendChild(prevBtn);
+        stage.appendChild(nextBtn);
+
+        // Dot indicators
+        const dots = document.createElement('div');
+        dots.className = 'mobile-carousel-dots';
+        deck.forEach((_, i) => {
+          const dot = document.createElement('span');
+          dot.className = 'carousel-dot' + (i === centerIndex ? ' carousel-dot--active' : '');
+          dots.appendChild(dot);
+        });
+        stage.appendChild(dots);
+
+      } else {
+        // Desktop: triptych
+        const prevIdx = (centerIndex - 1 + n) % n;
+        const nextIdx = (centerIndex + 1) % n;
+        const slots = [
+          { pdf: deck[prevIdx], role: 'prev' },
+          { pdf: deck[centerIndex], role: 'center' },
+          { pdf: deck[nextIdx], role: 'next' },
+        ];
+
+        slots.forEach(({ pdf, role }) => {
+          const card = document.createElement('div');
+          card.className = `research-card research-card--${role}`;
+          if (animInClass) card.classList.add(animInClass);
+          card.dataset.role = role;
+
+          const statusHtml = pdf.status
+            ? `<div class="pdf-status-badge pdf-status--${pdf.status === 'COMPLETED' ? 'done' : 'wip'}">${pdf.status}</div>`
+            : '';
+
+          const coverHtml = pdf.cover
+            ? `<img class="pdf-cover-img" src="${pdf.cover}" alt="${pdf.title}" />`
+            : `<div class="pdf-cover-placeholder"><span class="pdf-cover-label">${pdf.title}</span></div>`;
+
+          if (role === 'center') {
+            card.innerHTML = `
+              <div class="pdf-cover-wrap">
+                ${coverHtml}
+                <div class="pdf-cover-hover-label">OPEN →</div>
+                ${statusHtml}
+              </div>`;
+            card.addEventListener('click', () => openPdf(pdf));
+          } else {
+            const arrow = role === 'prev' ? '‹' : '›';
+            card.innerHTML = `
+              <div class="pdf-cover-wrap pdf-cover-wrap--nav">
+                ${coverHtml}
+                <div class="pdf-nav-arrow">${arrow}</div>
+                ${statusHtml}
+              </div>`;
+            card.addEventListener('click', () => {
+              animateAndNav(role);
+            });
+          }
+
+          stage.appendChild(card);
+        });
+      }
+    }
+
+    /* Mobile touch swipe → animate and navigate */
+    let touchStartX = 0;
+    stage.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+    stage.addEventListener('touchend', e => {
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      if (Math.abs(dx) < 40) return;
+      animateAndNav(dx < 0 ? 'next' : 'prev');
+    }, { passive: true });
+
+    /* ── Flash helper ── */
+    function flashThen(cb) {
+      const gif = STATIC_GIFS[Math.floor(Math.random() * STATIC_GIFS.length)];
+      flashGif.src = gif + '?t=' + Date.now();
+      flashEl.classList.add('active');
+      setTimeout(() => { cb(); flashEl.classList.remove('active'); }, 280);
+    }
+
+    /* ── Open PDF ── */
+    function openPdf(pdf) {
+      // Zoom the center card before the flash
+      const centerCard = stage.querySelector('.research-card--center');
+      if (centerCard) {
+        centerCard.classList.add('is-opening');
+        centerCard.addEventListener('animationend', () => centerCard.classList.remove('is-opening'), { once: true });
+      }
+      flashThen(() => {
+        // Hide all channels except the reader itself
+        document.querySelectorAll('.screen-channel').forEach(el => {
+          if (el.id !== 'channel-pdf-reader') el.classList.add('hidden');
+        });
+        readerPanel.classList.remove('hidden');
+        readerView.scrollTop = 0;
+        readerInner.innerHTML = '<div class="pdf-loading">Loading...</div>';
+
+        const researchBtn = document.querySelector('.nav-btn[data-channel="4"]');
+        if (researchBtn) {
+          researchBtn.textContent = 'BACK';
+          researchBtn.classList.remove('active');
+          researchBtn.classList.add('nav-btn--back-mode');
+        }
+
+        if (!window.pdfjsLib) {
+          readerInner.innerHTML = '<div class="pdf-loading pdf-err">pdf.js not loaded.</div>';
+          return;
+        }
+        window.pdfjsLib.getDocument(pdf.src).promise.then(doc => {
+          readerInner.innerHTML = '';
+          renderAllPages(doc);
+        }).catch(err => {
+          readerInner.innerHTML = `<div class="pdf-loading pdf-err">Could not load PDF.<br><small>${err.message}</small></div>`;
+        });
+      });
+    }
+
+    async function renderAllPages(doc) {
+      const containerW = readerInner.clientWidth || 800;
+      for (let i = 1; i <= doc.numPages; i++) {
+        const page = await doc.getPage(i);
+        const unscaled = page.getViewport({ scale: 1 });
+        const scale = Math.min(2, containerW / unscaled.width);
+        const vp = page.getViewport({ scale });
+        const wrap = document.createElement('div');
+        wrap.className = 'pdf-page-wrap';
+        const canvas = document.createElement('canvas');
+        canvas.width = vp.width;
+        canvas.height = vp.height;
+        canvas.style.width = '100%';
+        canvas.style.height = 'auto';
+        wrap.appendChild(canvas);
+        readerInner.appendChild(wrap);
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+      }
+    }
+
+    /* ── Close PDF → back to carousel ── */
+    function closePdf() {
+      flashThen(() => {
+        document.querySelectorAll('.screen-channel').forEach(el => el.classList.add('hidden'));
+        const ch4 = document.getElementById('channel-4');
+        if (ch4) ch4.classList.remove('hidden');
+        document.querySelectorAll('.nav-btn[data-channel]').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.channel === '4');
+        });
+        const researchBtn = document.querySelector('.nav-btn[data-channel="4"]');
+        if (researchBtn) {
+          researchBtn.textContent = 'RESEARCH';
+          researchBtn.classList.remove('nav-btn--back-mode');
+        }
+        readerInner.innerHTML = '';
+      });
+    }
+
+    document.querySelector('.nav-btn[data-channel="4"]')
+      ?.addEventListener('click', () => {
+        const btn = document.querySelector('.nav-btn[data-channel="4"]');
+        if (btn && btn.classList.contains('nav-btn--back-mode')) closePdf();
+      });
+
+    window.odiwr = window.odiwr || {};
+    window.odiwr.closePdf = closePdf;
+
+    /* Re-render on resize for mobile/desktop switch */
+    window.addEventListener('resize', () => { renderStage(); });
+
+    /* Initial render */
+    renderStage();
+  })();
+  </script>
+
+  <!-- Mobile first-visit popup -->
+  <script>
+  (function () {
+    const isMobile = window.innerWidth <= 640;
+    if (!isMobile) return;
+    const key = 'odiwr_mobile_warned';
+    if (localStorage.getItem(key)) return;
+
+    const overlay = document.createElement('div');
+    overlay.id = 'mobile-warning-overlay';
+    overlay.innerHTML = `
+      <div id="mobile-warning-box">
+        <p id="mobile-warning-msg">You're missing so much by viewing this site on your phone.</p>
+        <button id="mobile-warning-btn">I understand</button>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    document.getElementById('mobile-warning-btn').addEventListener('click', () => {
+      overlay.classList.add('dismissing');
+      setTimeout(() => overlay.remove(), 300);
+      localStorage.setItem(key, '1');
+    });
+  })();
+  </script>
+</body>
+
+</html>
