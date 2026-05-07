@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>O.D.I.W.R. — Public Safety Announcement</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  @font-face {
+    font-family: 'VCR OSD Mono';
+    src: url('/fonts/VCR_OSD_MONO_1.001.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+  }
+
+  html, body {
+    height: 100vh;
+    background: #000; /* Deep black for CRT depth */
+    color: #fff;
+    font-family: 'VCR OSD Mono', monospace;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  /* 2000s Heavy Bevelled Border */
+  .container {
+    max-width: 700px;
+    width: 90%;
+    text-align: center;
+    background: #000080; /* Classic Gov Navy */
+    border: 4px ridge #c0c0c0; /* Metallic bevel border */
+    padding: 40px;
+    box-shadow: 0 0 30px rgba(0,0,255,0.3);
+    position: relative;
+  }
+
+  /* Adding "Official Seal" feel to the logo */
+/* Fixed size for the seal */
+  .logo-wrapper {
+    background: radial-gradient(circle, #ffffff 0%, #c0c0c0 100%);
+    width: 180px; 
+    height: 180px;
+    margin: 0 auto 30px;
+    border-radius: 50%;
+    border: 5px double #000080;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    flex-shrink: 0; 
+    
+    /* Allow the logo to spill out of the circle */
+    position: relative; 
+    overflow: visible; 
+  }
+
+  /* Scale the logo to be huge regardless of the 180px circle */
+  .logo {
+    /* Use a fixed width or a massive percentage */
+    width: 300px; 
+    height: auto;
+    
+    /* Ensure it stays centered even though it's wider than the parent */
+    position: absolute; 
+    
+    image-rendering: auto;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));
+    z-index: 5;
+  }
+  .headline {
+    font-size: 24px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #ffff00; /* Emergency Yellow */
+    text-shadow: 2px 2px #000;
+    margin-bottom: 10px;
+    background: #ff0000; /* Red "Warning" strip */
+    padding: 5px;
+  }
+
+  .subhead {
+    font-size: 11px;
+    color: #ffffff;
+    font-weight: bold;
+    letter-spacing: 1px;
+    margin-bottom: 40px;
+    text-transform: uppercase;
+  }
+
+  .section-title {
+    font-size: 14px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #000;
+    background: #c0c0c0; /* Silver title bar */
+    padding: 8px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #888;
+  }
+
+  .scams {
+    list-style: square;
+    text-align: left;
+    display: inline-block;
+    padding: 20px;
+    background: rgba(255,255,255,0.1);
+    border: 1px inset #fff;
+  }
+
+  .scams li {
+    font-size: 13px;
+    color: #fff;
+    line-height: 2;
+    text-shadow: 1px 1px #000;
+  }
+
+  .scams li strong {
+    color: #ffff00;
+    text-decoration: underline;
+  }
+
+  /* Scanline Overlay to tie it into your main site */
+  .container::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
+    background-size: 100% 4px;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="logo-wrapper">
+    <img class="logo" src="../assets/images/o.d.i.w.r.png" alt="O.D.I.W.R. Seal">
+  </div>
+  
+  <div class="headline">DO NOT CLICK RANDOM INTERNET LINKS</div>
+  <div class="subhead">OFFICE OF DIGITAL &amp; INTERNET WELFARE REGULATION</div>
+
+  <div class="section-title">POTENTIAL ONLINE SCAMMING METHODS</div>
+  
+  <ul class="scams">
+    <li><strong>Phishing:</strong> Unauthorized credential harvesting via spoofed SMTP.</li>
+    <li><strong>Technical Support:</strong> Malicious scripts simulating kernel failure.</li>
+    <li><strong>Romance Protocols:</strong> Psychological manipulation for capital transfer.</li>
+    <li><strong>"Quishing":</strong> Malicious QR routing via public vector.</li>
+    <li><strong>SIM Hijacking:</strong> Unauthorized cellular identity reassignment.</li>
+  </ul>
+</div>
+
+</body>
+</html>
