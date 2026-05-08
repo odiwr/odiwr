@@ -1,0 +1,152 @@
+/* audio.css — odiwr.com
+   Styles for the left-panel music player: controls, track info, volume panel. */
+
+/* ── Player header row (title + controls) ── */
+.player-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  width: 100%;
+}
+
+.player-header-row .about-group-title { margin-top: 0; }
+
+.player-controls {
+  display: flex;
+  gap: 4px;
+  align-items: stretch;
+}
+
+.player-controls button {
+  background: var(--white);
+  color: var(--blue);
+  padding: 2px 6px;
+  /* font-size: 11px; */
+  text-transform: uppercase;
+}
+
+/* Fixed-width PLAY/PAUSE (sized to "PAUSE" so it never shifts layout) */
+#play-btn {
+  width: 56px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* ── Minimal player wrapper ── */
+#minimal-player {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+/* Shared height for track-info and volume-panel */
+#track-info,
+#volume-panel {
+  height: 25px;
+  box-sizing: border-box;
+}
+
+/* ── Track info bar ── */
+#track-info {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  background: var(--white);
+  color: var(--blue);
+  text-transform: uppercase;
+  padding: 2px 6px;
+  gap: 0;
+}
+
+/* Caret (">") — separate span so only it blinks on pause */
+#track-caret {
+  flex-shrink: 0;
+  color: var(--blue);
+  margin-right: 4px;
+}
+
+#track-info-text {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--blue);
+}
+
+/* Blink animation — used on #track-info-text (initial load) and #track-caret (paused) */
+@keyframes trackBlink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+#track-info-text.blinking,
+#track-caret.blinking {
+  animation: trackBlink 1s step-end infinite;
+}
+
+/* ── Volume panel ── */
+#volume-panel {
+  display: none;
+  width: 100%;
+  background: var(--white);
+  margin-top: 1px;
+  align-items: center;
+}
+
+#volume-panel.vol-visible { display: flex; }
+
+/* Minus / Plus buttons */
+.vol-btn {
+  flex-shrink: 0;
+  color: var(--black) !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 0 !important;
+  width: 21px;
+  height: 21px;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.vol-btn svg { display: block; width: 9px; height: 9px; }
+.vol-btn:hover { opacity: 0.8; }
+
+/* VCR bar track */
+#vol-bars {
+  flex: 1 1 auto;
+  height: 21px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 6px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* Individual bar segments */
+.vol-bar {
+  width: 6px;
+  flex-shrink: 0;
+  border-radius: 0 !important;
+  display: inline-block;
+}
+
+.vol-bar.filled { height: 14px; background: var(--blue); }
+.vol-bar.empty  { height: 4px; width: 8px; background: rgba(0, 0, 255, 0.22); }
+
+.player-controls button:hover { opacity: 0.8; }
+
+/* Hide the player entirely on small screens */
+@media (max-width: 768px) {
+  .player-header-row,
+  #minimal-player {
+    display: none !important;
+  }
+}

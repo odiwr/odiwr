@@ -1,0 +1,58 @@
+/* cursors.css — odiwr.com
+   All custom pixel cursor declarations, consolidated in one place.
+   Paths updated to new asset hierarchy: /assets/cursors/ */
+
+/* ── Default cursor ── */
+body {
+  cursor: url('/assets/cursors/default.png') 0 0, auto;
+}
+
+/* ── Pointer — all interactive elements ── */
+a, a *,
+button, button *,
+[role="button"], [role="button"] *,
+.menu-item, .menu-item *,
+.nav-btn, .nav-btn *,
+label, label *,
+#play-btn, #play-btn *,
+#prev-btn, #prev-btn *,
+#next-btn, #next-btn *,
+#minimal-player, #minimal-player *,
+#track-info, #track-info *,
+#volume-panel, #volume-panel *,
+#vol-bars, #vol-bars *,
+.vol-btn, .vol-btn *,
+.tag-img, .tag-img *,
+.research-card,
+[data-channel], [data-channel] * {
+  cursor: url('/assets/cursors/pointer.png') 0 0, pointer !important;
+}
+
+/* ── Grabbing — while pressing ── */
+a:active, a:active *,
+button:active, button:active *,
+.menu-item:active, .menu-item:active *,
+.nav-btn:active, .nav-btn:active *,
+.vol-btn:active, .vol-btn:active * {
+  cursor: url('/assets/cursors/grabbing.png') 8 8, pointer !important;
+}
+
+/* ── Wait — during channel flash / page nav ── */
+.channel-flash.active ~ * {
+  cursor: url('/assets/cursors/wait.png') 8 8, progress;
+}
+
+body.is-cursor-wait,
+body.is-cursor-wait * {
+  cursor: url('/assets/cursors/wait.png') 8 8, progress !important;
+}
+
+/* ── Not-allowed — disabled elements ── */
+[disabled], .disabled {
+  cursor: url('/assets/cursors/not-allowed.png') 8 8, not-allowed;
+}
+
+/* ── Text — editable fields ── */
+input, textarea, [contenteditable="true"] {
+  cursor: url('/assets/cursors/text.png') 8 8, text;
+}

@@ -1,0 +1,274 @@
+/* layout.css — odiwr.com
+   Core layout: site wrapper, left panel, right panel, nav remote, CRT screen.
+   Does not include channel-specific or component styles. */
+
+/* ── Base typography & color ── */
+html, body {
+  background: var(--blue);
+  color: var(--white);
+  font-size: 19.8px;
+}
+
+body, body * { color: var(--white); }
+a { color: var(--white); }
+
+/* ── Site wrapper ── */
+.site-wrapper {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ════════════════════════════════════════
+   LEFT PANEL
+════════════════════════════════════════ */
+.left-panel {
+  width: var(--left-w);
+  min-width: var(--left-min);
+  max-width: var(--left-max);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--blue);
+  position: relative;
+  z-index: 10;
+  overflow: hidden;
+}
+
+.logo-zone {
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.logo-img {
+  font-size: 24.2px;
+  letter-spacing: 4px;
+  color: var(--black);
+  line-height: 1;
+}
+
+.about-zone {
+  flex: 0 0 auto;
+  padding: 14px 16px;
+  overflow-y: auto;
+}
+
+.about-inner { height: 100%; }
+
+.about-text {
+  font-size: 13.2px;
+  line-height: 1.6;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.about-text p { margin: 0; }
+
+.about-text .about-group-title {
+  margin-top: 10px;
+  color: var(--white);
+  font-size: 13.2px;
+  letter-spacing: 1px;
+}
+
+.about-text a {
+  color: var(--white);
+  text-decoration: underline;
+}
+
+.about-text p:not(.about-group-title) { opacity: 0.85; }
+
+/* Spacer / empty footer zones */
+.spacer-zone { flex: 1 1 auto; min-height: 20px; }
+.contact-zone { flex-shrink: 0; min-height: 2px; }
+.footer-zone  { flex-shrink: 0; min-height: 2px; }
+
+/* ════════════════════════════════════════
+   RIGHT PANEL
+════════════════════════════════════════ */
+.right-panel {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── Nav / Remote ── */
+.nav-remote {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 20px 0;
+  background: var(--blue);
+  pointer-events: none;
+}
+
+.nav-btn {
+  font-size: 17.6px;
+  letter-spacing: 1px;
+  color: var(--white);
+  background: transparent;
+  border: none;
+  padding: 4px 10px;
+  text-transform: uppercase;
+  pointer-events: all;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.1s;
+}
+
+/* Blinking left-side indicator on hover */
+.nav-btn::before {
+  content: '';
+  display: inline-block;
+  width: 0;
+  flex-shrink: 0;
+  align-self: stretch;
+  background: var(--white);
+  opacity: 0;
+  transition: width 0s, opacity 0.25s ease;
+}
+
+.nav-btn:hover::before {
+  width: 8px;
+  opacity: 1;
+  animation: nav-indicator-blink 0.7s step-end infinite;
+}
+
+@keyframes nav-indicator-blink {
+  0%, 49%  { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+/* Active channel: solid white bg, blue text */
+.nav-btn.active {
+  background: var(--white) !important;
+  color: var(--blue) !important;
+}
+
+.nav-btn.active::before { display: none; }
+
+.nav-btn:hover {
+  background: transparent !important;
+  color: var(--white) !important;
+}
+
+/* BACK mode: blink white↔transparent */
+@keyframes back-btn-blink {
+  0%, 49%  { background: var(--white); color: var(--black); }
+  50%, 100% { background: transparent; color: var(--white); }
+}
+
+.nav-btn--back-mode {
+  animation: back-btn-blink 0.6s step-end infinite !important;
+}
+
+.nav-btn--back-mode::before { display: none; }
+
+/* VERSION button pushed to right end of nav */
+.nav-btn--version { margin-left: auto; }
+
+/* Long/short label toggle (for VERSION button) */
+.nav-label-short { display: none; }
+.nav-label-full  { display: inline; }
+
+/* ── CRT Screen ── */
+.crt-screen {
+  flex: 1 1 auto;
+  position: relative;
+  overflow: hidden;
+  background: var(--blue);
+}
+
+.screen-inner {
+  width: 100%;
+  height: 100%;
+  background: var(--blue);
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── Channels ── */
+.screen-channel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.screen-channel.hidden { display: none; }
+
+.channel-content {
+  width: 100%;
+  height: 100%;
+  padding: 52px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  color: var(--white);
+  overflow: hidden;
+}
+
+/* Scrollable channel variant (CH2: INFO) */
+.info-scroll {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.info-scroll::-webkit-scrollbar { width: 4px; }
+.info-scroll::-webkit-scrollbar-track { background: transparent; }
+.info-scroll::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); }
+
+/* ── Channel flash overlay ── */
+.channel-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: var(--blue);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.05s;
+}
+
+.channel-flash.active { opacity: 1; }
+
+.channel-flash img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ── GIF bullets (used site-wide as list decorators) ── */
+.gif-bullet {
+  display: inline-block;
+  width: auto;
+  height: 14px;
+  vertical-align: middle;
+  flex-shrink: 0;
+  image-rendering: pixelated;
+  margin-right: 4px;
+}
+
+.about-text p .gif-bullet { height: 12px; }
+.inspo-entry .gif-bullet   { height: 12px; }
+
+/* ── Shared blink animation ── */
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+.blink { animation: blink 1s step-end infinite; }

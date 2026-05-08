@@ -1,0 +1,205 @@
+/* mobile.css — odiwr.com
+   All responsive overrides for screens ≤ 640px.
+   Kept separate so desktop styles stay uncluttered. */
+
+@media (max-width: 640px) {
+  html, body { overflow: hidden; }
+
+  .site-wrapper { flex-direction: column; }
+
+  /* Hide desktop left sidebar */
+  .left-panel { display: none; }
+
+  /* Right panel fills viewport */
+  .right-panel {
+    width: 100%;
+    height: 100vh;
+    flex: 1 1 auto;
+  }
+
+  /* Nav: fixed at top, centered, full width */
+  .nav-remote {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 200;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 0;
+    padding: 10px 0 0;
+    background: var(--blue);
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+
+  .nav-btn {
+    font-size: 11px;
+    padding: 8px;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .nav-btn--version { margin-left: 0; }
+
+  /* Long label hidden, short label shown */
+  .nav-label-full  { display: none; }
+  .nav-label-short { display: inline; }
+
+  /* CRT fills below nav (~50px) */
+  .crt-screen {
+    position: absolute;
+    top: 50px;
+    left: 0; right: 0; bottom: 0;
+  }
+
+  .channel-content { padding: 0 20px 20px; }
+
+  /* Channel flash covers full viewport on mobile */
+  .channel-flash { position: fixed; inset: 0; }
+
+  /* ── CH1: Project view stacks vertically ── */
+  .ch1-project-view { margin-top: 0; }
+
+  .proj-lower {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .proj-description { overflow-y: visible; }
+  .proj-work { flex: none; overflow-y: visible; }
+  .proj-banner { max-height: 28%; }
+
+  /* ── CH2: INFO ── */
+  .info-who-layout {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .info-who-right {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .info-para { text-align: center; }
+
+  .inspo-grid { grid-template-columns: repeat(2, 1fr); }
+
+  /* Shrink tag icons */
+  .tag-img img { width: 26px; height: 26px; }
+
+  /* Disable tooltip on mobile */
+  .tag-tooltip { display: none !important; }
+
+  /* Tag groups centred */
+  .tag-group, .info-tags { align-items: center; width: 100%; }
+  .tags { justify-content: center; }
+
+  .info-socials { margin-bottom: 40px; }
+
+  /* CH2 resources: stack vertically, centred */
+  .res-section { align-items: center !important; }
+
+  .res-row {
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 24px;
+    width: 100%;
+  }
+
+  .res-label {
+    flex: none;
+    font-size: 13px;
+    letter-spacing: 3px;
+    text-align: center;
+    background: var(--white);
+    color: var(--blue);
+    padding: 1px 10px;
+    width: fit-content;
+  }
+
+  .res-links {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .res-link-entry {
+    font-size: 13px;
+    max-width: 90%;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .res-link-entry a {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Globally shrink all info-channel text to 13px on mobile */
+  .info-para, .info-blurb,
+  .inspo-heading, .inspo-entry, .inspo-entry a,
+  .social-link, .info-socials, .social-row,
+  .res-label, .res-link-entry, .res-link-entry a,
+  .info-title-bar,
+  .resource-heading, .resource-entry, .site-tech-group {
+    font-size: 13px !important;
+  }
+
+  /* ── CH3: Resume ── */
+  .res-coming {
+    font-size: 18px !important;
+    letter-spacing: 3px;
+  }
+
+  /* ── CH4: Research stage ── */
+  .research-stage {
+    position: relative;
+    gap: 0;
+    /* padding: 20px 16px 48px; */
+    justify-content: center;
+    align-items: center;
+  }
+
+  .pdf-cover-img {
+    width: 100%;
+    height: auto;
+    max-width: 275px;
+  }
+
+  /* Hide triptych side cards on mobile */
+  .research-card--prev,
+  .research-card--next { display: none; }
+
+  /* ── CH5: Version ── */
+  .version-block {
+    transform: scale(0.7);
+    transform-origin: center center;
+  }
+
+  /* Idle: mobile channel background during idle screen */
+  body[data-current-channel="idle"] .right-panel {
+    background-color: var(--black) !important;
+  }
+}
+
+/* ── Tablet: single-column menu grid ── */
+@media (max-width: 768px) {
+  .menu-grid { grid-template-columns: 1fr; }
+
+  .right-panel {
+    width: 100%;
+    height: 100vh;
+    flex: 1 1 auto;
+    background: transparent;
+  }
+}

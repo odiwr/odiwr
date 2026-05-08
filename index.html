@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+  <title>odiwr</title>
+  <meta name="description" content="Bill Kawaka (odiwr) — designer, developer, creator. Portfolio of Bill Odiwuor Kawaka. Find me at odiwr.com." />
+  <meta name="keywords"    content="Bill Odiwuor Kawaka, odiwr, Bill Kawaka, Okiwuor, Kawaka, Odiwuor, Bill Kawaka, Bill Kawaka Odiwuor, portfolio, designer, developer, idk studios, sokko" />
+  <meta name="author"      content="Bill Odiwuor Kawaka" />
+  <meta name="robots"      content="index, follow" />
+  <link rel="canonical"    href="https://odiwr.com/" />
+
+  <!-- Open Graph -->
+  <meta property="og:type"        content="website" />
+  <meta property="og:url"         content="https://odiwr.com/" />
+  <meta property="og:title"       content="odiwr" />
+  <meta property="og:description" content="Bill Kawaka (odiwr) — designer, developer, creator." />
+  <meta property="og:image"       content="assets/images/banner.jpg" />
+  <meta property="og:site_name"   content="odiwr" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:title"       content="odiwr" />
+  <meta name="twitter:description" content="Bill Odiwuor Kawaka (odiwr) — designer, developer, creator." />
+  <meta name="twitter:image"       content="assets/images/banner.jpg" />
+
+  <link rel="icon"     type="image/gif" href="/assets/icons/favicon.gif" />
+  <link rel="manifest" href="assets/misc/site.webmanifest" />
+  <meta name="theme-color" content="#0000ff" />
+
+  <!-- Structured data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": "Bill Odiwuor",
+    "alternateName": ["Odiwr", "Bill Odiwr", "Bill Kawaka Odiwuor", "Okiwuor"],
+    "url": "https://odiwr.com",
+    "sameAs": [],
+    "jobTitle": "Designer & Developer",
+    "description": "Bill Odiwuor, known online as Odiwr, is a designer and developer."
+  }
+  </script>
+
+  <!-- ── Stylesheets (load order matters) ── -->
+  <link rel="stylesheet" href="/css/tokens.css" />   <!-- design tokens / font-face  -->
+  <link rel="stylesheet" href="/css/reset.css" />    <!-- box-model + base reset      -->
+  <link rel="stylesheet" href="/css/cursors.css" />  <!-- all custom cursor rules     -->
+  <link rel="stylesheet" href="/css/layout.css" />   <!-- wrapper, panels, nav, CRT   -->
+  <link rel="stylesheet" href="/css/channels.css" /> <!-- per-channel content styles  -->
+  <link rel="stylesheet" href="/css/idle.css" />     <!-- DVD screensaver + dim rules -->
+  <link rel="stylesheet" href="/css/audio.css" />    <!-- music player component      -->
+  <link rel="stylesheet" href="/css/popups.css" />   <!-- mobile warning overlay      -->
+  <link rel="stylesheet" href="/css/mobile.css" />   <!-- ≤640px responsive overrides -->
+</head>
+
+<body>
+
+  <!-- Channel-switch static flash (covers entire viewport) -->
+  <div id="channel-flash" class="channel-flash" aria-hidden="true">
+    <img id="flash-gif" alt="" />
+  </div>
+
+  <div class="site-wrapper">
+
+    <!-- ════════════════════════════════════════
+         LEFT PANEL
+    ════════════════════════════════════════ -->
+    <div class="left-panel">
+
+      <header class="logo-zone" role="banner">
+        <div class="logo-inner">
+          <!-- Updated path: /assets/gifs/logo/ -->
+          <span class="logo-img">
+            <img src="/assets/gifs/logo/name.gif" />
+          </span>
+        </div>
+      </header>
+
+      <section class="about-zone" aria-labelledby="about-heading">
+        <div class="about-inner">
+          <h2 id="about-heading" class="section-label sr-only">About</h2>
+          <div class="about-text">
+            <p>
+              <a href="mailto:biz@odiwr.com">Bill O. Kawaka</a> (he/him)
+              is a Kenyan Full Stack Developer, amateur filmmaker, and alleged artist based in Central NJ (it's real).
+            </p>
+
+            <!-- Music player — controls injected here, volume panel added by audio.js -->
+            <div class="player-header-row">
+              <p class="about-group-title">Now Playing... </p>
+              <div class="player-controls">
+                <button id="prev-btn" aria-label="Previous">&lt;</button>
+                <button id="play-btn" aria-label="Play/Pause">PLAY</button>
+                <button id="next-btn" aria-label="Next">&gt;</button>
+              </div>
+            </div>
+            <div id="minimal-player">
+              <div id="track-info">&gt; Loading...</div>
+              <!-- #volume-panel inserted by audio.js immediately after #track-info -->
+            </div>
+
+            <p class="about-group-title">Reading... </p>
+            <p><img/> > Homer's "The Odyssey"</p>
+            <p><img/> > The Aeneid</p>
+            <p><img/> > Dante's Inferno</p>
+
+            <p class="about-group-title">Watching... </p>
+            <p><img/> > PLUR1BUS</p>
+            <p><img/> > SUITS (S3)</p>
+
+            <p class="about-group-title">Learning about... </p>
+            <p><img/> > ESP32 (SuperMini) dev boards</p>
+          </div>
+        </div>
+      </section>
+
+      <div class="spacer-zone"  aria-hidden="true"></div>
+      <section class="contact-zone" aria-hidden="true"></section>
+      <footer  class="footer-zone"  role="contentinfo"></footer>
+
+    </div><!-- /left-panel -->
+
+
+    <!-- ════════════════════════════════════════
+         RIGHT PANEL
+    ════════════════════════════════════════ -->
+    <div class="right-panel">
+
+      <!-- Remote control nav bar -->
+      <nav class="nav-remote" role="navigation" aria-label="Channel remote">
+        <button class="nav-btn active" data-channel="1">MENU</button>
+        <button class="nav-btn"        data-channel="2">INFO</button>
+        <button class="nav-btn"        data-channel="3">RESUME</button>
+        <button class="nav-btn"        data-channel="4">RESEARCH</button>
+        <button class="nav-btn nav-btn--version" data-channel="5" style="margin-left:0;">
+          <span class="nav-label-full">VERSION</span>
+          <span class="nav-label-short">VER.</span>
+        </button>
+      </nav>
+
+      <div class="crt-screen" role="main" aria-live="polite">
+        <div class="screen-inner">
+          <!-- idle-glitch-overlay injected here by channels.js -->
+
+          <!-- ══════════════════════════════
+               CH1: MENU
+          ══════════════════════════════ -->
+          <div class="screen-channel" id="channel-1" data-channel="1">
+            <div class="channel-content ch1-content" id="ch1-menu-view">
+
+              <div class="menu-grid">
+                <a href="#" class="menu-item" data-project="p1">
+                  <img src="/assets/images/ripidks3.gif" alt="Project One" />
+                </a>
+                <!-- Uncomment when ready:
+                <a href="#" class="menu-item" data-project="p2">
+                  <img src="/assets/images/project2.gif" alt="Project Two" />
+                </a>
+                <a href="#" class="menu-item" data-project="p3">
+                  <img src="/assets/images/project3.gif" alt="Project Three" />
+                </a>
+                <a href="#" class="menu-item" data-project="p4">
+                  <img src="/assets/images/project4.gif" alt="Project Four" />
+                </a>
+                -->
+              </div>
+
+              <div class="menu-guestbook">
+                <!-- Updated path: /assets/gifs/88x31/ -->
+                <a href="https://www.yourworldoftext.com/~odiwr/" target="_blank" rel="noopener" aria-label="Sign my guestbook">
+                  <img src="/assets/gifs/88x31/guestbook.gif" alt="Sign my guestbook" class="menu-gb-gif" />
+                </a>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Project detail panel (shown by projects.js on project click) -->
+          <div class="screen-channel hidden" id="channel-project">
+            <div class="ch1-project-view">
+              <div class="proj-banner">
+                <img id="proj-banner-img" src="" alt="" />
+              </div>
+              <div class="proj-lower">
+                <div class="proj-description" id="proj-description"></div>
+                <div class="proj-work"        id="proj-work"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ══════════════════════════════
+               CH2: INFO
+          ══════════════════════════════ -->
+          <div class="screen-channel hidden" id="channel-2" data-channel="2">
+            <div class="channel-content ch2-content info-scroll">
+
+              <!-- § WHO? -->
+              <div class="info-section">
+                <div class="info-title-bar">WHO?</div>
+                <div class="info-divider" data-char="#"></div>
+                <div class="info-who-layout">
+
+                  <div class="info-who-left">
+                    <p class="info-para">
+                      What's up! I'm Bill Odiwuor Kawaka (odiwr) and welcome to my website. I am a designer and developer. I make things for the web, and sometimes for film. I also like to 3d model, make electronics, and learn new software and hardware tools. I'm a very indicive person to be honest, this is the 7th itteration of odiwr.com since I purchased the domain. Regardless thank you for checking it out and please sign my guest book!
+                    </p>
+
+                    <div class="info-tags">
+                      <!-- Creative tools -->
+                      <div class="tag-group">
+                        <span class="tag-heading">ㅤ</span>
+                        <div class="tags">
+                          <span class="tag-img" data-label="Blender">       <img src="https://www.google.com/s2/favicons?sz=32&domain_url=blender.org"          alt="Blender" /></span>
+                          <span class="tag-img" data-label="Maya">          <img src="https://www.google.com/s2/favicons?sz=32&domain_url=autodesk.com"         alt="Maya" /></span>
+                          <span class="tag-img" data-label="Adobe CC">      <img src="https://www.google.com/s2/favicons?sz=32&domain_url=adobe.com"             alt="Adobe CC" /></span>
+                          <span class="tag-img" data-label="Davinci Resolve"><img src="https://www.google.com/s2/favicons?sz=32&domain_url=blackmagicdesign.com" alt="Davinci Resolve" /></span>
+                          <span class="tag-img" data-label="OpenToonz">     <img src="https://www.google.com/s2/favicons?sz=32&domain_url=opentoonz.github.io"  alt="OpenToonz" /></span>
+                          <span class="tag-img" data-label="FL Studio">     <img src="https://www.google.com/s2/favicons?sz=32&domain_url=flstudio.com"          alt="FL Studio" /></span>
+                          <span class="tag-img" data-label="Audacity">      <img src="https://www.google.com/s2/favicons?sz=32&domain_url=audacityteam.org"      alt="Audacity" /></span>
+                          <span class="tag-img" data-label="Krita">         <img src="https://www.google.com/s2/favicons?sz=32&domain_url=krita.org"             alt="Krita" /></span>
+                          <span class="tag-img" data-label="OBS">           <img src="https://www.google.com/s2/favicons?sz=32&domain_url=obsproject.com"        alt="OBS" /></span>
+                        </div>
+                      </div>
+                      <!-- Dev tools -->
+                      <div class="tag-group">
+                        <span class="tag-heading">ㅤ</span>
+                        <div class="tags">
+                          <span class="tag-img" data-label="Github/Git">  <img src="https://www.google.com/s2/favicons?sz=32&domain_url=github.com"              alt="Github/Git" /></span>
+                          <span class="tag-img" data-label="Unity">       <img src="https://www.google.com/s2/favicons?sz=32&domain_url=unity.com"               alt="Unity" /></span>
+                          <span class="tag-img" data-label="RStudio">     <img src="https://www.google.com/s2/favicons?sz=32&domain_url=posit.co"                alt="RStudio" /></span>
+                          <span class="tag-img" data-label="Arduino">     <img src="https://www.google.com/s2/favicons?sz=32&domain_url=arduino.cc"              alt="Arduino" /></span>
+                          <span class="tag-img" data-label="Postman">     <img src="https://www.google.com/s2/favicons?sz=32&domain_url=postman.com"             alt="Postman" /></span>
+                          <span class="tag-img" data-label="Java">        <img src="https://www.google.com/s2/favicons?sz=32&domain_url=java.com"                alt="Java" /></span>
+                          <span class="tag-img" data-label="Python">      <img src="https://www.google.com/s2/favicons?sz=32&domain_url=python.org"              alt="Python" /></span>
+                          <span class="tag-img" data-label="VS Code">     <img src="https://www.google.com/s2/favicons?sz=32&domain_url=code.visualstudio.com"  alt="VS Code" /></span>
+                          <span class="tag-img" data-label="PyCharm">     <img src="https://www.google.com/s2/favicons?sz=32&domain_url=jetbrains.com"           alt="PyCharm" /></span>
+                          <span class="tag-img" data-label="Notion">      <img src="https://www.google.com/s2/favicons?sz=32&domain_url=notion.so"               alt="Notion" /></span>
+                          <span class="tag-img" data-label="Obsidian">    <img src="https://www.google.com/s2/favicons?sz=32&domain_url=obsidian.md"             alt="Obsidian" /></span>
+                          <span class="tag-img" data-label="Shopify">     <img src="https://www.google.com/s2/favicons?sz=32&domain_url=shopify.com"             alt="Shopify" /></span>
+                          <span class="tag-img" data-label="Claude">      <img src="https://www.google.com/s2/favicons?sz=32&domain_url=claude.ai"               alt="Claude" /></span>
+                          <span class="tag-img" data-label="ChatGPT">     <img src="https://www.google.com/s2/favicons?sz=32&domain_url=chatgpt.com"             alt="ChatGPT" /></span>
+                          <span class="tag-img" data-label="Gemini">      <img src="https://www.google.com/s2/favicons?sz=32&domain_url=gemini.google.com"       alt="Gemini" /></span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="tag-tooltip" id="tag-tooltip"></div>
+                  </div>
+
+                  <div class="info-who-right">
+                    <div class="char-border">
+                      <div class="char-border-top">================================</div>
+                      <div class="char-border-mid">
+                        <!-- Updated path: /assets/gifs/static/ -->
+                        <img src="/assets/gifs/static/portrait.gif" alt="portrait" class="info-portrait" />
+                      </div>
+                      <div class="char-border-bot">================================</div>
+                    </div>
+                  </div>
+
+                </div>
+              </div><!-- /WHO? -->
+
+              <!-- § FIND ME -->
+              <div class="info-section">
+                <div class="info-title-bar">FIND ME</div>
+                <div class="info-divider" data-char="*"></div>
+                <div class="info-socials">
+                  <div class="social-row"><img alt="*" class="gif-bullet social-bullet" /><a href="https://github.com/odiwr"    class="social-link" target="_blank" rel="noopener">github</a></div>
+                  <div class="social-row"><img alt="*" class="gif-bullet social-bullet" /><a href="https://open.spotify.com/user/31jonnrg5rhgd4s3f347ah6wwz4q"   class="social-link" target="_blank" rel="noopener">Spotify</a></div>
+                  <div class="social-row"><img alt="*" class="gif-bullet social-bullet" /><a href="https://www.linkedin.com/in/odiwr/"  class="social-link" target="_blank" rel="noopener">linkedin</a></div>
+                  <div class="social-row"><img alt="*" class="gif-bullet social-bullet" /><a href="https://www.instagram.com/odiwr/" class="social-link" target="_blank" rel="noopener">instagram</a></div>
+                  <div class="social-row"><img alt="*" class="gif-bullet social-bullet" /><a href="mailto:biz@odiwr.com"   class="social-link">email</a></div>
+                </div>
+              </div>
+
+              <!-- § INSPIRATION -->
+              <div class="info-section">
+                <div class="info-title-bar">INSPIRATION</div>
+                <div class="info-divider" data-char="|"></div>
+                <div class="inspo-grid">
+                  <div class="inspo-col">
+                    <div class="inspo-heading">DIRECTORS</div>
+                    <div class="inspo-entry"><img alt="*" class="gif-bullet" /><a href="#">Wong Kar-wai</a></div>
+                    <div class="inspo-entry"><img alt="*" class="gif-bullet" /><a href="#">Hirokazu Kore-eda</a></div>
+                    <div class="inspo-entry"><img alt="*" class="gif-bullet" /><a href="#">Boots Riley</a></div>
+                  </div>
+                  <div class="inspo-col">
+                    <div class="inspo-heading">ARTISTS</div>
+                    <div class="inspo-entry"><img alt="*" class="gif-bullet" /><a href="#">Kara Walker</a></div>
+                    <div class="inspo-entry"><img alt="*" class="gif-bullet" /><a href="#">David Rudnick</a></div>
+                    <div class="inspo-entry"><img alt="*" class="gif-bullet" /><a href="#">Virgil Abloh</a></div>
+                  </div>
+                  <div class="inspo-col">
+                    <div class="inspo-heading">WRITERS</div>
+                    <div class="inspo-entry"><img alt="*" class="gif-bullet" /><a href="#">Ngugi wa Thiong'o</a></div>
+                    <div class="inspo-entry"><img alt="*" class="gif-bullet" /><a href="#">James Baldwin</a></div>
+                    <div class="inspo-entry"><img alt="*" class="gif-bullet" /><a href="#">Ursula K. Le Guin</a></div>
+                  </div>
+                  <div class="inspo-col">
+                    <div class="inspo-heading">SITES</div>
+                    <div class="inspo-entry"><img alt="*" class="gif-bullet" /><a href="https://mojardinico.com"  target="_blank" rel="noopener">Mo Jardinico</a></div>
+                    <div class="inspo-entry"><img alt="*" class="gif-bullet" /><a href="https://www.are.na"       target="_blank" rel="noopener">Are.na</a></div>
+                    <div class="inspo-entry"><img alt="*" class="gif-bullet" /><a href="https://soulellis.com"    target="_blank" rel="noopener">Paul Soulellis</a></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- § RESOURCES -->
+              <div class="info-section res-section">
+                <div class="info-title-bar">RESOURCES</div>
+                <div class="info-divider" data-char="/"></div>
+
+                <div class="res-row">
+                  <div class="res-label">DESIGN:</div>
+                  <div class="res-links">
+                    <div class="res-link-entry"><a href="https://ezgif.com/"                                                          target="_blank" rel="noopener">&gt; EZGIF</a></div>
+                    <div class="res-link-entry"><a href="https://halftonemaker.com/"                                                  target="_blank" rel="noopener">&gt; HALFTONE MAKER</a></div>
+                    <div class="res-link-entry"><a href="https://barkod.studio/"                                                      target="_blank" rel="noopener">&gt; BARKOD</a></div>
+                    <div class="res-link-entry"><a href="https://cyber.dabamos.de/88x31/index3.html"                                  target="_blank" rel="noopener">&gt; THE CYBER VANGUARD</a></div>
+                    <div class="res-link-entry"><a href="https://gifcities.org/"                                                      target="_blank" rel="noopener">&gt; GIFCITIES</a></div>
+                    <div class="res-link-entry"><a href="https://github.com/pascalorg/editor"                                         target="_blank" rel="noopener">&gt; PASCAL EDITOR</a></div>
+                    <div class="res-link-entry"><a href="https://cutekawaiiresources.wordpress.com/category/bullet-points/"           target="_blank" rel="noopener">&gt; CUTE KAWAII RESOURCES</a></div>
+                    <div class="res-link-entry"><a href="https://www.photopea.com/"                                                   target="_blank" rel="noopener">&gt; PHOTOPEA (FREE)</a></div>
+                  </div>
+                </div>
+
+                <div class="res-row">
+                  <div class="res-label">DEV:</div>
+                  <div class="res-links">
+                    <div class="res-link-entry"><a href="https://github.com/fathyb/carbonyl"         target="_blank" rel="noopener">&gt; CARBONYL</a></div>
+                    <div class="res-link-entry"><a href="https://github.com/chenglou/pretext"         target="_blank" rel="noopener">&gt; PRETEXT</a></div>
+                    <div class="res-link-entry"><a href="https://github.com/yousifamanuel/clawd-mochi" target="_blank" rel="noopener">&gt; CLAWD MOCHI</a></div>
+                    <div class="res-link-entry"><a href="https://esphome.io/"                         target="_blank" rel="noopener">&gt; ESPHOME</a></div>
+                  </div>
+                </div>
+
+                <div class="res-row">
+                  <div class="res-label">MISC:</div>
+                  <div class="res-links">
+                    <div class="res-link-entry"><a href="https://www.reddit.com/r/cyberDeck/" target="_blank" rel="noopener">&gt; R/CYBERDECK</a></div>
+                    <div class="res-link-entry"><a href="https://www.projectnomad.us/"        target="_blank" rel="noopener">&gt; PROJECT NOMAD</a></div>
+                    <div class="res-link-entry"><a href="https://archive.org"                 target="_blank" rel="noopener">&gt; INTERNET ARCHIVE</a></div>
+                    <div class="res-link-entry"><a href="https://wiby.me/"                    target="_blank" rel="noopener">&gt; WIBY.ME</a></div>
+                  </div>
+                </div>
+
+                <div class="info-divider" data-char="/"></div>
+              </div>
+
+              <!-- § THIS SITE -->
+              <div class="info-section">
+                <div class="info-title-bar">THIS SITE</div>
+                <div class="info-divider" data-char="~"></div>
+                <div class="site-tech-row">
+                  <div class="site-tech-group">
+                    <div class="resource-heading">FONTS</div>
+                    <div class="resource-entry">VCR OSD Mono · Arial</div>
+                  </div>
+                  <div class="site-tech-group">
+                    <div class="resource-heading">TECH</div>
+                    <div class="resource-entry">HTML / CSS / Vanilla JS · Supabase</div>
+                  </div>
+                  <div class="site-tech-group">
+                    <div class="resource-heading">HOSTED ON</div>
+                    <div class="resource-entry">Github Pages</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- § TAKE ME SOMEWHERE -->
+              <div class="info-section">
+                <div class="info-title-bar">TAKE ME SOMEWHERE</div>
+                <div class="info-divider" data-char="+"></div>
+                <!-- All paths updated to /assets/gifs/88x31/ -->
+                <div class="btn-garden">
+                  <a href="https://www.yourworldoftext.com/~odiwr/"                                                   target="_blank" rel="noopener" class="garden-btn" title="Guestbook">    <img src="/assets/gifs/88x31/guestbook.gif"     alt="Guestbook"/></a>
+                  <a href="https://www.blender.org/"                                                                  target="_blank" rel="noopener" class="garden-btn" title="Blender">      <img src="/assets/gifs/88x31/blender.gif"           alt="Blender" /></a>
+                  <a href="https://www.mozilla.org/firefox/"                                                           target="_blank" rel="noopener" class="garden-btn" title="Get Firefox">  <img src="/assets/gifs/88x31/firefoxget.gif"         alt="Firefox" /></a>
+                  <a href="https://www.waterfox.net/"                                                                  target="_blank" rel="noopener" class="garden-btn" title="Waterfox">     <img src="/assets/gifs/88x31/waterfox.gif"           alt="Waterfox" /></a>
+                  <a href="https://www.java.com/"                                                                      target="_blank" rel="noopener" class="garden-btn" title="Java Now">      <img src="/assets/gifs/88x31/javanow.gif"            alt="Java" /></a>
+                  <a href="https://webamp.org/"                                                                        target="_blank" rel="noopener" class="garden-btn" title="Winamp">       <img src="/assets/gifs/88x31/winamp6.gif"            alt="Winamp" /></a>
+                  <a href="https://www.youtube.com/watch?v=IOOfE38cpYQ"                                               target="_blank" rel="noopener" class="garden-btn" title="WinRAR">       <img src="/assets/gifs/88x31/winrar4.gif"            alt="WinRAR" /></a>
+                  <a href="https://open.spotify.com/playlist/5H6uHOPurS7SimEbh2Snyo?si=acf305139ca84419"             target="_blank" rel="noopener" class="garden-btn" title="Spotify">      <img src="/assets/gifs/88x31/spotify.gif"            alt="Spotify" /></a>
+                  <a href="https://youtu.be/sSsTR8qqDl4?si=iDetCMD4dXa5LyPl"                                         target="_blank" rel="noopener" class="garden-btn" title="YouTube">      <img src="/assets/gifs/88x31/ytbutton.gif"           alt="YouTube" /></a>
+                  <a href="https://myspace.windows93.net/music.php"                                                   target="_blank" rel="noopener" class="garden-btn" title="MySpace">      <img src="/assets/gifs/88x31/myspace.gif"            alt="MySpace" /></a>
+                  <a href="https://geocities.restorativland.org/Area51/Dreamworld/2274/"                              target="_blank" rel="noopener" class="garden-btn" title="GeoCities">    <img src="/assets/gifs/88x31/geocities.gif"          alt="GeoCities" /></a>
+                  <a href="https://99gifshop.neocities.org/"                                                          target="_blank" rel="noopener" class="garden-btn" title="99 GIF Shop"> <img src="/assets/gifs/88x31/99gifshop.gif"          alt="99 GIF Shop" /></a>
+                  <a href="https://www.youtube.com/watch?v=jp_AjIV2kO0"                                              target="_blank" rel="noopener" class="garden-btn" title="Neocities">    <img src="/assets/gifs/88x31/nland.gif"              alt="Neocities" /></a>
+                  <a href="https://www.shutitdown4palestine.org/"                                                     target="_blank" rel="noopener" class="garden-btn" title="Free Palestine"><img src="/assets/gifs/88x31/free_palestine.gif"    alt="Free Palestine" /></a>
+                  <a href="https://nation.africa/kenya"                                                               target="_blank" rel="noopener" class="garden-btn" title="Kenya">        <img src="/assets/gifs/88x31/wnkenya.gif"            alt="Kenya" /></a>
+                  <a href="https://github.com/odiwr/awesome-emulators"                                               target="_blank" rel="noopener" class="garden-btn" title="Atari">        <img src="/assets/gifs/88x31/atarilogo.gif"          alt="Atari" /></a>
+                  <a href="https://github.com/jerosajose/onliine"                                                    target="_blank" rel="noopener" class="garden-btn" title="Wii">          <img src="/assets/gifs/88x31/wii.gif"                alt="Wii" /></a>
+                  <a href="https://www.youtube.com/watch?v=gk-aCL6eyGc&list=RDgk-aCL6eyGc&start_radio=1"            target="_blank" rel="noopener" class="garden-btn" title="ScottGames">   <img src="/assets/gifs/88x31/scottgames.gif"         alt="ScottGames" /></a>
+                  <a href="https://radio.garden/"                                                                     target="_blank" rel="noopener" class="garden-btn" title="3.5mm Jack">   <img src="/assets/gifs/88x31/3.5mm.gif"              alt="3.5mm" /></a>
+                  <a href="https://www.myretrotvs.com/"                                                              target="_blank" rel="noopener" class="garden-btn" title="4x3 Fade">     <img src="/assets/gifs/88x31/4x3_fade.gif"           alt="4x3" /></a>
+                  <a href="#"                                                                                          target="_blank" rel="noopener" class="garden-btn" title="Play!">        <img src="/assets/gifs/88x31/12.gif"                 alt="Play" /></a>
+                  <a href="pages/psa.html"                                                                            target="_blank" rel="noopener" class="garden-btn" title="Free Stuff">   <img src="/assets/gifs/88x31/amazing_free_stuff.gif" alt="Free Stuff" /></a>
+                  <a href="https://www.youtube.com/watch?v=1vzgaNfTUw4"                                              target="_blank" rel="noopener" class="garden-btn" title="AniBanner">    <img src="/assets/gifs/88x31/anibanner.gif"          alt="Banner" /></a>
+                  <a href="https://static.wikia.nocookie.net/010008ce-6503-4919-9cc7-f54848714a7f/scale-to-width/755" target="_blank" rel="noopener" class="garden-btn" title="Blink">       <img src="/assets/gifs/88x31/blink-0.gif"            alt="Blink" /></a>
+                  <a href="#"                                                                                          target="_blank" rel="noopener" class="garden-btn" title="Button 6">     <img src="/assets/gifs/88x31/btn6.gif"               alt="Button" /></a>
+                  <a href="#"                                                                                          target="_blank" rel="noopener" class="garden-btn" title="Candybar">     <img src="/assets/gifs/88x31/candybarsnow.gif"       alt="Candybar" /></a>
+                  <a href="#"                                                                                          target="_blank" rel="noopener" class="garden-btn" title="Help Wanted">  <img src="/assets/gifs/88x31/helpwanted.gif"         alt="Help" /></a>
+                  <a href="https://drrevivalproject.itch.io/diamond-records-revival/devlog/554116/state-of-revival-722023" target="_blank" rel="noopener" class="garden-btn" title="Jojo"><img src="/assets/gifs/88x31/jojo.gif"               alt="Jojo" /></a>
+                  <a href="https://jspaint.app/#local:220a5b588d4988"                                                target="_blank" rel="noopener" class="garden-btn" title="MS Paint">     <img src="/assets/gifs/88x31/mspaint.gif"            alt="MS Paint" /></a>
+                  <a href="https://theonion.com/l-oreal-suspends-production-of-irresistible-2-step-lip-1826324009/" target="_blank" rel="noopener" class="garden-btn" title="Onion"><img src="/assets/gifs/88x31/onionlink1098.gif"      alt="Onion" /></a>
+                  <a href="https://archive.org/details/psx_pepsiman"                                                 target="_blank" rel="noopener" class="garden-btn" title="Pepsi">        <img src="/assets/gifs/88x31/pepsi.gif"              alt="Pepsi" /></a>
+                  <a href="https://www.incredibox.com/demo/"                                                         target="_blank" rel="noopener" class="garden-btn" title="Piano">        <img src="/assets/gifs/88x31/piano.gif"              alt="Piano" /></a>
+                  <a href="https://www.mancinipizza.com/"                                                            target="_blank" rel="noopener" class="garden-btn" title="Pizza">        <img src="/assets/gifs/88x31/pizzza.gif"             alt="Pizza" /></a>
+                  <a href="https://play.pokemonshowdown.com/"                                                        target="_blank" rel="noopener" class="garden-btn" title="Tung">         <img src="/assets/gifs/88x31/tung.gif"               alt="Tung" /></a>
+                  <a href="https://www.toonamiaftermath.com/"                                                        target="_blank" rel="noopener" class="garden-btn" title="U3">           <img src="/assets/gifs/88x31/u3.gif"                 alt="U3" /></a>
+                  <a href="https://www.reddit.com/r/webdev/comments/1dhrpzp/what_vs_code_extensions_do_you_actually_enjoyuse/" target="_blank" rel="noopener" class="garden-btn" title="VS Code"><img src="/assets/gifs/88x31/vscbutton.gif"  alt="VS Code" /></a>
+                  <a href="https://i0.wp.com/i.kym-cdn.com/entries/icons/mobile/000/018/929/graphic_design_is_my_passion.jpg" target="_blank" rel="noopener" class="garden-btn" title="Passion"><img src="/assets/gifs/88x31/webpassion.gif"  alt="Passion" /></a>
+                </div>
+              </div>
+
+            </div>
+          </div><!-- /CH2 -->
+
+          <!-- ══════════════════════════════
+               CH3: RESUME
+          ══════════════════════════════ -->
+          <div class="screen-channel hidden" id="channel-3" data-channel="3">
+            <div class="channel-content ch3-content">
+              <div class="resume-placeholder">
+                <p class="res-coming">COME BACK SOON</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- ══════════════════════════════
+               CH4: RESEARCH (carousel)
+          ══════════════════════════════ -->
+          <div class="screen-channel hidden" id="channel-4" data-channel="4">
+            <div class="channel-content ch4-content" id="ch4-carousel-view">
+              <div class="research-stage" id="research-stage">
+                <!-- Cards injected by research.js -->
+              </div>
+            </div>
+          </div>
+
+          <!-- CH4: PDF reader (shown when a card is opened) -->
+          <div class="screen-channel hidden" id="channel-pdf-reader">
+            <div class="pdf-reader-view" id="pdf-reader-view">
+              <div class="pdf-reader-inner" id="pdf-reader-inner">
+                <!-- Pages rendered by research.js -->
+              </div>
+            </div>
+          </div>
+
+          <!-- ══════════════════════════════
+               CH5: VERSION
+          ══════════════════════════════ -->
+          <div class="screen-channel hidden" id="channel-5" data-channel="5">
+            <div class="channel-content ch5-content">
+              <div class="version-block">
+                <!-- data-deployment-date drives the counter in version.js -->
+                <div id="daysSinceDeployment" data-deployment-date="2026-02-24" aria-label="days since deployment"></div>
+                <p class="page-three-subline" id="pageThreeSubline" role="button" tabindex="0" aria-label="Toggle portfolio label">
+                  <span>days since deployment of </span><strong>odiwr.com</strong>
+                </p>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /screen-inner -->
+      </div><!-- /crt-screen -->
+    </div><!-- /right-panel -->
+  </div><!-- /site-wrapper -->
+
+
+  <!-- ════════════════════════════════════════
+       SCRIPTS
+       Load order:
+         1. info.js      — exposes window.renderInfoTitleBars (needed by channels.js)
+         2. channels.js  — channel switching + idle screensaver + gif bullets
+         3. projects.js  — CH1 project open/close
+         4. audio.js     — music player
+         5. pdf.js CDN   — required before research.js
+         6. research.js  — CH4 carousel + PDF reader
+         7. version.js   — CH5 ASCII counter
+         8. mobile-warning.js — first-visit mobile popup
+  ════════════════════════════════════════ -->
+  <script src="/js/info.js"           defer></script>
+  <script src="/js/channels.js"       defer></script>
+  <script src="/js/projects.js"       defer></script>
+  <script src="/js/audio.js"          defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    /* Set pdf.js worker path immediately after the library loads */
+    if (window.pdfjsLib) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+  </script>
+  <script src="/js/research.js"       defer></script>
+  <script src="/js/version.js"        defer></script>
+  <script src="/js/mobile-warning.js" defer></script>
+
+</body>
+</html>

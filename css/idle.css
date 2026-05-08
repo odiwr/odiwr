@@ -1,0 +1,132 @@
+/* idle.css — odiwr.com
+   Styles for the DVD screensaver idle overlay and the body/panel dim transitions.
+   The overlay is injected into .screen-inner by channels.js. */
+
+/* ── Idle dim: body turns black ── */
+body {
+  transition: background 0s; /* Instant snap-back on wake */
+}
+
+body.idle-dim {
+  background: #000 !important;
+  transition: background 0.35s ease; /* Smooth fade TO black */
+}
+
+/* All blue containers become transparent so the black body shows through */
+body.idle-dim .left-panel,
+body.idle-dim .right-panel,
+body.idle-dim .nav-remote,
+body.idle-dim .crt-screen,
+body.idle-dim .screen-inner,
+body.idle-dim .about-zone,
+body.idle-dim .logo-zone {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* ── Left panel dim ── */
+.left-panel {
+  transition: background 0s; /* Instant snap-back */
+}
+
+.left-panel.idle-dim {
+  background: #000 !important;
+  transition: background 0.35s ease;
+}
+
+/* When dimmed: kill blue text in audio player */
+.left-panel.idle-dim .player-controls button,
+.left-panel.idle-dim .player-controls button * {
+  color: black !important;
+}
+
+.left-panel.idle-dim #track-info,
+.left-panel.idle-dim #track-info * {
+  color: black !important;
+}
+
+/* Volume panel: white background must also go dark on idle */
+.left-panel.idle-dim #volume-panel {
+  background: #ffffff !important;
+}
+
+.left-panel.idle-dim .vol-btn {
+  color: #000000 !important;
+}
+
+.left-panel.idle-dim .vol-btn svg line {
+  stroke: #000000 !important;
+}
+
+.left-panel.idle-dim #vol-bars .vol-bar.filled {
+  background: #000000 !important;
+}
+
+.left-panel.idle-dim #vol-bars .vol-bar.empty {
+  background: rgba(0, 0, 0, 0.08) !important;
+}
+
+/* ── Nav remote dim (mobile) ── */
+@media (max-width: 640px) {
+  .nav-remote {
+    transition: background 0s;
+  }
+
+  .nav-remote.idle-dim {
+    background: #000 !important;
+    transition: background 0.35s ease;
+  }
+
+  .nav-remote:not(.idle-dim) {
+    transition: background 0s;
+  }
+
+  .nav-remote.idle-dim .nav-btn:not(.active) {
+    color: var(--white) !important;
+  }
+
+  .nav-remote.idle-dim .nav-btn.active {
+    background: var(--white) !important;
+    color: var(--blue) !important;
+  }
+}
+
+/* Active nav button stays readable during idle */
+body.idle-dim .nav-btn.active:not(.nav-btn--back-mode) {
+  background: var(--white) !important;
+  color: #ffffff !important;
+  animation: none !important;
+}
+
+/* ── DVD screensaver overlay ── */
+#idle-glitch-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 500;          /* above all channels */
+  pointer-events: auto;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.35s ease, visibility 0.35s ease;
+  background: #000;
+}
+
+#idle-glitch-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* The bouncing logo */
+#idle-dvd-logo {
+  position: absolute;
+  left: 24px;
+  top: 24px;
+  width: 96px;
+  height: 48px;
+  color: #ff0000;
+}
+
+#idle-dvd-logo svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}

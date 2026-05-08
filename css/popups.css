@@ -1,0 +1,52 @@
+/* popups.css — odiwr.com
+   Overlay / modal styles: mobile warning popup, any future dialogs. */
+
+/* ── Mobile "you're missing out" first-visit popup ── */
+#mobile-warning-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--blue);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.25s ease;
+}
+
+#mobile-warning-overlay.dismissing {
+  animation: fadeOut 0.3s ease forwards;
+}
+
+@keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+
+#mobile-warning-box {
+  background: var(--blue);
+  padding: 28px 24px;
+  max-width: 300px;
+  width: 88%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+#mobile-warning-msg {
+  font-size: 13px;
+  line-height: 1.7;
+  letter-spacing: 1px;
+  opacity: 0.85;
+}
+
+#mobile-warning-btn {
+  background: var(--white);
+  color: var(--blue);
+  font-size: 13px;
+  letter-spacing: 2px;
+  padding: 8px 20px;
+  border: none;
+  text-transform: uppercase;
+  align-self: center;
+}
+
+#mobile-warning-btn:hover { opacity: 0.8; }

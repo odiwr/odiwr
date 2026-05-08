@@ -1,0 +1,31 @@
+/* tokens.css — odiwr.com
+   Single source of truth for all CSS custom properties (design tokens).
+   Import this before every other stylesheet. */
+
+@font-face {
+  font-family: 'VCR OSD Mono';
+  src: url('../assets/fonts/VCR_OSD_MONO_1.001.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+}
+
+:root {
+  /* ── Palette ── */
+  --black:         #0a0a0a;
+  --white:         #ffffff;
+  --blue:          rgb(0, 0, 255);
+  --pink:          #ff2d9b;
+  --red:           #ff1a00;
+  --green:         #00e620;
+  --yellow:        #ffe600;
+  --hover-purple:  #b84dff;
+  --dim:           rgba(255, 255, 255, 0.35);
+
+  /* ── Typography ── */
+  --font:          'VCR OSD Mono', monospace;
+
+  /* ── Layout ── */
+  --left-w:        28vw;
+  --left-min:      260px;
+  --left-max:      340px;
+}
