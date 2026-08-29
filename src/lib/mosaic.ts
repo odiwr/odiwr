@@ -24,6 +24,16 @@
  * produced 59:14 slivers.
  */
 
+/**
+ * The rectangle the creative page fills, and the seed that cuts it.
+ *
+ * Shared with the dashboard so it can quote the aspect ratio a poster has to be
+ * cut to. Change the seed and the whole puzzle re-cuts, so every existing poster
+ * becomes the wrong shape.
+ */
+export const CREATIVE_ASPECT = 3 / 2;
+export const CREATIVE_SEED = 7;
+
 export type Tile = {
   /** Normalised to the container: 0..1 of its width and height. */
   x: number;
@@ -57,16 +67,31 @@ export function tileAspect(tile: Tile, containerAspect: number): number {
   return (tile.w * containerAspect) / tile.h;
 }
 
-/** Rounded "3:2"-style label, for telling someone what to draw. */
+/**
+ * A "3:2"-style label, for telling someone what to draw.
+ *
+ * Prefers the SIMPLEST ratio that is close enough rather than the most exact
+ * one: the honest fit for a slot is often 17:16 or 6:13, which is accurate and
+ * useless as a brief. Anything within a couple of percent is indistinguishable
+ * once the poster is cropped to fill, and "1:1" is a shape someone can actually
+ * work to.
+ */
+const ASPECT_TOLERANCE = 0.025;
+
 export function aspectLabel(aspect: number): string {
-  let best = { w: 1, h: 1, err: Infinity };
+  let closest = { w: 1, h: 1, err: Infinity };
+
+  // Denominators in increasing order, so the first acceptable match is also the
+  // simplest one.
   for (let h = 1; h <= 16; h++) {
     const w = Math.round(aspect * h);
     if (w < 1) continue;
-    const err = Math.abs(w / h - aspect);
-    if (err < best.err - 1e-9) best = { w, h, err };
+    const err = Math.abs(w / h - aspect) / aspect;
+    if (err < ASPECT_TOLERANCE) return `${w}:${h}`;
+    if (err < closest.err) closest = { w, h, err };
   }
-  return `${best.w}:${best.h}`;
+
+  return `${closest.w}:${closest.h}`;
 }
 
 /**
@@ -89,10 +114,6 @@ function splitRange(aspect: number, vertical: boolean): [number, number] | null 
   return lo <= hi ? [lo, hi] : null;
 }
 
-/**
- * @param containerAspect width / height of the rectangle being filled. Required,
- * because shape is meaningless without it.
- */
 export function mosaic(count: number, seed = 1, containerAspect = 1): Tile[] {
   if (count <= 0) return [];
   const rand = mulberry32(seed);
@@ -132,4 +153,18 @@ export function mosaic(count: number, seed = 1, containerAspect = 1): Tile[] {
   }
 
   return tiles;
+}
+
+/**
+ * The aspect ratio the slot at `index` needs, for a puzzle of `count` posters.
+ *
+ * Worth knowing: the count is part of the cut. Adding a poster re-splits the
+ * whole rectangle, so every ratio can change. That is why the dashboard quotes
+ * the ratio for the layout INCLUDING the poster being added, rather than the one
+ * currently on the site.
+ */
+export function slotAspect(count: number, index: number): string | null {
+  if (index < 0 || index >= count) return null;
+  const tiles = mosaic(count, CREATIVE_SEED, CREATIVE_ASPECT);
+  return aspectLabel(tileAspect(tiles[index], CREATIVE_ASPECT));
 }

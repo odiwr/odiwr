@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import SectionHeader from "@/components/work/SectionHeader";
 import { SITE } from "@/lib/site";
 import { getContent, isExternal, sectionWork, workHref, type Work } from "@/lib/content";
-import { mosaic } from "@/lib/mosaic";
+import { mosaic, CREATIVE_ASPECT, CREATIVE_SEED } from "@/lib/mosaic";
 
 /**
  * creative.odiwr.com. Film and photography.
@@ -18,10 +18,6 @@ import { mosaic } from "@/lib/mosaic";
  * is how it quotes the exact aspect ratio a new poster must be cut to.
  */
 
-/** The rectangle everything fits inside. Fixed at every screen size. */
-const CONTAINER_ASPECT = 3 / 2;
-/** Change this and the whole puzzle re-cuts. Every poster would need redoing. */
-const SEED = 7;
 /** Floating-point slack when asking whether a tile touches an edge. */
 const EDGE = 0.001;
 
@@ -36,7 +32,7 @@ export const revalidate = 60;
 export default async function CreativePage() {
   const content = await getContent();
   const posters = sectionWork(content, "creative").filter((item: Work) => item.poster);
-  const tiles = mosaic(posters.length, SEED, CONTAINER_ASPECT);
+  const tiles = mosaic(posters.length, CREATIVE_SEED, CREATIVE_ASPECT);
   const half = "calc(var(--mosaic-gap) / 2)";
 
   return (

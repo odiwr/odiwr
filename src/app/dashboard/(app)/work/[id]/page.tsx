@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import StackPicker from "@/components/dashboard/StackPicker";
 import TitleSlug from "@/components/dashboard/TitleSlug";
 import FilePicker from "@/components/dashboard/FilePicker";
-import { getContent, SECTIONS, type Section, type Work } from "@/lib/content";
+import { getContent, sectionWork, SECTIONS, type Section, type Work } from "@/lib/content";
+import { slotAspect } from "@/lib/mosaic";
 import { list, fileTree, r2Configured } from "@/lib/r2";
 import { saveWork, deleteWork } from "../../actions";
 
@@ -40,6 +41,22 @@ export default async function WorkEditor({
   const isCurrent = entry.section === "current";
   const isCreative = entry.section === "creative";
   const tree = (isCurrent || isCreative) && r2Configured() ? fileTree(await list("")) : [];
+
+  /**
+   * The shape this entry's poster has to be cut to.
+   *
+   * The mosaic's cut depends on how many posters there are, so the ratio quoted
+   * is for the layout INCLUDING this one — the slot it will occupy once saved,
+   * not a slot in the puzzle as it stands today.
+   */
+  let posterRatio: string | null = null;
+  if (isCreative) {
+    const creative = sectionWork(content, "creative");
+    const slots = creative.filter((w) => w.poster || w.id === entry.id);
+    // A new entry has no id yet and no place in the list, so it lands last.
+    const index = isNew ? slots.length : slots.findIndex((w) => w.id === entry.id);
+    posterRatio = slotAspect(isNew ? slots.length + 1 : slots.length, index);
+  }
 
   return (
     <form action={saveWork} className="flex flex-col gap-5">
@@ -84,7 +101,9 @@ export default async function WorkEditor({
 
       {isCreative && (
         <div className="label">
-          Poster
+          <span>
+            Poster{posterRatio && <span className="text-accent"> ({posterRatio})</span>}
+          </span>
           <FilePicker name="poster" tree={tree} initial={entry.poster ?? ""} />
         </div>
       )}
