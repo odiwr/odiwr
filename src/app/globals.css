@@ -726,20 +726,29 @@ select.field {
 /**
  * The strip the page scrolls under.
  *
- * The page background fading to nothing, fixed to the top of the viewport. It
- * replaced a mask on the column: a mask only paints inside its own element, so
- * it was cutting the bottom off anything absolutely positioned that hung below
- * the column, the handle's dropdown included.
+ * The page's own background colour fading to nothing, fixed to the top of the
+ * viewport. Because the background is flat, covering text with it is
+ * indistinguishable from fading the text out — and it works per PIXEL, so a
+ * line halfway into the band is half gone. An opacity per block cannot do that:
+ * a whole section dims at once, which is what this replaced.
  *
- * Capped the same way the glow is, so the two describe the same band.
+ * The first 58% is SOLID rather than already fading, so a line is completely
+ * gone well before the top edge rather than leaving a readable ghost there. The
+ * remaining stretch is what does the fading, and it is a little over one line
+ * tall — enough to fade smoothly, short enough to stay out of the way.
  */
 .top-fade {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  height: min(var(--page-top), 7.5vh);
-  background: linear-gradient(to bottom, var(--color-background), transparent);
+  height: 7.5vh;
+  background: linear-gradient(
+    to bottom,
+    var(--color-background) 0%,
+    var(--color-background) 58%,
+    transparent 100%
+  );
   pointer-events: none;
   z-index: 5;
 }

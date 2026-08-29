@@ -1,6 +1,5 @@
 import Icon from "@/components/icons";
 import HandleMenu from "@/components/home/HandleMenu";
-import ScrollFade from "@/components/home/ScrollFade";
 import SocialIcons from "@/components/home/SocialIcons";
 import { SITE, SUBDOMAIN_LINKS } from "@/lib/site";
 import { getContent, displayDate, workHref } from "@/lib/content";
@@ -64,7 +63,11 @@ export default async function Home() {
   return (
     <main className="page">
       <div className="page-grid">
-        <ScrollFade>
+        {/* The strip the page scrolls under. Fixed, so it fades whatever passes
+            beneath it per pixel rather than per block. */}
+        <div className="top-fade" aria-hidden="true" />
+
+        <article className="prose enter">
           <header>
             <h1 className="font-medium">{SITE.fullName}</h1>
             <p className="role">{renderRole(SITE.role)}</p>
@@ -168,7 +171,7 @@ export default async function Home() {
             </p>
             <SocialIcons className="sm:hidden" />
           </div>
-        </ScrollFade>
+        </article>
 
         {/* Reserved. Intentionally empty until the side details land. */}
         <aside className="side" aria-hidden="true" />
