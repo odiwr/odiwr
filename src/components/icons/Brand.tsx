@@ -7,6 +7,9 @@ import { stackTitle } from "@/lib/stack-index";
  * thousand available brands are in the bundle; painting it as a mask over
  * currentColor keeps it tinting with the text around it, which a plain <img>
  * would not.
+ *
+ * No `title` attribute: StackMark draws its own tooltip, and the two together
+ * would give you both at once.
  */
 export default function Brand({
   slug,
@@ -24,7 +27,6 @@ export default function Brand({
     <span
       role="img"
       aria-label={stackTitle(slug)}
-      title={stackTitle(slug)}
       className={`inline-block shrink-0 bg-current align-[-0.125em] ${className}`}
       style={{
         width: size,

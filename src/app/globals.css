@@ -763,3 +763,52 @@ textarea.field.blurb {
   min-height: 0;
   resize: vertical;
 }
+
+/**
+ * A tech-stack mark, with its name on hover.
+ *
+ * Replaces the browser's own tooltip, which cannot be styled and arrives a
+ * second late. Positioned above the mark and centred on it; nowrap because a
+ * wrapped two-word label reads as a paragraph at this size.
+ *
+ * pointer-events stay off so the label can never sit between the pointer and
+ * whatever the mark is inside — on the projects page that is a filter button.
+ */
+.stack-mark {
+  position: relative;
+  display: inline-flex;
+  transition: color 150ms ease;
+}
+
+.stack-mark:hover {
+  color: var(--color-accent);
+}
+
+.stack-tip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  translate: -50% 0;
+  z-index: 10;
+  white-space: nowrap;
+  border-radius: 2px;
+  background: #242424;
+  color: var(--color-foreground);
+  padding: 3px 8px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.4);
+}
+
+.stack-mark:hover .stack-tip,
+.stack-mark:focus-visible .stack-tip,
+.stack-filter:focus-visible .stack-tip {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stack-tip {
+    transition-duration: 1ms;
+  }
+}
