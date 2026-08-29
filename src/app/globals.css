@@ -364,8 +364,8 @@ body {
  * the worst case is the system cursor rather than no cursor.
  */
 :root {
-  --cur-default: url("https://media.odiwr.com/cursors/default.png") 0 0;
-  --cur-pointer: url("https://media.odiwr.com/cursors/pointer.png") 8 4;
+  --cur-default: url("https://media.odiwr.com/brand/cursors/default.png") 0 0;
+  --cur-pointer: url("https://media.odiwr.com/brand/cursors/pointer.png") 8 4;
 }
 
 body {

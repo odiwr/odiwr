@@ -94,7 +94,7 @@ export type FolderNode = { name: string; path: string; children: FolderNode[] };
 /**
  * The folder tree implied by the object keys.
  *
- * R2 has no folders — "gifs/redirects/12.gif" is one flat key. This rebuilds the
+ * R2 has no folders — "legacy/gifs/redirects/12.gif" is one flat key. This rebuilds the
  * hierarchy the keys describe so the picker can be browsed like a directory.
  */
 export function folderTree(files: R2File[]): FolderNode[] {

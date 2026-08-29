@@ -9,10 +9,9 @@
 //
 // WHAT MOVES WHERE
 //
-//   brand/      the marks and cursors this site loads
+//   brand/      the cursors this site loads
 //   work/       stills and clips attached to work entries
-//   mp3/        the tracks the /mp3 project plays
-//   archive/    everything from the old site not otherwise placed
+//   legacy/     everything the old site uses, keeping its own structure
 //   site/       the content document (untouched)
 //   uploads/    where the dashboard puts new files (untouched)
 //
@@ -45,15 +44,18 @@ const BUCKET = process.env.R2_BUCKET || "";
 const RULES = [
   { from: /^site\//, to: null },
   { from: /^uploads\//, to: null },
+  // Used by THIS site, so not legacy.
   { from: /^cursors\//, to: (k) => `brand/cursors/${k.slice("cursors/".length)}` },
-  { from: /^icons\//, to: (k) => `brand/icons/${k.slice("icons/".length)}` },
+  // Project art the dashboard attaches to work entries; current, not archive.
   { from: /^images\/projects\//, to: (k) => `work/${k.slice("images/projects/".length)}` },
-  { from: /^images\//, to: (k) => `brand/${k.slice("images/".length)}` },
-  { from: /^music\//, to: (k) => `mp3/${k.slice("music/".length)}` },
-  { from: /^gifs\//, to: (k) => `archive/gifs/${k.slice("gifs/".length)}` },
-  { from: /^videos\//, to: (k) => `archive/videos/${k.slice("videos/".length)}` },
-  { from: /^pdfs\//, to: (k) => `archive/pdfs/${k.slice("pdfs/".length)}` },
-  { from: /^misc\//, to: (k) => `archive/misc/${k.slice("misc/".length)}` },
+  // Everything below here belongs to the old site.
+  { from: /^images\//, to: (k) => `legacy/images/${k.slice("images/".length)}` },
+  { from: /^gifs\//, to: (k) => `legacy/gifs/${k.slice("gifs/".length)}` },
+  { from: /^music\//, to: (k) => `legacy/music/${k.slice("music/".length)}` },
+  { from: /^videos\//, to: (k) => `legacy/videos/${k.slice("videos/".length)}` },
+  { from: /^pdfs\//, to: (k) => `legacy/pdfs/${k.slice("pdfs/".length)}` },
+  { from: /^icons\//, to: (k) => `legacy/icons/${k.slice("icons/".length)}` },
+  { from: /^misc\//, to: (k) => `legacy/misc/${k.slice("misc/".length)}` },
 ];
 
 async function allKeys() {
