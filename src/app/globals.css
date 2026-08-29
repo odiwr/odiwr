@@ -1,26 +1,745 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/**
+ * Design tokens.
+ *
+ * Declared in @theme so Tailwind generates utilities from them — `bg-background`
+ * and `font-cursive` exist because these are here, which keeps the palette and
+ * the type scale in one place instead of scattered through arbitrary-value
+ * classes.
+ */
+@theme {
+  --color-background: #1a1a1a;
+  --color-foreground: #f2f2f2;
+  /* From the cat mark. The one accent so far. */
+  --color-accent: #fbaf41;
+
+  /* next/font defines the raw faces on <html>; these map them onto Tailwind's
+     font utilities and give each a real fallback stack, so text is never
+     invisible while a face is still loading.
+
+     The role name and the face name must differ. <html> IS :root, so
+     `--font-cursive: var(--font-cursive)` would be circular, CSS would throw the
+     declaration away, and the text would silently render in the fallback. */
+  /* --font-at is scoped to U+40 by its own unicode-range, so putting it first
+     replaces the @ sign only and leaves every other character to Cabin. */
+  --font-sans: var(--font-at), var(--font-cabin), ui-sans-serif, system-ui, sans-serif;
+  --font-cursive: var(--font-courgette), "Brush Script MT", cursive;
+  --font-chinese: var(--font-zcool-xiaowei), "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  /* Set here as well as on <body> so the overscroll area past the top or bottom
+     of the page is the site colour rather than white. */
+  background-color: var(--color-background);
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+}
+
+/**
+ * Page layout.
+ *
+ * Metrics taken from the reference page rather than eyeballed: a 640px content
+ * column between two 192px gutters with 24px between them, which is the 1072px
+ * the whole grid comes to.
+ *
+ * Written as CSS rather than utility classes because the centring depends on
+ * child rules (`> *` placing everything in the middle column) that a class list
+ * on each child cannot express without repeating itself.
+ */
+:root {
+  --content-width: 640px;
+  --gutter-width: 192px;
+  --gutter-gap: 24px;
+  /* 192 + 24 + 640 + 24 + 192 */
+  --page-width: 1072px;
+  --page-top: 128px;
+  --body-margin: max(24px, env(safe-area-inset-left));
+  /* Base line height. 16px text on 28px leading. */
+  --leading: 28px;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --page-top: 64px;
+  }
+}
+
+::selection {
+  background: var(--color-accent);
+  color: var(--color-background);
+}
+
+body {
+  font-family: var(--font-sans);
+  line-height: var(--leading);
+  padding-left: var(--body-margin);
+  padding-right: var(--body-margin);
+}
+
+.page {
+  max-width: var(--page-width);
+  margin: 0 auto;
+  padding: var(--page-top) 0;
+  min-height: 100dvh;
+}
+
+/* Three columns, but everything lands in the middle one unless it asks not to.
+   That is what centres the article: the gutters hold its position even when
+   they are empty. */
+.page-grid {
+  display: grid;
+  grid-template-columns: var(--gutter-width) var(--content-width) var(--gutter-width);
+  column-gap: var(--gutter-gap);
+  align-items: baseline;
+}
+
+.page-grid > * {
+  grid-column: 2;
+}
+
+/* The reserved side container. */
+.page-grid > .side {
+  grid-column: 3;
+}
+
+/* Below the full width the gutters give up their fixed size and simply absorb
+   what is left, so the column stays centred and stays 640px. */
+@media (max-width: 1024px) {
+  .page-grid {
+    grid-template-columns: auto var(--content-width) auto;
+    column-gap: 16px;
+  }
+}
+
+/* No room for gutters at all: stack, and let the page carry the margins. */
+@media (max-width: 768px) {
+  .page {
+    max-width: var(--content-width);
+  }
+
+  .page-grid {
+    display: flex;
+    flex-direction: column;
+    align-items: unset;
+  }
+}
+
+/* Space between blocks of prose. */
+.prose > * + * {
+  margin-top: 28px;
+}
+
+/* The columns get more air above them than ordinary prose does. */
+.prose > .stack-wrap {
+  margin-top: 64px;
+}
+
+/**
+ * The three columns.
+ *
+ * 3 x 192 + 2 x 32 is exactly 640, so they fill the content column precisely and
+ * never need to scroll at full width. Narrower than that and the strip scrolls
+ * sideways rather than reflowing, which keeps the columns readable instead of
+ * squeezing three of them into a phone.
+ */
+.stack {
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.stack::-webkit-scrollbar {
+  display: none;
+}
+
+.stack > * + * {
+  margin-left: 24px;
+}
+
+/* Sharing what is left rather than a fixed width, so the narrower gap widens
+   the columns instead of leaving a strip of dead space on the right. */
+.column {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* Gap under a column heading. */
+.column > .items {
+  margin-top: 12px;
+}
+
+.column > .items > * + * {
+  margin-top: 16px;
+}
+
+/**
+ * The handle, and the socials behind it.
+ *
+ * There is exactly ONE line. It is drawn, not a text-decoration: the resting
+ * underline and the part that grows are the same element, so they can never
+ * read as two strokes stacked on each other.
+ *
+ * It hangs off the rail, a zero-height inline-block sitting on the text
+ * baseline, which is the anchor that makes the geometry exact. An inline-block
+ * with height 0 takes its baseline from its bottom edge, so its top edge lands
+ * on the baseline and a line 2.5px below that is where an underline belongs.
+ *
+ * The rail and the line are sized SEPARATELY. The rail is the in-flow spacer
+ * that pushes the sentence; the line is absolutely positioned and keeps its own
+ * width. That is what lets stage 2 send the line down at full length while the
+ * rail collapses and the rest of the sentence slides back where it started.
+ *
+ * Stages, set on the wrapper:
+ *   0  at rest, the line sitting under the handle
+ *   1  the line has reached the width of the widest social name, and the
+ *      sentence has been pushed right to make room for it
+ *   2  the line has travelled down uncovering the names, and the sentence has
+ *      closed back up behind it
+ */
+.handle {
+  position: relative;
+  display: inline-block;
+  --line: color-mix(in srgb, var(--color-foreground) 30%, transparent);
+}
+
+.handle[data-stage="1"],
+.handle[data-stage="2"] {
+  --line: var(--color-foreground);
+}
+
+.handle-trigger {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: var(--cur-default), auto;
+}
+
+.handle-label {
+  text-decoration: none;
+}
+
+.handle-rail {
+  position: relative;
+  display: inline-block;
+  vertical-align: baseline;
+  width: 0;
+  height: 0;
+  transition: width 260ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.handle-rail::after {
+  content: "";
+  position: absolute;
+  left: calc(-1 * var(--label-w, 0px));
+  width: var(--label-w, 0px);
+  top: 2.5px;
+  height: 1px;
+  background: var(--line);
+  transition:
+    background-color 200ms ease,
+    width 260ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    transform 340ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.handle[data-stage="1"] .handle-rail::after,
+.handle[data-stage="2"] .handle-rail::after {
+  width: var(--line-w, 0px);
+}
+
+.handle[data-stage="1"] .handle-rail {
+  width: calc(var(--line-w, 0px) - var(--label-w, 0px));
+}
+
+.handle[data-stage="2"] .handle-rail {
+  width: 0;
+  transition-duration: 340ms;
+}
+
+.handle[data-stage="2"] .handle-rail::after {
+  transform: translateY(var(--drop, 0px));
+}
+
+.handle-bridge {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: var(--line-w, 0px);
+  height: var(--drop, 0px);
+  pointer-events: none;
+}
+
+.handle[data-stage="1"] .handle-bridge,
+.handle[data-stage="2"] .handle-bridge {
+  pointer-events: auto;
+}
+
+.handle-panel {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1;
+  width: max-content;
+  display: grid;
+  grid-template-rows: 0fr;
+  pointer-events: none;
+  transition: grid-template-rows 340ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.handle[data-stage="2"] .handle-panel {
+  grid-template-rows: 1fr;
+  pointer-events: auto;
+}
+
+.handle-clip {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.handle-links {
+  display: flex;
+  flex-direction: column;
+  padding-top: 8px;
+}
+
+.handle-links a {
+  width: max-content;
+  color: var(--color-foreground);
+  text-decoration: none;
+  transition: color 150ms ease;
+}
+
+.handle-links a:hover,
+.handle-links a:focus-visible {
+  color: var(--color-accent);
+}
+
+/**
+ * The separator in the role line.
+ *
+ * The character stays at its NATURAL size and the bar is drawn instead: the
+ * selection highlight is painted from the text run's own metrics, so anything
+ * that makes this one character bigger makes its highlight bigger too, and it
+ * bumps up out of the line.
+ */
+.role {
+  --role: color-mix(in srgb, var(--color-foreground) 60%, transparent);
+  color: var(--role);
+}
+
+.pipe {
+  position: relative;
+  color: transparent;
+}
+
+.pipe::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  translate: -50% 0;
+  width: 0.1em;
+  height: 1.09em;
+  background: var(--role);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .handle-rail,
+  .handle-rail::after,
+  .handle-panel {
+    transition-duration: 1ms;
+  }
+}
+
+/**
+ * Custom cursors, carried over from the old site.
+ *
+ * Served from the existing Cloudflare bucket. If they ever fail to load the
+ * comma-separated keyword after each URL is what the browser falls back to, so
+ * the worst case is the system cursor rather than no cursor.
+ */
+:root {
+  --cur-default: url("https://media.odiwr.com/cursors/default.png") 0 0;
+  --cur-pointer: url("https://media.odiwr.com/cursors/pointer.png") 8 4;
+}
+
+body {
+  cursor: var(--cur-default), auto;
+}
+
+a,
+button,
+[role="button"],
+label,
+summary {
+  cursor: var(--cur-pointer), pointer;
+}
+
+/**
+ * Entrance.
+ *
+ * Blocks drop into place in quick succession. Written as plain CSS with
+ * nth-child delays rather than driven from JavaScript, so it runs on the first
+ * paint — a hydration-timed entrance shows the page unstyled first, which is
+ * worse than no animation at all.
+ *
+ * `backwards` fill holds each block at its starting state during its delay,
+ * otherwise everything would flash into view and then animate.
+ */
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.enter > * {
+  animation: enter 420ms cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+}
+
+.enter > *:nth-child(1) {
+  animation-delay: 40ms;
+}
+.enter > *:nth-child(2) {
+  animation-delay: 100ms;
+}
+.enter > *:nth-child(3) {
+  animation-delay: 160ms;
+}
+.enter > *:nth-child(4) {
+  animation-delay: 220ms;
+}
+.enter > *:nth-child(5) {
+  animation-delay: 280ms;
+}
+.enter > *:nth-child(6) {
+  animation-delay: 340ms;
+}
+.enter > *:nth-child(7) {
+  animation-delay: 400ms;
+}
+.enter > *:nth-child(n + 8) {
+  animation-delay: 460ms;
+}
+
+/**
+ * The creative mosaic.
+ *
+ * The container's aspect ratio is FIXED at every screen size and the whole thing
+ * scales — it does not reflow. That is deliberate: each slot's aspect ratio is
+ * the brief for the poster that goes in it, so a layout that rearranged on a
+ * phone would letterbox every one of them.
+ */
+.mosaic {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  --mosaic-gap: 10px;
+}
+
+/* Padding is set per tile, per edge, by the page: gaps belong BETWEEN posters,
+   not between a poster and the edge of the rectangle. */
+.mosaic-tile {
+  position: absolute;
+}
+
+/* No hover outline: the cursor already says it is clickable, and an outline on
+   top of a poster is just something drawn over the artwork. */
+.mosaic-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.mosaic-inner img,
+.mosaic-inner video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@media (max-width: 640px) {
+  .mosaic {
+    --mosaic-gap: 6px;
+  }
+}
+
+/**
+ * Narrow screens: the three columns stack instead of scrolling sideways.
+ *
+ * Sideways scrolling suits a trackpad and reads as broken on a phone, where the
+ * off-screen columns give no hint that they are there.
+ */
+@media (max-width: 640px) {
+  .stack {
+    flex-direction: column;
+    overflow-x: visible;
+  }
+
+  /* Stacked columns run together without something between them. The rule stops
+     short of the right edge so it reads as a mark beside the heading rather
+     than a divider across the page. */
+  .column > h2 {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .column > h2::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    margin-right: 15%;
+    background: color-mix(in srgb, var(--color-foreground) 15%, transparent);
+  }
+
+  .stack > * + * {
+    margin-left: 0;
+    margin-top: 32px;
+  }
+
+  .column {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .enter > * {
+    animation: none;
+  }
+}
+
+/**
+ * Narrow screens: the handle is just text.
+ *
+ * Both the line it grows and the panel it opens are gone — the whole sequence
+ * is a hover, and a phone has no hover. The accounts are listed as icons beside
+ * the sign-off instead.
+ */
+@media (max-width: 639px), (hover: none) {
+  .handle-rail::after,
+  .handle-panel {
+    display: none;
+  }
+}
+
+/**
+ * Filtering a list by tech stack.
+ *
+ * Rows collapse to nothing rather than being removed, so the ones that stay
+ * slide up into the space instead of snapping. 1fr -> 0fr is the only way to
+ * transition to and from a content-sized height; the margin has to go with it or
+ * the gaps of the departed rows are left behind.
+ */
+.filter-row {
+  display: grid;
+  grid-template-rows: 1fr;
+  margin-bottom: 24px;
+  opacity: 1;
+  transform: none;
+  transition:
+    grid-template-rows 320ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    margin-bottom 320ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    transform 260ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    opacity 180ms ease;
+}
+
+.filter-row:last-child {
+  margin-bottom: 0;
+}
+
+.filter-row[data-hidden="true"] {
+  grid-template-rows: 0fr;
+  margin-bottom: 0;
+  opacity: 0;
+  transform: translateX(-10px);
+  pointer-events: none;
+}
+
+.filter-row > * {
+  min-height: 0;
+  overflow: hidden;
+}
+
+/**
+ * A stack mark used as a filter control.
+ *
+ * Orange on hover only. It deliberately does NOT stay orange once clicked —
+ * what is filtered is legible from the list itself, and a stuck highlight on a
+ * button you have moved away from reads as a bug. :focus-visible is the
+ * exception, since a keyboard user has nothing else to go on.
+ */
+.stack-filter {
+  color: color-mix(in srgb, var(--color-foreground) 40%, transparent);
+  transition: color 150ms ease;
+}
+
+.stack-filter:hover {
+  color: var(--color-accent);
+}
+
+.stack-filter:focus {
+  outline: none;
+}
+
+.stack-filter:focus-visible {
+  color: var(--color-accent);
+  outline: 1px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+/**
+ * The write-up page's clip, with the blurb running around it.
+ *
+ * A float, because that is the only thing in CSS that makes text wrap around a
+ * box rather than sit beside it in a column. It goes full width on a narrow
+ * screen, where wrapping around it would leave slivers of text.
+ */
+.work-media {
+  float: right;
+  width: 46%;
+  margin: 0 0 20px 24px;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.work-media video,
+.work-media img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+@media (max-width: 639px) {
+  .work-media {
+    float: none;
+    width: 100%;
+    margin: 0 0 20px 0;
+  }
+}
+
+/**
+ * Dashboard form controls.
+ *
+ * Borderless, like the rest: a filled block rather than an outline, so a form
+ * reads as the same material as the page instead of a stack of boxes.
+ */
+.field {
+  width: 100%;
+  background: #242424;
+  color: var(--color-foreground);
+  border: 0;
+  border-radius: 2px;
+  padding: 8px 10px;
+  font: inherit;
+  outline: 1px solid transparent;
+  outline-offset: -1px;
+  transition: outline-color 150ms ease;
+}
+
+.field:focus {
+  outline-color: var(--color-accent);
+}
+
+textarea.field {
+  min-height: 12rem;
+  resize: vertical;
+  line-height: var(--leading);
+}
+
+.label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: color-mix(in srgb, var(--color-foreground) 40%, transparent);
+}
+
+.label > .field,
+.label > select.field {
+  color: var(--color-foreground);
+}
+
+.btn {
+  background: #242424;
+  border: 0;
+  border-radius: 2px;
+  padding: 8px 14px;
+  font: inherit;
+  color: var(--color-foreground);
+  transition: color 150ms ease;
+}
+
+.btn:hover {
+  color: var(--color-accent);
+}
+
+.btn-danger:hover {
+  color: #ff6b6b;
+}
+
+/* A row in a dashboard list. */
+.row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+}
+
+/* The one button on a form that commits it. Fills on hover rather than just
+   recolouring its text. */
+.btn-primary:hover {
+  background: var(--color-accent);
+  color: var(--color-background);
+}
+
+/**
+ * Native selects.
+ *
+ * The browser's own control does not take the page's colours on every platform,
+ * so the chrome is replaced with a chevron of our own. The option list itself is
+ * drawn by the OS and cannot be styled further.
+ */
+select.field {
+  appearance: none;
+  padding-right: 32px;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position:
+    calc(100% - 16px) calc(50% + 1px),
+    calc(100% - 11px) calc(50% + 1px);
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+}
+
+/**
+ * The strip the page scrolls under.
+ *
+ * The page background fading to nothing, fixed to the top of the viewport. It
+ * replaced a mask on the column: a mask only paints inside its own element, so
+ * it was cutting the bottom off anything absolutely positioned that hung below
+ * the column, the handle's dropdown included.
+ *
+ * Capped the same way the glow is, so the two describe the same band.
+ */
+.top-fade {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: min(var(--page-top), 7.5vh);
+  background: linear-gradient(to bottom, var(--color-background), transparent);
+  pointer-events: none;
+  z-index: 5;
 }
