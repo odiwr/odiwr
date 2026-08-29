@@ -61,7 +61,7 @@ export default async function CreativePage() {
                       ? { target: "_blank", rel: "noreferrer noopener" }
                       : {})}
                     aria-label={
-                      item.description ? `${item.title} — ${item.description}` : item.title
+                      item.blurb ? `${item.title} — ${item.blurb}` : item.title
                     }
                     className="mosaic-tile"
                     style={{

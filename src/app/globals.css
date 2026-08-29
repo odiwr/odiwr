@@ -752,3 +752,14 @@ select.field {
   pointer-events: none;
   z-index: 5;
 }
+
+/**
+ * The blurb field.
+ *
+ * A line or two at most, so it does not need the height a body of text does —
+ * and giving it one invites writing more than belongs there.
+ */
+textarea.field.blurb {
+  min-height: 0;
+  resize: vertical;
+}

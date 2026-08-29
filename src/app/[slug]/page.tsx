@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import SectionHeader from "@/components/work/SectionHeader";
 import StackIcons from "@/components/work/StackIcons";
 import { getContent, findWork, slugWork } from "@/lib/content";
+import { renderInline } from "@/lib/richtext";
 import { SITE } from "@/lib/site";
 
 /**
@@ -25,8 +26,8 @@ export const dynamicParams = true;
 /** Re-read the content document at most this often. */
 export const revalidate = 60;
 
-/** PLACEHOLDER blurb. Replaced by real copy per entry. */
-const BLURB = [
+/** Shown only while an entry has no description of its own. */
+const PLACEHOLDER = [
   "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
   "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum, sed ut perspiciatis unde omnis iste natus error sit voluptatem.",
 ];
@@ -52,17 +53,17 @@ export async function generateMetadata({
   const images = work.ogImage ? [{ url: work.ogImage, width: 1200, height: 630 }] : undefined;
 
   return {
-    description: work.description,
+    description: work.blurb,
     alternates: { canonical: `/${work.slug}` },
     openGraph: {
       title: SITE.name,
-      description: work.description,
+      description: work.blurb,
       url: `${SITE.url}/${work.slug}`,
       ...(images ? { images } : {}),
     },
     twitter: {
       title: SITE.name,
-      description: work.description,
+      description: work.blurb,
       ...(images ? { images } : {}),
     },
   };
@@ -102,9 +103,12 @@ export default async function WorkPage({ params }: { params: Promise<{ slug: str
               )}
             </div>
 
-            {BLURB.map((text, i) => (
+            {(work.description
+              ? work.description.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean)
+              : PLACEHOLDER
+            ).map((text, i) => (
               <p key={i} className={i ? "mt-7 text-foreground/80" : "text-foreground/80"}>
-                {text}
+                {renderInline(text, `b${i}`)}
               </p>
             ))}
           </div>
