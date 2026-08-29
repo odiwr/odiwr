@@ -569,6 +569,17 @@ summary {
 
 .filter-row > * {
   min-height: 0;
+}
+
+/**
+ * Clipping is only needed WHILE a row is collapsing or growing.
+ *
+ * Left on permanently it also clipped anything meant to escape the row — the
+ * stack tooltips sit above their mark, outside it, and were invisible on this
+ * page for that reason. The class is on for the length of the transition and
+ * off the rest of the time.
+ */
+.filtering .filter-row > * {
   overflow: hidden;
 }
 

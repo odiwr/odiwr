@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Icon from "@/components/icons";
 import { isExternal, workHref, type Work } from "@/lib/content";
 import StackMark from "./StackMark";
@@ -18,16 +18,30 @@ import { stackTitle } from "@/lib/stack-index";
  * Rows that drop out are not unmounted, they collapse (see .filter-row), so the
  * ones that stay slide up into the space rather than snapping into place.
  */
+/** Must match the collapse transition in globals.css. */
+const COLLAPSE_MS = 340;
+
 export default function FilterableList({ items }: { items: Work[] }) {
   const [active, setActive] = useState<string | null>(null);
+  /** Rows are only clipped while they are actually moving. See globals.css. */
+  const [animating, setAnimating] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (timer.current) clearTimeout(timer.current);
+  }, []);
 
   const toggle = (key: string, event: React.MouseEvent<HTMLButtonElement>) => {
     setActive((current) => (current === key ? null : key));
     event.currentTarget.blur();
+
+    setAnimating(true);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => setAnimating(false), COLLAPSE_MS);
   };
 
   return (
-    <ul>
+    <ul className={animating ? "filtering" : undefined}>
       {items.map((item) => {
         const hidden = active !== null && !item.stack?.includes(active);
 

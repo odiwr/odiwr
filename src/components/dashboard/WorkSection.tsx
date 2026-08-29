@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   DndContext,
   closestCenter,
@@ -26,9 +27,15 @@ import { reorderWork, togglePin } from "@/app/dashboard/(app)/actions";
 /**
  * One section of the work list: drag to reorder, hover to pin.
  *
- * Order and pin state are held locally and applied straight away, with the
- * server action running behind it. A drag that waited for a round trip before
- * moving the row would feel broken.
+ * Order and pin state are applied locally straight away — a drag that waited for
+ * a round trip before moving the row would feel broken — and the server action
+ * runs behind it. When that lands, the page is refreshed so what you see is what
+ * was actually written, not just what was optimistically assumed.
+ *
+ * The local copy also has to follow the server's. useState only reads its
+ * argument once, so without the sync below a refresh would fetch new data and
+ * the list would keep showing the stale copy, which is what made pinning look
+ * like it forgot things.
  */
 
 function Row({ item, onPin }: { item: Work; onPin: (id: string) => void }) {
@@ -89,7 +96,23 @@ export default function WorkSection({
   items: Work[];
 }) {
   const [items, setItems] = useState(initial);
-  const [, startTransition] = useTransition();
+  const [pending, startTransition] = useTransition();
+  const router = useRouter();
+
+  /**
+   * Re-sync when the server's copy actually differs.
+   *
+   * Adjusted during render rather than in an effect — React's own pattern for
+   * derived state, and it avoids a second paint showing the stale list. The
+   * signature is compared rather than the array, which is a new object every
+   * render.
+   */
+  const signature = initial.map((i) => `${i.id}:${i.pinned ? 1 : 0}`).join(",");
+  const [seen, setSeen] = useState(signature);
+  if (signature !== seen) {
+    setSeen(signature);
+    setItems(initial);
+  }
 
   const sensors = useSensors(
     // A few pixels of travel before a drag starts, so clicking the handle or the
@@ -106,8 +129,9 @@ export default function WorkSection({
       items.findIndex((i) => i.id === over.id)
     );
     setItems(next);
-    startTransition(() => {
-      reorderWork(section, next.map((i) => i.id));
+    startTransition(async () => {
+      await reorderWork(section, next.map((i) => i.id));
+      router.refresh();
     });
   };
 
@@ -115,8 +139,9 @@ export default function WorkSection({
     setItems((current) =>
       current.map((i) => (i.id === id ? { ...i, pinned: !i.pinned } : i))
     );
-    startTransition(() => {
-      togglePin(id);
+    startTransition(async () => {
+      await togglePin(id);
+      router.refresh();
     });
   };
 
@@ -124,8 +149,10 @@ export default function WorkSection({
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+      {/* Dim while the write is in flight, so a save is visible rather than
+          silent. */}
       <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
-        <ul className="flex flex-col">
+        <ul className={`flex flex-col transition-opacity ${pending ? "opacity-60" : ""}`}>
           {items.map((item) => (
             <Row key={item.id} item={item} onPin={pin} />
           ))}
