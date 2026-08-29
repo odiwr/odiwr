@@ -1,4 +1,4 @@
-import Brand from "@/components/icons/Brand";
+import StackMark from "./StackMark";
 
 /**
  * The tech stack beside a project title.
@@ -12,7 +12,7 @@ export default function StackIcons({ stack }: { stack?: string[] }) {
   return (
     <span className="inline-flex items-center gap-2 text-foreground/40">
       {stack.map((slug) => (
-        <Brand key={slug} slug={slug} />
+        <StackMark key={slug} slug={slug} />
       ))}
     </span>
   );

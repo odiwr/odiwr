@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Icon from "@/components/icons";
 import { isExternal, workHref, type Work } from "@/lib/content";
-import Brand from "@/components/icons/Brand";
+import StackMark from "./StackMark";
 import { stackTitle } from "@/lib/stack-index";
 
 /**
@@ -61,7 +61,7 @@ export default function FilterableList({ items }: { items: Work[] }) {
                         aria-pressed={active === key}
                         onClick={(event) => toggle(key, event)}
                       >
-                        <Brand slug={key} />
+                        <StackMark slug={key} />
                       </button>
                     ))}
                   </span>

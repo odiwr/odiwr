@@ -80,7 +80,7 @@ export default async function WorkPage({ params }: { params: Promise<{ slug: str
     <main className="page">
       <div className="page-grid">
         <article className="prose enter">
-          <SectionHeader title={work.title} />
+          <SectionHeader title={work.title} href={work.href} />
 
           {/* The clip floats and the blurb runs around it, so both have to sit
               inside one block — a float only affects the text that follows it in
