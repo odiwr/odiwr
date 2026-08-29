@@ -68,9 +68,7 @@ export default function FilterableList({ items }: { items: Work[] }) {
                 ) : null}
               </div>
 
-              {item.description && (
-                <p className="mt-0.5 text-foreground/50">{item.description}</p>
-              )}
+              {item.blurb && <p className="mt-0.5 text-foreground/50">{item.blurb}</p>}
             </div>
           </li>
         );

@@ -123,9 +123,7 @@ export default async function Home() {
                           {item.title}
                           <Icon name="material-symbols:arrow-outward-rounded" />
                         </a>
-                        {item.description && (
-                          <p className="text-foreground/50">{item.description}</p>
-                        )}
+                        {item.blurb && <p className="text-foreground/50">{item.blurb}</p>}
                       </div>
                     ))}
                   </div>

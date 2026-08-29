@@ -48,14 +48,23 @@ export default async function WorkEditor({
 
       <TitleSlug title={entry.title ?? ""} slug={entry.slug ?? ""} showSlug={isCurrent} />
 
+      {/* Ten words or so, and the only text projects and creative entries get:
+          they are listed, never opened. */}
       <label className="label">
-        Description
-        <textarea
-          name="description"
-          className="field min-h-32"
-          defaultValue={entry.description ?? ""}
-        />
+        Blurb
+        <textarea name="blurb" className="field blurb" rows={2} defaultValue={entry.blurb ?? ""} />
       </label>
+
+      {isCurrent && (
+        <label className="label">
+          Description
+          <textarea
+            name="description"
+            className="field min-h-40"
+            defaultValue={entry.description ?? ""}
+          />
+        </label>
+      )}
 
       <label className="label">
         Link

@@ -18,6 +18,16 @@ export type Work = {
   id: string;
   section: Section;
   title: string;
+  /**
+   * The short line, ten words or so. Shown wherever the entry is listed: the
+   * landing page columns and the subdomain listings, and used as the entry's
+   * meta description.
+   */
+  blurb?: string;
+  /**
+   * The long text, for entries that have a page of their own — so in practice
+   * CURRENT only. Blank lines separate paragraphs.
+   */
   description?: string;
   /**
    * Renders a page at /slug on this site. Only CURRENT work usually gets one —
@@ -88,7 +98,14 @@ function normalise(raw: unknown): Content {
   }
 
   return {
-    work: Array.isArray(doc.work) ? doc.work : [],
+    // Before there were two, `description` WAS the short line, so an entry
+    // carrying one and no blurb means the old shape: move it across rather than
+    // leaving the listing blank and the page showing a one-liner.
+    work: (Array.isArray(doc.work) ? doc.work : []).map((w) =>
+      w.blurb === undefined && w.description !== undefined
+        ? { ...w, blurb: w.description, description: undefined }
+        : w
+    ),
     post: doc.post ?? null,
     archive: Array.isArray(doc.archive) ? doc.archive : [],
   };

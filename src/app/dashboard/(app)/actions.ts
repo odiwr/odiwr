@@ -68,6 +68,7 @@ export async function saveWork(form: FormData) {
     id,
     section: (str(form, "section") || "projects") as Section,
     title,
+    blurb: opt(str(form, "blurb")),
     description: opt(str(form, "description")),
     slug: slugInput ? slugify(slugInput) : undefined,
     href: url(str(form, "href")),
