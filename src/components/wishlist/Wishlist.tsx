@@ -69,9 +69,11 @@ function Tile({ item }: { item: WishItem }) {
         )}
       </span>
 
-      {/* The whole name, over as many lines as it takes. Hovering the card
-          recolours the text; the picture stays still. */}
-      <span className="mt-3 text-foreground transition-colors group-hover:text-accent group-focus-visible:text-accent">
+      {/* The whole name, over as many lines as it takes. It grows to fill the
+          card, so the shop name below lines up across the row whatever the
+          title's length. Hovering the card recolours the text; the picture
+          stays still. */}
+      <span className="mt-3 flex-1 text-foreground transition-colors group-hover:text-accent group-focus-visible:text-accent">
         {item.title}
       </span>
       <span className="text-foreground/50">{wishSite(item)}</span>

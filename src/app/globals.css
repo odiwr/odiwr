@@ -845,10 +845,13 @@ textarea.field.blurb {
   }
 }
 
+/* As tall as the tallest card in its row, so the title can take up the extra
+   height and every shop name in the row sits on the same line. */
 .wish-tile {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  height: 100%;
 }
 
 /* Tall, with the picture whole and centred rather than cropped. The space
@@ -869,6 +872,14 @@ textarea.field.blurb {
   height: 100%;
   object-fit: contain;
   object-position: center;
+}
+
+/* The dashboard's picture eyedropper, for browsers with no screen eyedropper.
+   A plain crosshair rather than the site's cursor, so the exact pixel being
+   picked is obvious. */
+.wish-image.picking,
+.wish-image.picking img {
+  cursor: crosshair;
 }
 
 .wish-initial {

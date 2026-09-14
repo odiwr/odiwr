@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { previewLink } from "@/app/dashboard/(app)/actions";
+import { sampleImage } from "@/app/dashboard/(app)/image-actions";
 import ColorField from "./ColorField";
 import { siteFromHost } from "@/lib/wish";
 
@@ -20,6 +21,12 @@ import { siteFromHost } from "@/lib/wish";
  *   - the tile's colour. Automatic until changed here; a colour set by hand
  *     stays through re-pulls, and clearing the hex makes it automatic again.
  *
+ * In browsers with no screen eyedropper (Firefox, Waterfox), the eyedropper
+ * picks from the picture instead: a small copy of its pixels is fetched from
+ * the server, the cursor becomes a crosshair over the picture, the colour
+ * follows it live, and a click keeps it. Escape, or clicking or moving off the
+ * picture, puts back what was there.
+ *
  * What was pulled is sent with the form, so saving does not fetch the page a
  * second time. The server fetches it itself if nothing came through.
  */
@@ -28,6 +35,8 @@ const SCALE_MIN = 50;
 const SCALE_MAX = 150;
 const SCALE_STEP = 10;
 const SCALE_NORMAL = 100;
+
+type Sampler = { width: number; height: number; data: Uint8Array; before: string };
 
 export default function WishLinkFields({
   href: initialHref,
@@ -64,6 +73,12 @@ export default function WishLinkFields({
   const [scale, setScale] = useState(initialScale || SCALE_NORMAL);
   const [customBg, setCustomBg] = useState(initialBgCustom ? initialBg : "");
   const request = useRef(0);
+
+  // The picture eyedropper.
+  const [sampler, setSampler] = useState<Sampler | null>(null);
+  const [sampling, setSampling] = useState(false);
+  const [sampleFailed, setSampleFailed] = useState(false);
+  const picture = useRef<HTMLSpanElement>(null);
 
   const pull = async (target: string) => {
     const id = ++request.current;
@@ -107,6 +122,93 @@ export default function WishLinkFields({
       siteFromHost(/^[a-z]+:/i.test(href.trim()) ? href.trim() : `https://${href.trim()}`)
     : "";
 
+  /* ---------------------------------------------------------------- */
+  /* Picture eyedropper                                                */
+  /* ---------------------------------------------------------------- */
+
+  const startSampling = async () => {
+    if (!shown || broken || sampling) return;
+    if (sampler) {
+      // A second click on the button while picking cancels.
+      setCustomBg(sampler.before);
+      setSampler(null);
+      return;
+    }
+    setSampling(true);
+    setSampleFailed(false);
+    try {
+      const result = await sampleImage(shown);
+      if (!result) {
+        setSampleFailed(true);
+        return;
+      }
+      const data = Uint8Array.from(atob(result.pixels), (c) => c.charCodeAt(0));
+      setSampler({ width: result.width, height: result.height, data, before: customBg });
+    } finally {
+      setSampling(false);
+    }
+  };
+
+  const stopSampling = (keep: boolean) => {
+    if (!sampler) return;
+    if (!keep) setCustomBg(sampler.before);
+    setSampler(null);
+  };
+
+  /** The colour of the picture under the pointer, or null off the picture. */
+  const colorAt = (event: React.PointerEvent | React.MouseEvent): string | null => {
+    const box = picture.current?.getBoundingClientRect();
+    if (!sampler || !box) return null;
+
+    // Where the picture is drawn: fitted whole into the tile, centred, then
+    // scaled about the centre by the size slider.
+    const pictureAspect = sampler.width / sampler.height;
+    const boxAspect = box.width / box.height;
+    let drawnWidth = pictureAspect > boxAspect ? box.width : box.height * pictureAspect;
+    let drawnHeight = pictureAspect > boxAspect ? box.width / pictureAspect : box.height;
+    drawnWidth *= scale / 100;
+    drawnHeight *= scale / 100;
+    const left = box.left + (box.width - drawnWidth) / 2;
+    const top = box.top + (box.height - drawnHeight) / 2;
+
+    const u = (event.clientX - left) / drawnWidth;
+    const v = (event.clientY - top) / drawnHeight;
+    if (u < 0 || u >= 1 || v < 0 || v >= 1) return null;
+
+    const x = Math.min(sampler.width - 1, Math.floor(u * sampler.width));
+    const y = Math.min(sampler.height - 1, Math.floor(v * sampler.height));
+    const i = (y * sampler.width + x) * 3;
+    const channel = (n: number) => n.toString(16).padStart(2, "0");
+    return `#${channel(sampler.data[i])}${channel(sampler.data[i + 1])}${channel(sampler.data[i + 2])}`;
+  };
+
+  // While picking: Escape, or a click anywhere but the picture, puts the colour back.
+  useEffect(() => {
+    if (!sampler) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") stopSampling(false);
+    };
+    const onDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      const onButton = (target as Element).closest?.('[aria-pressed="true"]');
+      if (!picture.current?.contains(target) && !onButton) stopSampling(false);
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onDown);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onDown);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- stopSampling reads the sampler this effect was set up for
+  }, [sampler]);
+
+  // A new picture makes the copy being picked from wrong.
+  const [sampledFor, setSampledFor] = useState(shown);
+  if (shown !== sampledFor) {
+    setSampledFor(shown);
+    if (sampler) setSampler(null);
+  }
+
   // Where the knob sits and where the middle is, as track percentages, for the
   // orange stretch between them.
   const at = ((scale - SCALE_MIN) / (SCALE_MAX - SCALE_MIN)) * 100;
@@ -149,8 +251,27 @@ export default function WishLinkFields({
             {loading ? "Pulling…" : override.trim() ? "Image (yours)" : "Image"}
           </span>
           <span
-            className={`wish-image transition-opacity ${loading ? "opacity-50" : ""}`}
+            ref={picture}
+            className={`wish-image transition-opacity ${loading || sampling ? "opacity-50" : ""} ${
+              sampler ? "picking" : ""
+            }`}
             style={background ? { backgroundColor: background } : undefined}
+            onPointerMove={(event) => {
+              if (!sampler) return;
+              const color = colorAt(event);
+              setCustomBg(color ?? sampler.before);
+            }}
+            onPointerLeave={() => {
+              if (sampler) setCustomBg(sampler.before);
+            }}
+            onClick={(event) => {
+              if (!sampler) return;
+              const color = colorAt(event);
+              if (color) {
+                setCustomBg(color);
+                stopSampling(true);
+              }
+            }}
           >
             {shown && !broken ? (
               // eslint-disable-next-line @next/next/no-img-element -- remote shop images
@@ -158,6 +279,7 @@ export default function WishLinkFields({
                 src={shown}
                 alt=""
                 referrerPolicy="no-referrer"
+                draggable={false}
                 onError={() => setBroken(true)}
                 onLoad={() => setBroken(false)}
                 style={{ transform: `scale(${scale / 100})`, transition: "transform 150ms ease" }}
@@ -202,7 +324,19 @@ export default function WishLinkFields({
           </div>
 
           {/* The tile's colour. Shows the automatic one until set by hand. */}
-          <ColorField value={background} onChange={setCustomBg} />
+          <ColorField
+            value={background}
+            onChange={setCustomBg}
+            onEyedrop={shown && !broken ? startSampling : undefined}
+            eyedropping={Boolean(sampler) || sampling}
+            eyedropLabel="Pick a colour from the image"
+          />
+
+          {sampler ? (
+            <span className="text-foreground/50">Click the image to pick. Esc cancels.</span>
+          ) : sampleFailed ? (
+            <span className="text-foreground/50">Couldn&rsquo;t read that image.</span>
+          ) : null}
 
           {siteLabel && <span className="truncate text-foreground/50">{siteLabel}</span>}
           {href.trim() && !override.trim() && (

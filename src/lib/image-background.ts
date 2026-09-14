@@ -1,10 +1,14 @@
-// SERVER-ONLY. The colour a product image sits on, so the tile around it can
-// be painted the same and the picture reads as filling the whole card.
+// SERVER-ONLY. Reading shop images: the colour one sits on, and a small copy of
+// its pixels for the dashboard's eyedropper.
 //
-// Why the EDGES and not the most prominent colour: in a product shot the most
-// prominent colour is usually the product. A red shoe on white would paint the
-// card red. What surrounds the product is at the border, so that is what is
-// sampled:
+// Both happen here because the browser cannot do either: shop images come from
+// other origins without CORS headers, and a canvas will not give up their
+// pixels.
+//
+// The background colour comes from the EDGES, not the most prominent colour: in
+// a product shot the most prominent colour is usually the product. A red shoe on
+// white would paint the card red. What surrounds the product is at the border,
+// so that is what is sampled:
 //
 //   1. Shrink the image to a small square, so each sample is already an average
 //      of its area and JPEG speckle washes out.
@@ -17,9 +21,6 @@
 //      which at least continues the image's overall tone.
 //   5. A mostly transparent ring is a cut-out; there is no background to match,
 //      so nothing is returned and the card keeps its usual colour.
-//
-// Done here, at save time, because the browser cannot: shop images come from
-// other origins without CORS headers, and a canvas will not give up their pixels.
 
 import sharp from "sharp";
 
@@ -34,7 +35,8 @@ const MAX_BYTES = 8_000_000;
 const USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36";
 
-export async function imageBackground(src: string): Promise<string | undefined> {
+/** The image's bytes, or undefined if it cannot be had (blocked, too big, not there). */
+async function loadImage(src: string): Promise<Buffer | undefined> {
   try {
     const res = await fetch(src, {
       headers: { "user-agent": USER_AGENT, accept: "image/avif,image/webp,image/*;q=0.8" },
@@ -43,17 +45,47 @@ export async function imageBackground(src: string): Promise<string | undefined> 
     });
     if (!res.ok) return undefined;
     if (Number(res.headers.get("content-length") ?? 0) > MAX_BYTES) return undefined;
-
     const input = Buffer.from(await res.arrayBuffer());
-    if (input.length > MAX_BYTES) return undefined;
+    return input.length > MAX_BYTES ? undefined : input;
+  } catch {
+    return undefined;
+  }
+}
 
+export async function imageBackground(src: string): Promise<string | undefined> {
+  const input = await loadImage(src);
+  if (!input) return undefined;
+  try {
     const { data, info } = await sharp(input, { limitInputPixels: 50_000_000 })
       .resize(SIZE, SIZE, { fit: "fill" })
       .ensureAlpha()
       .raw()
       .toBuffer({ resolveWithObject: true });
-
     return edgeColor(data, info.width, info.height);
+  } catch {
+    return undefined;
+  }
+}
+
+export type ImagePixels = { width: number; height: number; /** RGB, base64. */ pixels: string };
+
+/**
+ * A small copy of the image, as raw RGB, for picking colours from it in the
+ * browser. The same proportions as the image, at most `max` pixels on its long
+ * side — plenty to pick a colour from, and small enough to send (about 35 KB).
+ * See-through areas come out white, the usual colour behind a cut-out.
+ */
+export async function imagePixels(src: string, max = 96): Promise<ImagePixels | undefined> {
+  const input = await loadImage(src);
+  if (!input) return undefined;
+  try {
+    const { data, info } = await sharp(input, { limitInputPixels: 50_000_000 })
+      .resize(max, max, { fit: "inside" })
+      .flatten({ background: "#ffffff" })
+      .removeAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    return { width: info.width, height: info.height, pixels: data.toString("base64") };
   } catch {
     return undefined;
   }
