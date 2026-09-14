@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# the dashboard's local content, used by `next dev` when R2 is not configured
+/.local/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

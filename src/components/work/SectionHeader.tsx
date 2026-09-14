@@ -9,10 +9,19 @@ import BackLink from "./BackLink";
  * repository, the video, wherever it actually lives — since a write-up page
  * otherwise has no link to its own subject.
  */
-export default function SectionHeader({ title, href }: { title: string; href?: string }) {
+export default function SectionHeader({
+  title,
+  href,
+  back,
+}: {
+  title: string;
+  href?: string;
+  /** What the way back says. "Back" unless given. */
+  back?: string;
+}) {
   return (
     <header className="flex items-baseline justify-between gap-4">
-      <BackLink />
+      <BackLink label={back} />
 
       {href ? (
         <h1 className="font-medium">

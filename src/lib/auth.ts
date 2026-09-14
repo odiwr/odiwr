@@ -30,12 +30,26 @@ export type Session = {
   exp: number;
 };
 
+/**
+ * Local sign-in, for `next dev` on a machine with no Google OAuth client set up.
+ *
+ * Signs straight in as the first allowed email, with no Google round trip. Off
+ * in every production build no matter what, and off in development too as soon
+ * as Google is configured, so the real flow is what gets tested whenever it can
+ * be.
+ */
+export function devSignInAllowed(): boolean {
+  return process.env.NODE_ENV === "development" && !googleConfigured();
+}
+
 function secret(): string {
   // PAYLOAD_SECRET is accepted as well so the value carried over from the old
   // site keeps working; there is no Payload here.
   const s = process.env.SESSION_SECRET || process.env.PAYLOAD_SECRET;
-  if (!s) throw new Error("SESSION_SECRET is required to sign dashboard sessions");
-  return s;
+  if (s) return s;
+  // A fixed key is fine for a local dev server and nowhere else.
+  if (process.env.NODE_ENV === "development") return "odiwr-local-dev-only";
+  throw new Error("SESSION_SECRET is required to sign dashboard sessions");
 }
 
 const b64url = (b: Buffer) => b.toString("base64url");

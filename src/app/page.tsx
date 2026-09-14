@@ -27,7 +27,7 @@ const LINK =
   "underline decoration-foreground/30 underline-offset-[2.5px] decoration-1 transition-colors hover:text-accent hover:decoration-accent";
 
 /**
- * The two subdomains.
+ * The subdomains.
  *
  * These open in the SAME tab, which is what the sideways arrow means here — the
  * outward arrow is reserved for links that leave for somewhere that is not mine.
@@ -35,6 +35,7 @@ const LINK =
 const DESTINATIONS = [
   { label: "projects.odiwr.com", href: SUBDOMAIN_LINKS.projects },
   { label: "creative.odiwr.com", href: SUBDOMAIN_LINKS.creative },
+  // wishlist.odiwr.com is left off on purpose: it is only for people given the link.
 ];
 
 /**
@@ -121,7 +122,15 @@ export default async function Home() {
                           className={`inline-flex items-center gap-1.5 ${LINK}`}
                         >
                           {item.title}
-                          <Icon name="material-symbols:arrow-outward-rounded" />
+                          {/* A write-up opens here, in this tab: the sideways
+                              arrow, same as the subdomains. */}
+                          <Icon
+                            name={
+                              item.slug
+                                ? "material-symbols:arrow-right-alt-rounded"
+                                : "material-symbols:arrow-outward-rounded"
+                            }
+                          />
                         </a>
                         {item.blurb && <p className="text-foreground/50">{item.blurb}</p>}
                       </div>
@@ -150,7 +159,7 @@ export default async function Home() {
           <section>
             <h2 className="text-foreground/50">Talk to me</h2>
             <p className="text-foreground/80">
-              Anywhere online with <HandleMenu /> or{" "}
+              Anywhere online <HandleMenu /> or{" "}
               <a href={`mailto:${SITE.email}`} className={LINK}>
                 {SITE.email}
               </a>

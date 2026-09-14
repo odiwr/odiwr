@@ -823,3 +823,363 @@ textarea.field.blurb {
     transition-duration: 1ms;
   }
 }
+
+/**
+ * The wishlist.
+ *
+ * Three across fills the 640px column with the same 24px gap the home page
+ * columns use; two on a phone, where three would make every picture a stamp.
+ * The picture is the only filled surface on the page, the same #242424 the
+ * dashboard fields use, so a missing image is a quiet block rather than a hole.
+ */
+.wish-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 32px 24px;
+}
+
+@media (max-width: 639px) {
+  .wish-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 28px 16px;
+  }
+}
+
+.wish-tile {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Tall, with the picture whole and centred rather than cropped. The space
+   around it takes the image's own background colour when one was found (set
+   inline by the page), so a product on white sits on a white card. */
+.wish-image {
+  position: relative;
+  display: block;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  border-radius: 2px;
+  background-color: #242424;
+}
+
+.wish-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+}
+
+.wish-initial {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-cursive);
+  font-size: 2.5em;
+  text-transform: lowercase;
+  color: color-mix(in srgb, var(--color-foreground) 20%, transparent);
+}
+
+/**
+ * The warning a password sign-in gets.
+ *
+ * A native <dialog>, so focus is trapped and Escape closes it without any code.
+ */
+.warning-dialog {
+  margin: auto;
+  width: min(420px, calc(100vw - 48px));
+  border: 0;
+  border-radius: 2px;
+  padding: 20px 22px;
+  background: #242424;
+  color: var(--color-foreground);
+  box-shadow: 0 16px 48px rgb(0 0 0 / 0.55);
+}
+
+.warning-dialog::backdrop {
+  background: rgb(0 0 0 / 0.6);
+}
+
+/**
+ * The work list's floating Save.
+ *
+ * Arrives with the same drop-in as page content on load (the `enter` keyframes
+ * above), and leaves with that motion run backwards. The hop on each new pin is
+ * played from WorkBoard, on the button inside, so it never fights these.
+ */
+@keyframes save-leave {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+.save-float {
+  animation: enter 420ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+.save-float.is-leaving {
+  animation-name: save-leave;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .save-float,
+  .save-float.is-leaving {
+    animation-duration: 1ms;
+  }
+}
+
+/* Thumbnails in the dashboard's wishlist list. */
+.wish-thumb {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 2px;
+  background: #242424;
+}
+
+.wish-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/**
+ * A poster's alt text, in a box at the cursor.
+ *
+ * The same dark fill and white text as the dashboard's Save. Placed with
+ * `translate` (set from script on every move) so that `scale` stays free for
+ * the grow-in and shrink-out, which start from the corner nearest the cursor.
+ */
+.cursor-caption {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 30;
+  max-width: 260px;
+  padding: 6px 10px;
+  border-radius: 2px;
+  background: #141414;
+  color: #fff;
+  pointer-events: none;
+  opacity: 0;
+  scale: 0.92;
+  transition:
+    opacity 160ms ease,
+    scale 220ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.cursor-caption[data-visible="true"] {
+  opacity: 1;
+  scale: 1;
+}
+
+/**
+ * The dashboard's slider.
+ *
+ * The native one is drawn by the browser in its own colours. This keeps the
+ * control and paints it like the rest: a hairline track, a white knob that turns
+ * orange under the pointer, and orange only between the middle and the knob, so
+ * it reads as how far from normal the value has been pushed, and which way.
+ * --from and --to are that stretch, set by the component.
+ */
+.range {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 16px;
+  margin: 0;
+  background: transparent;
+  cursor: var(--cur-pointer), pointer;
+  --track: color-mix(in srgb, var(--color-foreground) 15%, transparent);
+  --stretch: linear-gradient(
+    to right,
+    var(--track) 0 var(--from, 50%),
+    var(--color-accent) var(--from, 50%) var(--to, 50%),
+    var(--track) var(--to, 50%) 100%
+  );
+}
+
+.range:focus {
+  outline: none;
+}
+
+.range::-webkit-slider-runnable-track {
+  height: 2px;
+  border-radius: 1px;
+  background: var(--stretch);
+}
+
+.range::-moz-range-track {
+  height: 2px;
+  border-radius: 1px;
+  background: var(--stretch);
+}
+
+.range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  margin-top: -5px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--color-foreground);
+  transition: background-color 150ms ease;
+}
+
+.range::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--color-foreground);
+  transition: background-color 150ms ease;
+}
+
+.range:hover::-webkit-slider-thumb,
+.range:focus-visible::-webkit-slider-thumb {
+  background: var(--color-accent);
+}
+
+.range:hover::-moz-range-thumb,
+.range:focus-visible::-moz-range-thumb {
+  background: var(--color-accent);
+}
+
+/* One mark per step under the track, the middle one taller. Inset by the knob's
+   radius, which is how far in from each end the knob's centre stops. */
+.range-ticks {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 0 6px;
+  height: 6px;
+}
+
+.range-ticks > span {
+  width: 1px;
+  height: 3px;
+  background: color-mix(in srgb, var(--color-foreground) 25%, transparent);
+}
+
+.range-ticks > span[data-middle] {
+  height: 6px;
+  background: color-mix(in srgb, var(--color-foreground) 45%, transparent);
+}
+
+/* The dashboard dropdown's list, dropping in the way page content does. */
+@keyframes select-open {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.select-list {
+  animation: select-open 160ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+/**
+ * The colour field: swatch, hex, eyedropper.
+ *
+ * The swatch is outlined so a colour close to the field behind it, white or
+ * near-black, still shows its edge. With no colour it shows a diagonal slash,
+ * the usual mark for "none".
+ */
+.color-swatch {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 5px;
+  padding: 0;
+  background-color: transparent;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-foreground) 22%, transparent);
+  transition: box-shadow 150ms ease;
+}
+
+.color-swatch[data-empty] {
+  background-image: linear-gradient(
+    to top right,
+    transparent calc(50% - 0.75px),
+    color-mix(in srgb, var(--color-foreground) 35%, transparent) calc(50% - 0.75px),
+    color-mix(in srgb, var(--color-foreground) 35%, transparent) calc(50% + 0.75px),
+    transparent calc(50% + 0.75px)
+  );
+}
+
+.color-swatch:hover,
+.color-swatch:focus-visible,
+.color-swatch[aria-expanded="true"] {
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--color-accent);
+}
+
+.color-hex {
+  width: 6.5ch;
+  min-width: 0;
+  padding: 0 0 1px;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-foreground) 15%, transparent);
+  background: transparent;
+  color: var(--color-foreground);
+  font: inherit;
+  text-transform: uppercase;
+  outline: none;
+  transition: border-color 150ms ease;
+}
+
+.color-hex::placeholder {
+  text-transform: none;
+  color: color-mix(in srgb, var(--color-foreground) 30%, transparent);
+}
+
+.color-hex:focus {
+  border-bottom-color: var(--color-accent);
+}
+
+/* react-colorful, sized and rounded to the dashboard. Scoped under the popover
+   so these win over the styles the library injects for itself. */
+.color-popover .react-colorful {
+  width: 176px;
+  height: 176px;
+  gap: 8px;
+}
+
+.color-popover .react-colorful__saturation {
+  border-radius: 2px;
+  border-bottom: 0;
+}
+
+.color-popover .react-colorful__hue {
+  height: 10px;
+  border-radius: 2px;
+}
+
+.color-popover .react-colorful__pointer {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cursor-caption,
+  .select-list {
+    transition-duration: 1ms;
+    animation-duration: 1ms;
+  }
+}

@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import SectionHeader from "@/components/work/SectionHeader";
 import StackIcons from "@/components/work/StackIcons";
-import { getContent, findWork, slugWork } from "@/lib/content";
+import { getContent, findWork, slugWork, type Content } from "@/lib/content";
+import { fillerWork } from "@/lib/filler";
 import { renderInline } from "@/lib/richtext";
 import { SITE } from "@/lib/site";
 
@@ -32,6 +33,14 @@ const PLACEHOLDER = [
   "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum, sed ut perspiciatis unde omnis iste natus error sit voluptatem.",
 ];
 
+/**
+ * Real work first. Filler only answers while the home page is still linking to
+ * it, so an empty site's placeholder link opens a page rather than a 404.
+ */
+function resolve(content: Content, slug: string) {
+  return findWork(content, slug) ?? fillerWork(content, slug);
+}
+
 export async function generateStaticParams() {
   const content = await getContent();
   return slugWork(content).map((w) => ({ slug: w.slug as string }));
@@ -43,8 +52,10 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const work = findWork(await getContent(), slug);
+  const work = resolve(await getContent(), slug);
   if (!work) return {};
+  // Placeholder pages are never meant to be found.
+  if (work.id.startsWith("filler-")) return { robots: { index: false, follow: false } };
   // The tab still says "odiwr" everywhere, by request — only the description
   // and the canonical URL are per-page.
   // A custom card if the entry has one, otherwise the site-wide image resolved
@@ -71,7 +82,7 @@ export async function generateMetadata({
 
 export default async function WorkPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const work = findWork(await getContent(), slug);
+  const work = resolve(await getContent(), slug);
   if (!work) notFound();
 
   const isVideo = work.media && /\.(mp4|webm)$/i.test(work.media);

@@ -5,8 +5,8 @@ import { SITE } from "@/lib/site";
 /**
  * Host-based routing for the subdomains.
  *
- * projects.odiwr.com and creative.odiwr.com are served by THIS app: the request
- * is rewritten onto /projects or /creative so each subdomain has its own pages
+ * projects., creative. and wishlist.odiwr.com are served by THIS app: the request
+ * is rewritten onto /projects, /creative or /wishlist so each subdomain has its own pages
  * without a second deployment. A rewrite, not a redirect — the visitor stays on
  * the subdomain and never sees the internal path.
  *
@@ -67,6 +67,7 @@ function canonicalRedirect(request: NextRequest): NextResponse | null {
 const SUBDOMAINS: Record<string, string> = {
   projects: "/projects",
   creative: "/creative",
+  wishlist: "/wishlist",
 };
 
 export function proxy(request: NextRequest) {

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import "./globals.css";
 import { fontVariables } from "./fonts";
 import { SITE, PROFILE_URLS } from "@/lib/site";
@@ -59,6 +60,9 @@ export const metadata: Metadata = {
   },
 };
 
+/** The GA4 web stream's measurement ID, "G-…". Public by nature: it is in the page. */
+const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+
 export const viewport: Viewport = {
   themeColor: SITE.themeColor,
   colorScheme: "dark",
@@ -102,6 +106,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-dvh bg-background text-foreground antialiased">
         {children}
+        {/* Google Analytics. Without this tag nothing ever reaches GA, and the
+            dashboard's Analytics tab reads zeros however well the reporting
+            side is set up. Unset, no script is emitted. */}
+        {GA_ID && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+              strategy="afterInteractive"
+            />
+            <Script id="ga-init" strategy="afterInteractive">
+              {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config',${JSON.stringify(GA_ID)});`}
+            </Script>
+          </>
+        )}
         <script
           type="application/ld+json"
           // The object is ours and contains no user input, so there is nothing

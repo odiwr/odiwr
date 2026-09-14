@@ -108,6 +108,20 @@ export default async function WorkEditor({
         </div>
       )}
 
+      {/* Describes the poster for anyone who cannot see it, and is the text that
+          appears over it on hover. */}
+      {isCreative && (
+        <label className="label">
+          Alt
+          <input
+            name="posterAlt"
+            className="field"
+            placeholder="Shown over the poster on hover"
+            defaultValue={entry.posterAlt ?? ""}
+          />
+        </label>
+      )}
+
       {isCurrent && (
         <div className="label">
           Media
