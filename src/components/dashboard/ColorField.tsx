@@ -11,12 +11,15 @@ import { normalizeHex } from "@/lib/wish";
  * - The swatch opens a picker (react-colorful) in the dashboard's popup style.
  * - The hex can be typed; it applies as soon as it is six digits, and clearing
  *   it hands the colour back to whatever is automatic (`onChange("")`).
- * - The eyedropper is the browser's own EyeDropper: the cursor becomes a loupe
- *   that previews the colour under it anywhere on the screen, and a click
- *   picks it. That native tool is the only way a page may read colours off
- *   the screen, so it is also why the value updates on the click rather than
- *   continuously while hovering. Browsers without it (Firefox and Safari, as
- *   of writing) do not show the button.
+ * - The eyedropper uses the browser's own EyeDropper where there is one
+ *   (Chrome, Edge): the cursor becomes a loupe that previews the colour under
+ *   it anywhere on the screen, and a click picks it.
+ *
+ * Firefox, and forks of it such as Waterfox, have no EyeDropper, and no page can
+ * read colours off the screen there. For those the parent can pass
+ * `onEyedrop`, a picker of its own (the wishlist editor picks from the product
+ * image); without one, the button opens the colour picker instead. Either way
+ * the button is always there.
  */
 
 type EyeDropperResult = { sRGBHex: string };
@@ -27,11 +30,20 @@ const noSubscribe = () => () => {};
 export default function ColorField({
   value,
   onChange,
+  onEyedrop,
+  eyedropping = false,
+  eyedropLabel = "Pick a colour",
   placeholder = "auto",
 }: {
   /** "#rrggbb", or "" for none. */
   value: string;
   onChange: (hex: string) => void;
+  /** The eyedropper to use where the browser has none of its own. */
+  onEyedrop?: () => void;
+  /** Whether that eyedropper is currently picking, to light the button. */
+  eyedropping?: boolean;
+  /** What that eyedropper does, for its tooltip. */
+  eyedropLabel?: string;
   placeholder?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -47,8 +59,8 @@ export default function ColorField({
     if (!editing) setDraft(value.replace("#", ""));
   }
 
-  // Known only in the browser; false while rendering on the server, so the
-  // button appears after hydration instead of causing a mismatch.
+  // Known only in the browser; false while rendering on the server, and
+  // settled after hydration without a mismatch.
   const canEyedrop = useSyncExternalStore(
     noSubscribe,
     () => "EyeDropper" in window,
@@ -74,7 +86,12 @@ export default function ColorField({
 
   const eyedrop = async () => {
     const Dropper = (window as unknown as { EyeDropper?: EyeDropperConstructor }).EyeDropper;
-    if (!Dropper) return;
+    if (!Dropper) {
+      setOpen(false);
+      if (onEyedrop) onEyedrop();
+      else setOpen(true);
+      return;
+    }
     setOpen(false);
     setPicking(true);
     try {
@@ -87,6 +104,12 @@ export default function ColorField({
       setPicking(false);
     }
   };
+
+  const tooltip = canEyedrop
+    ? "Eyedropper"
+    : onEyedrop
+      ? eyedropLabel
+      : "This browser has no eyedropper. Opens the colour picker instead.";
 
   return (
     <div ref={root} className="relative flex items-center gap-1.5">
@@ -131,19 +154,20 @@ export default function ColorField({
         }}
       />
 
-      {canEyedrop && (
-        <button
-          type="button"
-          onClick={eyedrop}
-          aria-label="Pick a colour from the screen"
-          title="Eyedropper"
-          className={`ml-auto flex transition-colors hover:text-accent ${
-            picking ? "text-accent" : "text-foreground/50"
-          }`}
-        >
-          <Icon name="material-symbols:colorize-outline-rounded" size="1.15em" />
-        </button>
-      )}
+      {/* Always here. shrink-0 so a narrow column squeezes the hex box, never
+          this. */}
+      <button
+        type="button"
+        onClick={eyedrop}
+        aria-label={tooltip}
+        aria-pressed={picking || eyedropping}
+        title={tooltip}
+        className={`ml-auto flex shrink-0 transition-colors hover:text-accent ${
+          picking || eyedropping ? "text-accent" : "text-foreground/50"
+        }`}
+      >
+        <Icon name="material-symbols:colorize-outline-rounded" size="1.15em" />
+      </button>
 
       {open && (
         <div className="color-popover select-list absolute top-full right-0 z-20 mt-2 rounded-[2px] bg-[#242424] p-2 shadow-lg shadow-black/40">
