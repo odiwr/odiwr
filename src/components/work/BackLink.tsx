@@ -15,7 +15,7 @@ import { HOME_HREF } from "@/lib/site";
  * timeout fallback for the case where the browser simply refuses. The element
  * stays a real href, so middle-click and "open in new tab" still behave.
  */
-export default function BackLink() {
+export default function BackLink({ label = "Back" }: { label?: string }) {
   const onClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
     // Let the browser handle modified clicks — those mean "somewhere else".
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
@@ -42,7 +42,7 @@ export default function BackLink() {
       className="inline-flex items-center gap-1.5 text-foreground/50 transition-colors hover:text-accent"
     >
       <Icon name="material-symbols:arrow-left-alt-rounded" />
-      Back
+      {label}
     </a>
   );
 }

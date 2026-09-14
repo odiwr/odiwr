@@ -11,6 +11,9 @@ import { getContent, sectionWork, type Section } from "@/lib/content";
  *
  * Only entries with a slug appear: most work links straight out to GitHub or
  * YouTube, and those are not ours to list.
+ *
+ * The wishlist is deliberately absent. It is unlisted, and a sitemap is a list
+ * handed to search engines.
  */
 
 const ORIGINS: Record<string, { origin: string; section: Section }> = {

@@ -41,6 +41,11 @@ export type Work = {
   pinned?: boolean;
   /** Creative only: the animated poster for the mosaic. */
   poster?: string;
+  /**
+   * Creative only: the poster's alt text. Also shown over the poster on hover,
+   * with the outward arrow when the entry links somewhere.
+   */
+  posterAlt?: string;
   /** The clip on the write-up page. May carry audio, so never autoplayed. */
   media?: string;
   /** Custom link-preview image, 1200x630. */
@@ -61,15 +66,57 @@ export type Post = {
   paragraphs: string[];
 };
 
+/** Something on wishlist.odiwr.com. */
+export type WishItem = {
+  id: string;
+  title: string;
+  href: string;
+  category: string;
+  /** Pulled from the linked page's own preview tags. */
+  image?: string;
+  /** A direct image link, shown instead of the pulled one. */
+  imageOverride?: string;
+  /** The shop's own name for itself ("Best Buy"), when the page declares one. */
+  site?: string;
+  /**
+   * The colour the pulled image sits on ("#ffffff"), worked out from its edges
+   * (lib/image-background.ts). Paints the tile behind it. Not used with an
+   * override, which is whatever image was chosen by hand.
+   */
+  imageBg?: string;
+  /**
+   * True when imageBg was chosen by hand (typed, picked, or eyedropped) rather
+   * than worked out. A chosen colour is kept when the link is re-pulled and
+   * applies even behind an override image.
+   */
+  imageBgCustom?: boolean;
+  /** How big the picture sits in its tile, in percent: 50 to 150. Absent is 100. */
+  imageScale?: number;
+  /** A short line under the title, if it needs one. */
+  note?: string;
+};
+
 export type Content = {
   work: Work[];
   /** The one on the site now. */
   post: Post | null;
   /** Everything retired, newest first. */
   archive: Post[];
+  wishlist: WishItem[];
+  /**
+   * Categories in the order they are listed. Kept apart from the items so a
+   * category made in the dropdown exists before anything is filed under it.
+   */
+  wishCategories: string[];
 };
 
-export const EMPTY_CONTENT: Content = { work: [], post: null, archive: [] };
+export const EMPTY_CONTENT: Content = {
+  work: [],
+  post: null,
+  archive: [],
+  wishlist: [],
+  wishCategories: [],
+};
 
 const KEY = "site/content.json";
 /**
@@ -90,32 +137,74 @@ export function invalidateContent(): void {
 function normalise(raw: unknown): Content {
   const doc = (raw ?? {}) as Partial<Content> & { posts?: Post[] };
 
+  const wishlist = Array.isArray(doc.wishlist) ? doc.wishlist : [];
+  const wishCategories = Array.isArray(doc.wishCategories) ? doc.wishCategories : [];
+
   // Documents written before the blog became one-live-post carried a `posts`
   // array. Newest becomes the live one, the rest become the archive.
   if (!doc.post && Array.isArray(doc.posts) && doc.posts.length) {
     const sorted = [...doc.posts].sort((a, b) => b.date.localeCompare(a.date));
-    return { work: Array.isArray(doc.work) ? doc.work : [], post: sorted[0], archive: sorted.slice(1) };
+    return {
+      work: Array.isArray(doc.work) ? doc.work : [],
+      post: sorted[0],
+      archive: sorted.slice(1),
+      wishlist,
+      wishCategories,
+    };
   }
 
   return {
     // Before there were two, `description` WAS the short line, so an entry
     // carrying one and no blurb means the old shape: move it across rather than
     // leaving the listing blank and the page showing a one-liner.
-    work: (Array.isArray(doc.work) ? doc.work : []).map((w) =>
-      w.blurb === undefined && w.description !== undefined
-        ? { ...w, blurb: w.description, description: undefined }
-        : w
-    ),
+    work: (Array.isArray(doc.work) ? doc.work : []).map((w) => {
+      const entry =
+        w.blurb === undefined && w.description !== undefined
+          ? { ...w, blurb: w.description, description: undefined }
+          : w;
+      // Current work always opens its own page here. An entry saved before
+      // that was enforced, with no slug, gets its title's.
+      return entry.section === "current" && !entry.slug && entry.title
+        ? { ...entry, slug: slugify(entry.title) }
+        : entry;
+    }),
     post: doc.post ?? null,
     archive: Array.isArray(doc.archive) ? doc.archive : [],
+    wishlist,
+    wishCategories,
   };
 }
 
-export async function getContent(): Promise<Content> {
-  if (cache && Date.now() - cache.at < TTL_MS) return cache.data;
-  if (!r2Configured()) return EMPTY_CONTENT;
+/**
+ * Where content lives on a dev server that has no R2 keys.
+ *
+ * Without this the dashboard can be signed into locally but every save fails,
+ * so nothing in it can be tried. A file in the project, gitignored, is enough
+ * for one person testing. Production never uses it: there, missing keys are an
+ * error on save, as they should be.
+ */
+const LOCAL_FILE = ".local/content.json";
 
-  const body = await getText(KEY);
+function storesLocally(): boolean {
+  return process.env.NODE_ENV === "development" && !r2Configured();
+}
+
+async function readLocal(): Promise<string | null> {
+  const { readFile } = await import("node:fs/promises");
+  return readFile(LOCAL_FILE, "utf8").catch(() => null);
+}
+
+async function writeLocal(body: string): Promise<void> {
+  const { mkdir, writeFile } = await import("node:fs/promises");
+  const { dirname } = await import("node:path");
+  await mkdir(dirname(LOCAL_FILE), { recursive: true });
+  await writeFile(LOCAL_FILE, body);
+}
+
+async function readContent(): Promise<Content> {
+  if (!r2Configured() && !storesLocally()) return EMPTY_CONTENT;
+
+  const body = storesLocally() ? await readLocal() : await getText(KEY);
   // No document yet is the normal state of a new bucket, not an error.
   let data = EMPTY_CONTENT;
   if (body) {
@@ -132,8 +221,37 @@ export async function getContent(): Promise<Content> {
   return data;
 }
 
+export async function getContent(): Promise<Content> {
+  if (cache && Date.now() - cache.at < TTL_MS) return cache.data;
+  return readContent();
+}
+
+/**
+ * The document as it is in the bucket right now, never the cache.
+ *
+ * Every save rewrites the WHOLE document, so it has to start from the latest
+ * copy. The cache is per server instance: on a host running several, a save
+ * built from one instance's fifteen-second-old copy quietly undoes whatever
+ * another instance wrote in that window — which is how adding a project used to
+ * put pins back the way they were.
+ */
+export async function getFreshContent(): Promise<Content> {
+  return readContent();
+}
+
 export async function saveContent(next: Content): Promise<void> {
-  await putText(KEY, JSON.stringify(next, null, 2), "application/json");
+  const body = JSON.stringify(next, null, 2);
+  if (storesLocally()) {
+    await writeLocal(body);
+  } else if (!r2Configured()) {
+    // The storage SDK's own message for this ("No value provided for input HTTP
+    // label: Bucket") says nothing about what to fix.
+    throw new Error(
+      "Storage is not configured. Set R2_ENDPOINT, R2_BUCKET, R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY."
+    );
+  } else {
+    await putText(KEY, body, "application/json");
+  }
   cache = { at: Date.now(), data: next };
 }
 
@@ -157,6 +275,21 @@ export function findWork(content: Content, slug: string): Work | undefined {
 /** The live post first, then the archive. What the feed lists. */
 export function allPosts(content: Content): Post[] {
   return [...(content.post ? [content.post] : []), ...content.archive];
+}
+
+/**
+ * The wishlist grouped by category, in the saved category order.
+ *
+ * A category an item names but the list does not (hand-edited document, say)
+ * still gets a group, at the end, rather than its items vanishing.
+ */
+export function wishGroups(content: Content): { category: string; items: WishItem[] }[] {
+  const order = [...content.wishCategories];
+  for (const item of content.wishlist) if (!order.includes(item.category)) order.push(item.category);
+  return order.map((category) => ({
+    category,
+    items: content.wishlist.filter((i) => i.category === category),
+  }));
 }
 
 /** Where an entry points, whether it lives here or somewhere else. */

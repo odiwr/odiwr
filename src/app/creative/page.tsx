@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import SectionHeader from "@/components/work/SectionHeader";
+import CursorCaption from "@/components/work/CursorCaption";
 import { SITE } from "@/lib/site";
 import { getContent, isExternal, sectionWork, workHref, type Work } from "@/lib/content";
 import { mosaic, CREATIVE_ASPECT, CREATIVE_SEED } from "@/lib/mosaic";
@@ -16,6 +17,9 @@ import { mosaic, CREATIVE_ASPECT, CREATIVE_SEED } from "@/lib/mosaic";
  * layout is cut for however many real posters there are, so the ratios come from
  * a seeded algorithm (src/lib/mosaic.ts) that the dashboard can run too — that
  * is how it quotes the exact aspect ratio a new poster must be cut to.
+ *
+ * Each poster's alt text follows the cursor in a small box while hovering it
+ * (CursorCaption), with the outward arrow when the poster links somewhere.
  */
 
 /** Floating-point slack when asking whether a tile touches an edge. */
@@ -44,7 +48,7 @@ export default async function CreativePage() {
           {posters.length === 0 ? (
             <p className="text-foreground/50">Nothing here yet.</p>
           ) : (
-            <div className="mosaic">
+            <CursorCaption className="mosaic">
               {posters.map((item: Work, i: number) => {
                 const tile = tiles[i];
                 const isVideo = /\.(mp4|webm)$/i.test(item.poster!);
@@ -59,6 +63,8 @@ export default async function CreativePage() {
                     aria-label={
                       item.blurb ? `${item.title} — ${item.blurb}` : item.title
                     }
+                    data-caption={item.posterAlt || undefined}
+                    data-linked={item.href ? "" : undefined}
                     className="mosaic-tile"
                     style={{
                       left: `${tile.x * 100}%`,
@@ -78,18 +84,25 @@ export default async function CreativePage() {
                       {isVideo ? (
                         // Muted always, and playsInline so iOS does not take it
                         // fullscreen the moment it starts.
-                        <video src={item.poster} autoPlay muted loop playsInline />
+                        <video
+                          src={item.poster}
+                          autoPlay
+                          muted
+                          loop
+                          playsInline
+                          aria-label={item.posterAlt}
+                        />
                       ) : (
                         // Deliberately not next/image: these are animated GIFs,
                         // and the optimiser flattens them to a still.
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={item.poster} alt="" loading="lazy" />
+                        <img src={item.poster} alt={item.posterAlt ?? ""} loading="lazy" />
                       )}
                     </span>
                   </a>
                 );
               })}
-            </div>
+            </CursorCaption>
           )}
         </article>
 

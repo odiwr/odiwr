@@ -24,9 +24,11 @@ export const SITE = {
    */
   url: (process.env.NEXT_PUBLIC_SITE_URL ?? "https://odiwr.com").replace(/\/$/, ""),
 
-  /** The two subdomains linked from the home page. */
+  /** The subdomains linked from the home page. */
   projectsUrl: "https://projects.odiwr.com",
   creativeUrl: "https://creative.odiwr.com",
+  /** Unlisted: not linked anywhere public, not in any sitemap, and noindex. */
+  wishlistUrl: "https://wishlist.odiwr.com",
 
   /**
    * The meta description, the Open Graph description and the X card
@@ -71,7 +73,7 @@ export const PROFILE_URLS = SITE.profiles
   .filter((href) => !href.startsWith("mailto:"));
 
 /**
- * Where the two subdomain links actually point.
+ * Where the subdomain links actually point.
  *
  * The real hosts in production; in development the paths proxy.ts rewrites them
  * to, so they can be opened without DNS pointing anywhere yet. The label shown
@@ -80,6 +82,7 @@ export const PROFILE_URLS = SITE.profiles
 export const SUBDOMAIN_LINKS = {
   projects: process.env.NODE_ENV === "production" ? SITE.projectsUrl : "/projects",
   creative: process.env.NODE_ENV === "production" ? SITE.creativeUrl : "/creative",
+  wishlist: process.env.NODE_ENV === "production" ? SITE.wishlistUrl : "/wishlist",
 };
 
 /** Profile URLs by label, for anything that needs one by name. */

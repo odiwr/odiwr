@@ -9,10 +9,11 @@ Personal site, plus a dashboard that edits it.
 | `odiwr.com` | the landing page, work write-ups at `/[slug]`, `/dashboard` |
 | `projects.odiwr.com` | the projects listing |
 | `creative.odiwr.com` | the creative mosaic |
+| `wishlist.odiwr.com` | the wishlist — unlisted: not linked, not in a sitemap, noindex |
 
-Both subdomains are this same app: `src/proxy.ts` rewrites their root onto
-`/projects` and `/creative`, and gives each host its own `robots.txt` and
-`sitemap.xml`. DNS has to point them here.
+Every subdomain is this same app: `src/proxy.ts` rewrites their root onto
+`/projects`, `/creative` and `/wishlist`, and gives each host its own
+`robots.txt` and `sitemap.xml`. DNS has to point them here.
 
 ## Content
 
@@ -40,6 +41,7 @@ ADMIN_EMAILS                   # comma separated allow-list
 GOOGLE_CLIENT_ID               # OAuth client for the dashboard sign-in
 GOOGLE_CLIENT_SECRET
 GOOGLE_SITE_VERIFICATION       # optional; Search Console meta tag
+NEXT_PUBLIC_GA_MEASUREMENT_ID  # GA4 web stream "G-…" id; without it no visits are recorded
 GA_PROPERTY_ID                 # GA4 numeric property id
 GOOGLE_SERVICE_ACCOUNT_EMAIL   # read-only access to that property
 GOOGLE_SERVICE_ACCOUNT_KEY

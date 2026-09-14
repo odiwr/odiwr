@@ -11,6 +11,8 @@ import { PROFILE } from "./site";
  * listings, which stay honest and say there is nothing there.
  *
  * The links are profiles already declared in site.ts rather than invented URLs.
+ * CURRENT filler has a slug, like real current work: it opens its own page in
+ * the same tab, so an empty site behaves the way a filled one will.
  */
 const FILLER: Record<Section, Work[]> = {
   current: [
@@ -19,6 +21,7 @@ const FILLER: Record<Section, Work[]> = {
       section: "current",
       title: "work1",
       blurb: "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+      slug: "work1",
       href: PROFILE.GitHub,
       stack: ["cpp", "arduino"],
     },
@@ -89,4 +92,15 @@ export function columnsFor(content: Content) {
       items: pinned.length ? pinned : real.length ? [] : FILLER[section],
     };
   });
+}
+
+/**
+ * The filler entry behind a slug — only while its section is still showing
+ * filler, so its page stops existing at the same moment its link does.
+ */
+export function fillerWork(content: Content, slug: string): Work | undefined {
+  return (Object.keys(FILLER) as Section[])
+    .filter((section) => sectionWork(content, section).length === 0)
+    .flatMap((section) => FILLER[section])
+    .find((w) => w.slug === slug);
 }

@@ -22,23 +22,31 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import Icon from "@/components/icons";
 import type { Section, Work } from "@/lib/content";
-import { reorderWork, togglePin } from "@/app/dashboard/(app)/actions";
+import { reorderWork } from "@/app/dashboard/(app)/actions";
 
 /**
  * One section of the work list: drag to reorder, hover to pin.
  *
- * Order and pin state are applied locally straight away — a drag that waited for
- * a round trip before moving the row would feel broken — and the server action
- * runs behind it. When that lands, the page is refreshed so what you see is what
- * was actually written, not just what was optimistically assumed.
+ * A drag is saved straight away — order is applied locally first, since a row
+ * that waited for a round trip before moving would feel broken. Pins are NOT
+ * saved here: clicking one only marks it, and WorkBoard's Save button writes
+ * every marked change at once. That is why pin state comes in as a prop rather
+ * than living in this list.
  *
  * The local copy also has to follow the server's. useState only reads its
  * argument once, so without the sync below a refresh would fetch new data and
- * the list would keep showing the stale copy, which is what made pinning look
- * like it forgot things.
+ * the list would keep showing the stale copy.
  */
 
-function Row({ item, onPin }: { item: Work; onPin: (id: string) => void }) {
+function Row({
+  item,
+  pinned,
+  onPin,
+}: {
+  item: Work;
+  pinned: boolean;
+  onPin: (id: string) => void;
+}) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
   });
@@ -69,18 +77,18 @@ function Row({ item, onPin }: { item: Work; onPin: (id: string) => void }) {
       <button
         type="button"
         onClick={() => onPin(item.id)}
-        aria-pressed={Boolean(item.pinned)}
-        aria-label={item.pinned ? `Unpin ${item.title}` : `Pin ${item.title}`}
+        aria-pressed={pinned}
+        aria-label={pinned ? `Unpin ${item.title}` : `Pin ${item.title}`}
         // A pinned row keeps its mark on show; an unpinned one only offers it
         // when the pointer is on the row.
         className={`mr-auto flex transition-[color,opacity] ${
-          item.pinned
+          pinned
             ? "text-accent opacity-100"
             : "text-foreground/40 opacity-0 group-hover:opacity-100 hover:text-accent focus-visible:opacity-100"
         }`}
       >
         <Icon
-          name={item.pinned ? "material-symbols:keep" : "material-symbols:keep-outline"}
+          name={pinned ? "material-symbols:keep" : "material-symbols:keep-outline"}
           size="1.25em"
         />
       </button>
@@ -91,9 +99,13 @@ function Row({ item, onPin }: { item: Work; onPin: (id: string) => void }) {
 export default function WorkSection({
   section,
   items: initial,
+  isPinned,
+  onPin,
 }: {
   section: Section;
   items: Work[];
+  isPinned: (item: Work) => boolean;
+  onPin: (id: string) => void;
 }) {
   const [items, setItems] = useState(initial);
   const [pending, startTransition] = useTransition();
@@ -135,26 +147,24 @@ export default function WorkSection({
     });
   };
 
-  const pin = (id: string) => {
-    setItems((current) =>
-      current.map((i) => (i.id === id ? { ...i, pinned: !i.pinned } : i))
-    );
-    startTransition(async () => {
-      await togglePin(id);
-      router.refresh();
-    });
-  };
-
   if (items.length === 0) return <p className="text-foreground/30">Nothing yet.</p>;
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+    // A fixed id per section. Without one dnd-kit numbers its accessibility ids
+    // from a counter, which counts differently on the server and in the
+    // browser, and hydration reports the mismatch.
+    <DndContext
+      id={`work-${section}`}
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragEnd={onDragEnd}
+    >
       {/* Dim while the write is in flight, so a save is visible rather than
           silent. */}
       <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
         <ul className={`flex flex-col transition-opacity ${pending ? "opacity-60" : ""}`}>
           {items.map((item) => (
-            <Row key={item.id} item={item} onPin={pin} />
+            <Row key={item.id} item={item} pinned={isPinned(item)} onPin={onPin} />
           ))}
         </ul>
       </SortableContext>
