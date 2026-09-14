@@ -1176,6 +1176,132 @@ textarea.field.blurb {
   box-shadow: 0 1px 4px rgb(0 0 0 / 0.4);
 }
 
+/**
+ * The 404 vine. Geometry and per-piece delays come from lib/vine.ts.
+ *
+ * Stems are drawn with the dash trick: every path has pathLength="1", so a dash
+ * of 1 offset by 1 is fully hidden and an offset of 0 fully drawn. Opacity is
+ * held at 0 until the drawing starts, or the round cap would show as a dot at
+ * the root while it waits.
+ *
+ * Leaves and flowers scale up from their own base. transform-box: view-box with
+ * an origin of 0 0 is the origin of each one's own translated group, which is
+ * exactly where it joins the stem.
+ */
+.vine {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+/* Solid, not translucent: the vine passes behind these, and a see-through
+   stroke would show it through. A shade up from the page, so it still reads as
+   quiet. */
+.vine-digits path {
+  fill: none;
+  stroke: #2c2c2c;
+  stroke-width: 16;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@keyframes vine-draw {
+  from {
+    stroke-dashoffset: 1;
+    opacity: 0;
+  }
+  1% {
+    opacity: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+.vine-stem,
+.vine-branch {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  animation: vine-draw var(--dur, 800ms) linear var(--delay, 0s) both;
+}
+
+/* Widths come from the geometry: the stem, then thinner branches, then twigs. */
+.vine-stem,
+.vine-branch {
+  stroke-width: var(--w, 1.6);
+}
+
+.vine-branch {
+  animation-timing-function: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+@keyframes vine-pop {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes vine-open {
+  from {
+    transform: scale(0) rotate(-70deg);
+  }
+  to {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes vine-sway {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(7deg);
+  }
+}
+
+.vine-leaf,
+.vine-bloom,
+.vine-sway {
+  transform-box: view-box;
+  transform-origin: 0 0;
+}
+
+/* Slight overshoot, so things spring open rather than slide. */
+.vine-leaf {
+  animation: vine-pop 500ms cubic-bezier(0.34, 1.56, 0.64, 1) var(--delay, 0s) both;
+}
+
+.vine-bloom {
+  animation: vine-open 700ms cubic-bezier(0.34, 1.56, 0.64, 1) var(--delay, 0s) both;
+}
+
+.vine-bloom-big {
+  animation-duration: 1100ms;
+}
+
+/* On its own group, so the sway never fights the bloom's transform. */
+.vine-sway {
+  animation: vine-sway 5s ease-in-out var(--delay, 0s) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vine-stem,
+  .vine-branch,
+  .vine-leaf,
+  .vine-bloom,
+  .vine-sway {
+    animation: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .cursor-caption,
   .select-list {
