@@ -35,7 +35,8 @@ const LINK =
 const DESTINATIONS = [
   { label: "projects.odiwr.com", href: SUBDOMAIN_LINKS.projects },
   { label: "creative.odiwr.com", href: SUBDOMAIN_LINKS.creative },
-  // wishlist.odiwr.com is left off on purpose: it is only for people given the link.
+  // Barely there: findable by someone looking, not an invitation.
+  { label: "wishlist.odiwr.com", href: SUBDOMAIN_LINKS.wishlist, muted: true },
 ];
 
 /**
@@ -99,7 +100,9 @@ export default async function Home() {
               <li key={d.href} className="pl-4">
                 <a
                   href={d.href}
-                  className="inline-flex items-center gap-1.5 text-foreground/80 transition-colors hover:text-accent"
+                  className={`inline-flex items-center gap-1.5 transition-colors hover:text-accent ${
+                    d.muted ? "text-foreground/15" : "text-foreground/80"
+                  }`}
                 >
                   <Icon name="material-symbols:arrow-right-alt-rounded" />
                   {d.label}

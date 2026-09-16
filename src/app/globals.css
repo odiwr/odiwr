@@ -362,10 +362,15 @@ body {
  * Served from the existing Cloudflare bucket. If they ever fail to load the
  * comma-separated keyword after each URL is what the browser falls back to, so
  * the worst case is the system cursor rather than no cursor.
+ *
+ * The two numbers are the hotspot: the pixel that actually clicks. They are the
+ * tip of each drawing, read off the images themselves (both are 32x32 with
+ * transparent margins) — at 0 0 and 8 4 every click landed a few pixels up and
+ * left of where the cursor appeared to point.
  */
 :root {
-  --cur-default: url("https://media.odiwr.com/brand/cursors/default.png") 0 0;
-  --cur-pointer: url("https://media.odiwr.com/brand/cursors/pointer.png") 8 4;
+  --cur-default: url("https://media.odiwr.com/brand/cursors/default.png") 6 4;
+  --cur-pointer: url("https://media.odiwr.com/brand/cursors/pointer.png") 12 4;
 }
 
 body {
@@ -874,6 +879,87 @@ textarea.field.blurb {
   object-position: center;
 }
 
+/* A hand-made gradient's stops on the editor's picture: a dot in the stop's
+   colour, ringed so it shows on any background, dragged to move it. The
+   selected one is larger, with an orange ring. */
+.gradient-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.gradient-layer > .gradient-dot {
+  pointer-events: auto;
+}
+
+.gradient-dot {
+  position: absolute;
+  z-index: 1;
+  width: 12px;
+  height: 12px;
+  translate: -50% -50%;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 1.5px #fff,
+    0 0 0 2.5px rgb(0 0 0 / 0.45);
+  cursor: grab;
+  touch-action: none;
+  transition:
+    width 120ms ease,
+    height 120ms ease;
+}
+
+.gradient-dot:active {
+  cursor: grabbing;
+}
+
+.gradient-dot[data-selected] {
+  width: 14px;
+  height: 14px;
+  box-shadow:
+    0 0 0 2px var(--color-accent),
+    0 0 0 3px rgb(0 0 0 / 0.45);
+}
+
+/* Under the colour field: a swatch per stop, then + and ×. */
+.gradient-stops {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 18px;
+}
+
+.gradient-stop {
+  width: 18px;
+  height: 18px;
+  border: 0;
+  padding: 0;
+  border-radius: 5px;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-foreground) 22%, transparent);
+  outline: 1px solid transparent;
+  outline-offset: 2px;
+  transition: outline-color 150ms ease;
+}
+
+.gradient-stop[aria-pressed="true"] {
+  outline-color: var(--color-accent);
+}
+
+.gradient-action {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  color: color-mix(in srgb, var(--color-foreground) 50%, transparent);
+  transition: color 150ms ease;
+}
+
+.gradient-action:hover {
+  color: var(--color-accent);
+}
+
 /* The dashboard's picture eyedropper, for browsers with no screen eyedropper.
    A plain crosshair rather than the site's cursor, so the exact pixel being
    picked is obvious. */
@@ -891,6 +977,194 @@ textarea.field.blurb {
   font-size: 2.5em;
   text-transform: lowercase;
   color: color-mix(in srgb, var(--color-foreground) 20%, transparent);
+}
+
+/**
+ * The wishlist's intro and its filters, sharing one slot.
+ *
+ * Opening Filter dissolves the intro and brings the filters up in the same
+ * place; the slot's height (driven from Wishlist.tsx) slides everything below
+ * to make room. The intro stays in flow so the slot has its height before any
+ * script runs; the panel sits over it.
+ */
+.wish-swap {
+  position: relative;
+  overflow: clip;
+  overflow-clip-margin: 6px;
+  transition: height 440ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.wish-swap-intro {
+  transition:
+    opacity 320ms ease,
+    filter 320ms ease;
+}
+
+.wish-swap[data-open="true"] .wish-swap-intro {
+  opacity: 0;
+  filter: blur(6px);
+  transition-duration: 240ms;
+}
+
+.wish-swap-panel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.wish-swap[data-open="true"] .wish-swap-panel {
+  pointer-events: auto;
+}
+
+/**
+ * Each row dissolves in on its own beat, once the intro has mostly gone.
+ *
+ * Opacity and blur only, never movement, and every row is done by the time the
+ * slot's height lands (440ms). A row still sliding after the list below had
+ * stopped read as the panel nudging itself into place.
+ */
+.wish-filter-row {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 16px;
+  opacity: 0;
+  filter: blur(4px);
+  transition:
+    opacity 200ms ease,
+    filter 200ms ease;
+}
+
+.wish-swap[data-open="true"] .wish-filter-row {
+  opacity: 1;
+  filter: none;
+  transition-duration: 280ms;
+}
+
+.wish-swap[data-open="true"] .wish-filter-row:nth-child(1) {
+  transition-delay: 100ms;
+}
+.wish-swap[data-open="true"] .wish-filter-row:nth-child(2) {
+  transition-delay: 125ms;
+}
+.wish-swap[data-open="true"] .wish-filter-row:nth-child(3) {
+  transition-delay: 150ms;
+}
+.wish-swap[data-open="true"] .wish-filter-row:nth-child(4) {
+  transition-delay: 175ms;
+}
+
+@media (max-width: 639px) {
+  .wish-filter-row {
+    grid-template-columns: 80px minmax(0, 1fr);
+    gap: 12px;
+  }
+}
+
+/**
+ * The list under the filters, changing.
+ *
+ * Tiles and headings that stay glide to their new places, what leaves dissolves
+ * where it was, and what arrives fades in — all played from Wishlist.tsx. This
+ * box just slides its height to fit, and is what the leaving copies are
+ * positioned against.
+ */
+.wish-results {
+  position: relative;
+  transition: height 440ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* A filter option: quiet until chosen, then full white with the same hairline
+   underline every link on the site uses. */
+.wish-chip {
+  color: color-mix(in srgb, var(--color-foreground) 50%, transparent);
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2.5px;
+  text-decoration-color: transparent;
+  transition:
+    color 150ms ease,
+    text-decoration-color 150ms ease;
+}
+
+.wish-chip:hover {
+  color: var(--color-accent);
+}
+
+.wish-chip[aria-pressed="true"] {
+  color: var(--color-foreground);
+  text-decoration-color: color-mix(in srgb, var(--color-foreground) 30%, transparent);
+}
+
+.wish-chip[aria-pressed="true"]:hover {
+  color: var(--color-accent);
+  text-decoration-color: var(--color-accent);
+}
+
+/* The price, in the picture's top right corner. A dark chip rather than bare
+   text, since the picture behind it is as often white as not. */
+.wish-price {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 0 7px;
+  border-radius: 2px;
+  background: rgb(20 20 20 / 0.85);
+  color: #fff;
+  line-height: 24px;
+  pointer-events: none;
+}
+
+/* Bought, and shown because someone asked to see those: the picture steps back. */
+.wish-tile[data-purchased] .wish-image {
+  opacity: 0.35;
+}
+
+/**
+ * The Filter icon's loop: its three bars narrow and widen in turn, top to
+ * bottom, then rest before going again.
+ */
+@keyframes filter-sift {
+  0%,
+  46%,
+  100% {
+    transform: scaleX(1);
+  }
+  18% {
+    transform: scaleX(0.45);
+  }
+}
+
+.filter-glyph rect {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: filter-sift 2.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+.filter-glyph rect:nth-child(2) {
+  animation-delay: 140ms;
+}
+
+.filter-glyph rect:nth-child(3) {
+  animation-delay: 280ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .filter-glyph rect {
+    animation: none;
+  }
+
+  .wish-swap,
+  .wish-swap-intro,
+  .wish-filter-row,
+  .wish-results {
+    transition-duration: 1ms !important;
+    transition-delay: 0ms !important;
+  }
 }
 
 /**
@@ -945,6 +1219,91 @@ textarea.field.blurb {
   .save-float.is-leaving {
     animation-duration: 1ms;
   }
+}
+
+/**
+ * The dashboard's checkbox.
+ *
+ * The same filled block as a field, filling orange with a dark tick when on.
+ * The native input stays in the page, invisible but focusable, so keyboard and
+ * form behaviour are the browser's own.
+ */
+.check {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-foreground);
+  cursor: var(--cur-pointer), pointer;
+  user-select: none;
+}
+
+.check > input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+.check-box {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: 2px;
+  background: #242424;
+  color: var(--color-background);
+  outline: 1px solid transparent;
+  outline-offset: 2px;
+  transition:
+    background-color 150ms ease,
+    outline-color 150ms ease;
+}
+
+.check-box svg {
+  opacity: 0;
+  scale: 0.6;
+  transition:
+    opacity 150ms ease,
+    scale 200ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.check:hover .check-box {
+  background: #2e2e2e;
+}
+
+.check > input:checked + .check-box {
+  background: var(--color-accent);
+}
+
+.check > input:checked + .check-box svg {
+  opacity: 1;
+  scale: 1;
+}
+
+.check > input:focus-visible + .check-box {
+  outline-color: var(--color-accent);
+}
+
+/* A dollar sign sitting inside the price field. */
+.price-field {
+  position: relative;
+  display: block;
+}
+
+.price-field::before {
+  content: "$";
+  position: absolute;
+  left: 10px;
+  top: 8px;
+  color: color-mix(in srgb, var(--color-foreground) 40%, transparent);
+  pointer-events: none;
+}
+
+.price-field > .field {
+  padding-left: 22px;
 }
 
 /* Thumbnails in the dashboard's wishlist list. */
@@ -1140,7 +1499,8 @@ textarea.field.blurb {
 }
 
 .color-hex {
-  width: 6.5ch;
+  /* Wide enough for "gradient" as well as six hex digits. */
+  width: 8ch;
   min-width: 0;
   padding: 0 0 1px;
   border: 0;
@@ -1159,6 +1519,34 @@ textarea.field.blurb {
 }
 
 .color-hex:focus {
+  border-bottom-color: var(--color-accent);
+}
+
+/* The shop name under the colour, as an inline field in the same underline
+   style: the pulled name shows as the placeholder until one is typed. */
+.site-name {
+  width: 100%;
+  min-width: 0;
+  padding: 0 0 1px;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  color: var(--color-foreground);
+  font: inherit;
+  outline: none;
+  text-overflow: ellipsis;
+  transition: border-color 150ms ease;
+}
+
+.site-name::placeholder {
+  color: color-mix(in srgb, var(--color-foreground) 50%, transparent);
+}
+
+.site-name:hover {
+  border-bottom-color: color-mix(in srgb, var(--color-foreground) 15%, transparent);
+}
+
+.site-name:focus {
   border-bottom-color: var(--color-accent);
 }
 

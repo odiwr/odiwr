@@ -78,9 +78,13 @@ export type WishItem = {
   imageOverride?: string;
   /** The shop's own name for itself ("Best Buy"), when the page declares one. */
   site?: string;
+  /** True when `site` was typed in the dashboard rather than pulled. */
+  siteCustom?: boolean;
   /**
-   * The colour the pulled image sits on ("#ffffff"), worked out from its edges
-   * (lib/image-background.ts). Paints the tile behind it. Not used with an
+   * What the pulled image sits on, worked out from its edges
+   * (lib/image-background.ts) or set by hand: one colour ("#ffffff"), or a
+   * gradient of up to seven points (normalizeBackground in lib/wish.ts).
+   * Paints the tile behind it (backgroundStyle in lib/wish.ts). Not used with an
    * override, which is whatever image was chosen by hand.
    */
   imageBg?: string;
@@ -92,8 +96,12 @@ export type WishItem = {
   imageBgCustom?: boolean;
   /** How big the picture sits in its tile, in percent: 50 to 150. Absent is 100. */
   imageScale?: number;
-  /** A short line under the title, if it needs one. */
-  note?: string;
+  /** In dollars. Shown on the tile, and what the site's price sort uses. */
+  price?: number;
+  /** True when it has been bought. The site hides these unless asked to show them. */
+  purchased?: boolean;
+  /** True when it is kept off the site. Absent is shown, so every older item stays up. */
+  hidden?: boolean;
 };
 
 export type Content = {

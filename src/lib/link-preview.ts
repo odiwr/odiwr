@@ -1,16 +1,16 @@
 // SERVER-ONLY. Reads a page's own preview tags: the image and title a link
-// unfurls with.
+// unfurls with, and the price when the page states one.
 //
-// Reading stops at </head> when the head already named an image — that is where
-// the tags live, and some product pages run to megabytes past it. When it did
-// not (Amazon sets no og:image at all), the body is read too, up to a limit, for
-// the product image and structured data. Everything here degrades to "nothing
+// Reading stops at </head> when the head already named an image and a price —
+// that is where the tags live, and some product pages run to megabytes past it.
+// When it did not (Amazon sets neither), the body is read too, up to a limit,
+// for the product image, the price and structured data. Everything here degrades to "nothing
 // found" rather than throwing: a shop that blocks the request just means no
 // picture, and the image can always be set by hand.
 
 import { tidySiteName } from "./wish";
 
-export type LinkPreview = { title?: string; image?: string; site?: string };
+export type LinkPreview = { title?: string; image?: string; site?: string; price?: number };
 
 const TIMEOUT_MS = 8_000;
 const MAX_CHARS = 2_000_000;
@@ -32,6 +32,12 @@ const IMAGE_KEYS = [
   "image",
 ];
 const TITLE_KEYS = ["og:title", "twitter:title"];
+/** Price tags, with the currency tag that goes with each. */
+const PRICE_KEYS = [
+  ["product:price:amount", "product:price:currency"],
+  ["og:price:amount", "og:price:currency"],
+  ["price", "pricecurrency"],
+] as const;
 
 export async function linkPreview(href: string): Promise<LinkPreview> {
   try {
@@ -76,7 +82,7 @@ export async function linkPreview(href: string): Promise<LinkPreview> {
     // does not say, the name comes from its address instead (see lib/wish.ts).
     const site = tidySiteName(clean(tags.get("og:site_name") ?? tags.get("application-name")));
 
-    return { image: absolute(image, base), title: name, site };
+    return { image: absolute(image, base), title: name, site, price: pagePrice(html, tags) };
   } catch {
     return {};
   }
@@ -91,7 +97,10 @@ async function readPage(body: ReadableStream<Uint8Array>): Promise<string> {
     if (done) break;
     html += decoder.decode(value, { stream: true });
     const headEnd = html.search(/<\/head>/i);
-    if (headEnd >= 0 && IMAGE_KEYS.some((k) => metaTags(html.slice(0, headEnd)).has(k))) break;
+    if (headEnd >= 0) {
+      const head = metaTags(html.slice(0, headEnd));
+      if (IMAGE_KEYS.some((k) => head.has(k)) && PRICE_KEYS.some(([k]) => head.has(k))) break;
+    }
   }
   reader.cancel().catch(() => {});
   return html;
@@ -148,6 +157,92 @@ function jsonLdImage(html: string): string | undefined {
     }
   }
   return undefined;
+}
+
+/**
+ * The price, in US dollars, when the page states one. Anything priced in another
+ * currency is left blank rather than shown as dollars.
+ *
+ * Preview tags first (Shopify and most shops), then schema.org offers, then
+ * microdata on the page, then Amazon's own markup, which uses none of those.
+ */
+function pagePrice(html: string, tags: Map<string, string>): number | undefined {
+  // A page that names another currency in any of its tags is priced in that
+  // currency throughout, even where a later figure does not say so.
+  const declared = PRICE_KEYS.map(([, currencyKey]) => tags.get(currencyKey)).find(Boolean);
+  if (declared && declared.trim().toUpperCase() !== "USD") return undefined;
+
+  for (const [amountKey, currencyKey] of PRICE_KEYS) {
+    const price = dollars(tags.get(amountKey), tags.get(currencyKey));
+    if (price !== undefined) return price;
+  }
+
+  const fromJsonLd = jsonLdPrice(html);
+  if (fromJsonLd !== undefined) return fromJsonLd;
+
+  const microdata = html.match(/<[a-z]+\b[^>]*\bitemprop\s*=\s*["']price["'][^>]*>/i)?.[0];
+  if (microdata) {
+    const price = dollars(attr(microdata, "content"));
+    if (price !== undefined) return price;
+  }
+
+  // Amazon: the buy box's price, then the figure its scripts carry.
+  const core = html.match(/id\s*=\s*["']corePrice[\s\S]{0,4000}?class\s*=\s*["']a-offscreen["']\s*>\s*([^<]+)</i);
+  if (core) {
+    const price = dollars(core[1]);
+    if (price !== undefined) return price;
+  }
+  const amount = html.match(/"priceAmount"\s*:\s*([\d.]+)/);
+  return amount ? dollars(amount[1]) : undefined;
+}
+
+/** schema.org Offer / AggregateOffer price, wherever the Product sits. */
+function jsonLdPrice(html: string): number | undefined {
+  const fromOffer = (offer: unknown): number | undefined => {
+    if (Array.isArray(offer)) return offer.map(fromOffer).find((p) => p !== undefined);
+    if (!offer || typeof offer !== "object") return undefined;
+    const o = offer as Record<string, unknown>;
+    const currency = typeof o.priceCurrency === "string" ? o.priceCurrency : undefined;
+    const spec = o.priceSpecification as Record<string, unknown> | undefined;
+    return (
+      dollars(o.price, currency) ??
+      dollars(o.lowPrice, currency) ??
+      (spec ? dollars(spec.price, (spec.priceCurrency as string) ?? currency) : undefined) ??
+      fromOffer(o.offers)
+    );
+  };
+  const find = (node: unknown): number | undefined => {
+    if (Array.isArray(node)) return node.map(find).find((p) => p !== undefined);
+    if (!node || typeof node !== "object") return undefined;
+    const record = node as Record<string, unknown>;
+    return fromOffer(record.offers) ?? find(record["@graph"]) ?? find(record.hasVariant);
+  };
+
+  for (const [, json] of html.matchAll(
+    /<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
+  )) {
+    try {
+      const price = find(JSON.parse(json));
+      if (price !== undefined) return price;
+    } catch {
+      // Malformed JSON-LD is common; try the next block.
+    }
+  }
+  return undefined;
+}
+
+/**
+ * "18.99", 18.99, "$1,299.00" or "USD 18" -> a number; nothing for anything
+ * else, for zero, or for a currency that is not dollars.
+ */
+function dollars(value: unknown, currency?: string): number | undefined {
+  if (currency && currency.trim().toUpperCase() !== "USD") return undefined;
+  const text = typeof value === "number" ? String(value) : typeof value === "string" ? value : "";
+  if (!currency && /[€£¥₹]|\b(EUR|GBP|JPY|CAD|AUD|VND|INR)\b/i.test(text)) return undefined;
+  const digits = text.replace(/[^\d.,]/g, "").replace(/,(?=\d{3}\b)/g, "");
+  if (!/^\d+(\.\d+)?$/.test(digits)) return undefined;
+  const price = Math.round(Number(digits) * 100) / 100;
+  return price > 0 ? price : undefined;
 }
 
 function attr(tag: string, name: string): string | undefined {

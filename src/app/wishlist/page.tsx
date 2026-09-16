@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { SITE } from "@/lib/site";
 import { getContent, wishGroups } from "@/lib/content";
-import SectionHeader from "@/components/work/SectionHeader";
 import Wishlist from "@/components/wishlist/Wishlist";
 
 /**
@@ -23,7 +22,10 @@ export const metadata: Metadata = {
 
 export default async function WishlistPage() {
   const content = await getContent();
-  const groups = wishGroups(content).filter((g) => g.items.length);
+  // Items switched off in the dashboard never leave the server.
+  const groups = wishGroups(content)
+    .map((g) => ({ ...g, items: g.items.filter((i) => !i.hidden) }))
+    .filter((g) => g.items.length);
 
   return (
     <main className="page">
@@ -31,20 +33,17 @@ export default async function WishlistPage() {
         <div className="top-fade" aria-hidden="true" />
 
         <article className="prose enter">
-          {/* Someone given this link may never have seen the main site, so the
-              way out names where it goes. */}
-          <SectionHeader title="Wishlist" back="odiwr.com" />
-
-          <p className="text-foreground/80">
-            Hello, friends and/or curious devs! Welcome to my{" "}
-            <span className="font-cursive">literature</span>, tech, and apparel wishlist.
-          </p>
-
-          {groups.length === 0 ? (
-            <p className="text-foreground/50">Nothing here yet.</p>
-          ) : (
-            <Wishlist groups={groups} />
-          )}
+          {/* The header, the intro and the list. The intro is handed in because
+              opening Filter swaps it out for the filters. */}
+          <Wishlist
+            groups={groups}
+            intro={
+              <p className="text-foreground/80">
+                Hello, friends and/or curious devs! Welcome to my{" "}
+                <span className="font-cursive">literature</span>, tech, and apparel wishlist.
+              </p>
+            }
+          />
         </article>
 
         <aside className="side" aria-hidden="true" />
