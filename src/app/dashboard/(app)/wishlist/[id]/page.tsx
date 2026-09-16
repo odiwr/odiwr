@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import CategoryPicker from "@/components/dashboard/CategoryPicker";
+import Checkbox from "@/components/dashboard/Checkbox";
 import WishLinkFields from "@/components/dashboard/WishLinkFields";
 import { getContent, type WishItem } from "@/lib/content";
 import { saveWishItem, deleteWishItem } from "../../actions";
@@ -38,27 +39,29 @@ export default async function WishEditor({
         title={item.title ?? ""}
         image={item.image ?? ""}
         site={item.site ?? ""}
+        siteCustom={Boolean(item.siteCustom)}
         imageBg={item.imageBg ?? ""}
         imageBgCustom={Boolean(item.imageBgCustom)}
         imageScale={item.imageScale ?? 100}
         imageOverride={item.imageOverride ?? ""}
+        price={item.price !== undefined ? String(item.price) : ""}
+        category={
+          <div className="label">
+            Category
+            <CategoryPicker categories={categories} initial={item.category ?? ""} />
+          </div>
+        }
+        toggles={
+          <>
+            <Checkbox name="visible" label="Show on site" defaultChecked={!item.hidden} />
+            <Checkbox
+              name="purchased"
+              label="Purchased"
+              defaultChecked={Boolean(item.purchased)}
+            />
+          </>
+        }
       />
-
-      <div className="label">
-        Category
-        <CategoryPicker categories={categories} initial={item.category ?? ""} />
-      </div>
-
-      <label className="label">
-        Note
-        <textarea
-          name="note"
-          className="field blurb"
-          rows={2}
-          placeholder="Optional. Shown under the title instead of the shop's name."
-          defaultValue={item.note ?? ""}
-        />
-      </label>
 
       <div className="flex items-center gap-3">
         <button type="submit" className="btn btn-primary">

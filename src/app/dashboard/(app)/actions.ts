@@ -15,7 +15,7 @@ import {
 } from "@/lib/content";
 import { imageBackground } from "@/lib/image-background";
 import { linkPreview, type LinkPreview } from "@/lib/link-preview";
-import { hostOf, normalizeHex } from "@/lib/wish";
+import { hostOf, normalizeBackground } from "@/lib/wish";
 import { remove } from "@/lib/r2";
 import { isStack } from "@/lib/stack-index";
 
@@ -249,15 +249,18 @@ export async function saveWishItem(form: FormData) {
   let image = opt(str(form, "image"));
   let site = opt(str(form, "pulledSite"));
   let pulledTitle: string | undefined;
+  let pulledPrice: number | undefined;
   if (!image) {
     if (existing?.image && existing.href === href) {
       image = existing.image;
-      site = existing.site;
+      // A typed name is not what the page called itself; the form carries it.
+      site = existing.siteCustom ? undefined : existing.site;
     } else {
       const preview = await linkPreview(href);
       image = preview.image;
       site = preview.site;
       pulledTitle = preview.title;
+      pulledPrice = preview.price;
     }
   }
 
@@ -265,8 +268,10 @@ export async function saveWishItem(form: FormData) {
   // image; the stored one if the image has not changed; otherwise work it out
   // now — which also back-fills items saved before this existed.
   // A colour chosen by hand in the editor wins, and is kept as chosen.
-  const customBg = normalizeHex(str(form, "imageBgCustom"));
-  let imageBg = customBg ?? (image ? opt(str(form, "pulledBg")) : undefined);
+  // A hand-made gradient (shift-clicked points on the picture) counts as chosen too.
+  const customBg = normalizeBackground(str(form, "imageBgCustom"));
+  let imageBg =
+    customBg ?? (image ? (normalizeBackground(str(form, "pulledBg")) ?? undefined) : undefined);
   if (!customBg && image && !imageBg && existing?.image === image && !existing.imageBgCustom) {
     imageBg = existing.imageBg;
   }
@@ -279,6 +284,17 @@ export async function saveWishItem(form: FormData) {
     ? Math.min(150, Math.max(50, Math.round(scaleInput / 10) * 10))
     : 100;
 
+  // "$1,299.00", "1299" and "1299.5" all read as a price. The editor fills it
+  // from the page as the link is typed; when the page was fetched here instead
+  // (script off), a blank one takes what that found.
+  const priceInput = Number(str(form, "price").replace(/[$,\s]/g, ""));
+  const price =
+    str(form, "price") && Number.isFinite(priceInput) && priceInput >= 0
+      ? Math.round(priceInput * 100) / 100
+      : pulledPrice;
+
+  const siteOverride = opt(str(form, "siteOverride"));
+
   const item: WishItem = {
     id,
     href,
@@ -288,11 +304,16 @@ export async function saveWishItem(form: FormData) {
     image,
     imageBg,
     imageBgCustom: customBg ? true : undefined,
-    // Unset when the page did not name itself; the name then comes from the
-    // address wherever it is shown (lib/wish.ts).
-    site,
+    // A name typed in the editor wins. Otherwise unset when the page did not
+    // name itself; the name then comes from the address wherever it is shown
+    // (lib/wish.ts).
+    site: siteOverride ?? site,
+    siteCustom: siteOverride ? true : undefined,
     imageOverride: url(str(form, "imageOverride")),
-    note: opt(str(form, "note")),
+    price,
+    // Checkboxes send nothing at all when unticked.
+    purchased: form.has("purchased") ? true : undefined,
+    hidden: form.has("visible") ? undefined : true,
   };
 
   const wishlist = [...content.wishlist];
@@ -315,6 +336,33 @@ export async function deleteWishItem(form: FormData) {
   await saveContent({ ...content, wishlist: content.wishlist.filter((i) => i.id !== id) });
   flush();
   redirect("/dashboard/wishlist");
+}
+
+/**
+ * Applies a dragged order to one category.
+ *
+ * Same approach as reorderWork: only the slots that category occupies in the
+ * flat list are rewritten, so no other category moves.
+ */
+export async function reorderWishItems(category: string, ids: string[]) {
+  await requireAdmin();
+  const content = await getFreshContent();
+
+  const slots = content.wishlist
+    .map((item, i) => (item.category === category ? i : -1))
+    .filter((i) => i >= 0);
+  const byId = new Map(content.wishlist.map((item) => [item.id, item]));
+  const ordered = ids.map((id) => byId.get(id)).filter((item): item is WishItem => Boolean(item));
+  if (ordered.length !== slots.length || ordered.some((item) => item.category !== category)) return;
+
+  const wishlist = [...content.wishlist];
+  slots.forEach((slot, i) => {
+    wishlist[slot] = ordered[i];
+  });
+
+  await saveContent({ ...content, wishlist });
+  flush();
+  revalidatePath("/dashboard/wishlist");
 }
 
 /** Only an empty category can go, so nothing is ever left without one. */

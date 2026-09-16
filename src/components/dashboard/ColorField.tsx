@@ -34,6 +34,7 @@ export default function ColorField({
   eyedropping = false,
   eyedropLabel = "Pick a colour",
   placeholder = "auto",
+  swatch,
 }: {
   /** "#rrggbb", or "" for none. */
   value: string;
@@ -45,6 +46,8 @@ export default function ColorField({
   /** What that eyedropper does, for its tooltip. */
   eyedropLabel?: string;
   placeholder?: string;
+  /** What the swatch shows while there is no value — an automatic gradient, say. */
+  swatch?: React.CSSProperties;
 }) {
   const [open, setOpen] = useState(false);
   const [picking, setPicking] = useState(false);
@@ -119,8 +122,8 @@ export default function ColorField({
         aria-label="Choose a colour"
         aria-expanded={open}
         className="color-swatch"
-        data-empty={value ? undefined : ""}
-        style={value ? { backgroundColor: value } : undefined}
+        data-empty={value || swatch ? undefined : ""}
+        style={value ? { backgroundColor: value } : swatch}
       />
 
       <span className="text-foreground/40" aria-hidden="true">
@@ -146,6 +149,9 @@ export default function ColorField({
           else if (next.length === 6) onChange(`#${next.toLowerCase()}`);
         }}
         onKeyDown={(event) => {
+          // Backspace in an already-empty box still clears: it is how a value
+          // with no hex to show (a gradient) is handed back to automatic.
+          if (event.key === "Backspace" && !draft) onChange("");
           // Enter here would submit the whole form.
           if (event.key === "Enter") {
             event.preventDefault();
@@ -161,7 +167,6 @@ export default function ColorField({
         onClick={eyedrop}
         aria-label={tooltip}
         aria-pressed={picking || eyedropping}
-        title={tooltip}
         className={`ml-auto flex shrink-0 transition-colors hover:text-accent ${
           picking || eyedropping ? "text-accent" : "text-foreground/50"
         }`}
