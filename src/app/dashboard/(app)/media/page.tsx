@@ -1,6 +1,6 @@
 import Icon from "@/components/icons";
 import FolderPicker from "@/components/dashboard/FolderPicker";
-import { list, folderTree, r2Configured, MEDIA_BASE } from "@/lib/r2";
+import { list, folderTree, r2Configured, storageErrorName, MEDIA_BASE } from "@/lib/r2";
 import { deleteMedia } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +19,12 @@ export default async function MediaPage({
     return <p className="text-foreground/50">R2 is not configured.</p>;
   }
 
-  const files = await list("");
+  let files: Awaited<ReturnType<typeof list>>;
+  try {
+    files = await list("");
+  } catch (error) {
+    return <p className="text-accent">Can&rsquo;t list the bucket: {storageErrorName(error)}.</p>;
+  }
   const tree = folderTree(files);
 
   return (

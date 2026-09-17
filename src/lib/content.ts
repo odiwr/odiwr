@@ -1,4 +1,4 @@
-import { getText, putText, r2Configured } from "./r2";
+import { getText, putText, r2Configured, storageErrorName } from "./r2";
 
 /**
  * The site's content, stored as one JSON document in R2.
@@ -229,13 +229,46 @@ async function readContent(): Promise<Content> {
   return data;
 }
 
+/**
+ * The document, through the short cache.
+ *
+ * If storage cannot be read, a copy this server already has is served rather
+ * than nothing. With no copy the error is thrown: a page that cannot get its
+ * content fails, rather than rendering as if there were none. That matters most
+ * for pages built ahead of time — a failed rebuild keeps the last good page up,
+ * where an "empty" one would replace it.
+ */
 export async function getContent(): Promise<Content> {
   if (cache && Date.now() - cache.at < TTL_MS) return cache.data;
-  return readContent();
+  try {
+    return await readContent();
+  } catch (error) {
+    if (cache) {
+      console.error("Content read failed; serving the last copy read.", error);
+      return cache.data;
+    }
+    throw error;
+  }
 }
 
 /**
- * The document as it is in the bucket right now, never the cache.
+ * Null when the document can be read, else the name of the failure. The
+ * dashboard checks this first, so a broken key says so instead of every page
+ * looking empty.
+ */
+export async function contentError(): Promise<string | null> {
+  try {
+    await readContent();
+    return null;
+  } catch (error) {
+    return storageErrorName(error);
+  }
+}
+
+/**
+ * The document as it is in the bucket right now, never the cache. Throws when
+ * it cannot be read, so a save can never start from a failed read and write
+ * nothing over everything.
  *
  * Every save rewrites the WHOLE document, so it has to start from the latest
  * copy. The cache is per server instance: on a host running several, a save

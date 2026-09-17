@@ -31,14 +31,32 @@ export function publicUrl(key: string): string {
   return `${MEDIA_BASE}/${key.replace(/^\//, "")}`;
 }
 
-/** Returns null when the key does not exist, rather than throwing. */
+/**
+ * Returns null when the key does not exist. Any OTHER failure throws.
+ *
+ * It used to return null for every failure, so a rejected key read exactly like
+ * an empty bucket: the dashboard showed "Nothing yet", and a save made from
+ * there would have written that emptiness over the real document.
+ */
 export async function getText(key: string): Promise<string | null> {
   try {
     const res = await client.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }));
     return (await res.Body?.transformToString()) ?? null;
-  } catch {
-    return null;
+  } catch (error) {
+    if (isMissing(error)) return null;
+    throw error;
   }
+}
+
+function isMissing(error: unknown): boolean {
+  const e = error as { name?: string; Code?: string; $metadata?: { httpStatusCode?: number } };
+  return e?.name === "NoSuchKey" || e?.Code === "NoSuchKey" || e?.$metadata?.httpStatusCode === 404;
+}
+
+/** A short name for a storage failure ("SignatureDoesNotMatch"), for saying what broke. */
+export function storageErrorName(error: unknown): string {
+  const e = error as { Code?: string; name?: string; message?: string };
+  return e?.Code || e?.name || e?.message || "Unknown error";
 }
 
 export async function putText(key: string, body: string, contentType: string): Promise<void> {
