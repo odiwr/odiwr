@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Icon from "@/components/icons";
 import { getSession } from "@/lib/auth";
+import { contentError } from "@/lib/content";
 import DashNav from "@/components/dashboard/DashNav";
 
 /**
@@ -13,6 +14,10 @@ import DashNav from "@/components/dashboard/DashNav";
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
   if (!session) redirect("/dashboard/login");
+
+  // Every tab reads the content document. If it cannot be read, say so in place
+  // of the tab, rather than showing lists that look empty.
+  const storage = await contentError();
 
   return (
     <>
@@ -35,7 +40,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
       <DashNav />
 
-      {children}
+      {storage ? (
+        <p className="text-accent">
+          Can&rsquo;t read storage: {storage}. Nothing loads or saves until the R2 key is fixed.
+        </p>
+      ) : (
+        children
+      )}
     </>
   );
 }

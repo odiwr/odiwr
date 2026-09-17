@@ -40,7 +40,12 @@ export default async function WorkEditor({
 
   const isCurrent = entry.section === "current";
   const isCreative = entry.section === "creative";
-  const tree = (isCurrent || isCreative) && r2Configured() ? fileTree(await list("")) : [];
+  // The file picker only helps; a listing that fails leaves it empty rather
+  // than taking the whole editor down with it.
+  const tree =
+    (isCurrent || isCreative) && r2Configured()
+      ? fileTree(await list("").catch(() => []))
+      : [];
 
   /**
    * The shape this entry's poster has to be cut to.
