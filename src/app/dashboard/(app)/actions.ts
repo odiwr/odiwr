@@ -413,10 +413,13 @@ export type PostInput = {
 const pixels = (n: unknown) =>
   typeof n === "number" && Number.isFinite(n) && n > 0 ? Math.round(n) : undefined;
 
-/** Seconds to the tenth, or nothing. A start of 0 is the default, so it is dropped. */
+/**
+ * Seconds to the millisecond, or nothing. A start of 0 is the default, so it is
+ * dropped. Finer than a frame, so a trim mapped into a cut file lands on it.
+ */
 const seconds = (n: unknown, dropZero = false) =>
   typeof n === "number" && Number.isFinite(n) && n >= 0 && !(dropZero && n === 0)
-    ? Math.round(n * 100) / 100
+    ? Math.round(n * 1000) / 1000
     : undefined;
 
 function cleanSlide(input: SlideInput): Slide {

@@ -8,6 +8,7 @@ import {
   DeleteObjectCommand,
   ListObjectsV2Command,
 } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const client = new S3Client({
   region: "auto",
@@ -74,6 +75,22 @@ export async function putBytes(
     new PutObjectCommand({ Bucket: BUCKET, Key: key, Body: body, ContentType: contentType })
   );
   return publicUrl(key);
+}
+
+/**
+ * A one-time address the browser can PUT a file to, straight into the bucket.
+ *
+ * For big uploads: a file sent through the site's own server is capped by the
+ * host (4.5 MB a request on Vercel) and by the proxy's body buffer, while one
+ * sent here never touches the server at all. The bucket has to allow PUT from
+ * the site's origin in its CORS rules for a browser to use it.
+ */
+export async function signUpload(key: string, contentType: string, seconds = 900): Promise<string> {
+  return getSignedUrl(
+    client,
+    new PutObjectCommand({ Bucket: BUCKET, Key: key, ContentType: contentType }),
+    { expiresIn: seconds }
+  );
 }
 
 export async function remove(key: string): Promise<void> {

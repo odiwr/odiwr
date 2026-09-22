@@ -15,22 +15,28 @@ import {
 import {
   SortableContext,
   arrayMove,
-  horizontalListSortingStrategy,
+  rectSortingStrategy,
   sortableKeyboardCoordinates,
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import Icon from "@/components/icons";
 import { captureFrame, captureLoop } from "./capture";
+import { cutToTrim } from "./cut";
 import { deletePost, saveCinemaPost, type SlideInput } from "@/app/dashboard/(app)/actions";
 
 /**
  * Making a post, or changing one: the same screen either way.
  *
  * Clips go in a strip of slides — drag to reorder, × to take one out, + for
- * more. The one selected plays large above it, looping just its trim, with the
- * trim bar under it: drag either end. Trims never cut the file; the site plays
- * the trimmed part, so a post can be re-trimmed any time.
+ * more; past five they wrap onto the next row. The one selected plays large
+ * above it, looping just its trim, with the trim bar under it: drag either end,
+ * or click and drag along the line to scrub. Holding the end handle loops the
+ * last moments before it, so the cut can be seen and heard. Trims never cut
+ * the file; the site plays the trimmed part, so a post can be re-trimmed any
+ * time.
+ *
+ * The post's name is the movie or show; nothing else is asked for.
  *
  * Posting publishes at once. Before that, for every clip that is new or whose
  * trim changed, the browser cuts a still and records the cover loop from the
@@ -41,6 +47,8 @@ import { deletePost, saveCinemaPost, type SlideInput } from "@/app/dashboard/(ap
 
 /** Shortest trim allowed, in seconds. */
 const MIN_LENGTH = 0.3;
+/** While the end handle is held, the preview loops this much before it. */
+const TAIL = 1.5;
 
 /** A slide being composed: a file just added, or one already posted. */
 export type ComposerSlide = SlideInput & {
@@ -72,10 +80,43 @@ function isVideo(href: string): boolean {
   return /\.(mp4|webm)(?:[?#]|$)/i.test(href) || href.startsWith("blob:");
 }
 
-/** Uploads one file and answers with its address. */
+/**
+ * Uploads one file and answers with its address.
+ *
+ * Straight to the bucket, through a one-time address the server signs (so no
+ * host's request limit applies to a big clip); or, on a dev server with no
+ * bucket, to the server itself (api/cinema).
+ */
 async function upload(file: File | Blob, name: string): Promise<string> {
+  const type = file.type.split(";")[0];
+  const ask = await fetch("/dashboard/api/cinema", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ name, type, size: file.size }),
+  });
+  const plan = (await ask.json().catch(() => ({}))) as {
+    upload?: string | null;
+    url?: string;
+    contentType?: string;
+    error?: string;
+  };
+  if (!ask.ok) throw new Error(plan.error ?? `Upload refused (${ask.status})`);
+
+  if (plan.upload && plan.url) {
+    const put = await fetch(plan.upload, {
+      method: "PUT",
+      headers: { "content-type": plan.contentType ?? type },
+      body: file,
+    }).catch(() => null);
+    // A network error here is nearly always the bucket's CORS: it has to allow
+    // PUT from this site for the browser to send the file.
+    if (!put) throw new Error("Storage refused the upload — check the bucket allows PUT from this site (CORS)");
+    if (!put.ok) throw new Error(`Storage refused the upload (${put.status})`);
+    return plan.url;
+  }
+
   const body = new FormData();
-  body.set("file", file instanceof File ? file : new File([file], name, { type: file.type }));
+  body.set("file", file instanceof File ? file : new File([file], name, { type }));
   const res = await fetch("/dashboard/api/cinema", { method: "POST", body });
   const data = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
   if (!res.ok || !data.url) throw new Error(data.error ?? `Upload failed (${res.status})`);
@@ -92,35 +133,64 @@ function TrimBar({
   end,
   playhead,
   onChange,
+  onSeek,
+  onHold,
 }: {
   duration: number;
   start: number;
   end: number;
   playhead: number;
-  /** `edge` is the end being dragged, so the preview can show that frame. */
+  /** `edge` is the end being dragged, so the preview can show that part. */
   onChange: (start: number, end: number, edge: "start" | "end") => void;
+  /** Clicked or dragged along the line: play from there. */
+  onSeek: (t: number) => void;
+  /** A handle pressed, or let go (null). */
+  onHold: (edge: "start" | "end" | null) => void;
 }) {
   const track = useRef<HTMLDivElement>(null);
   const pct = (t: number) => `${(t / duration) * 100}%`;
 
-  const drag = (edge: "start" | "end") => (e: React.PointerEvent<HTMLButtonElement>) => {
+  /** The time under the pointer, to the tenth. */
+  const at = (clientX: number) => {
+    const r = track.current!.getBoundingClientRect();
+    return Math.round(Math.min(Math.max((clientX - r.left) / r.width, 0), 1) * duration * 10) / 10;
+  };
+
+  /** Follows the pointer from press to release, wherever it goes. */
+  const follow = (e: React.PointerEvent<HTMLElement>, move: (t: number) => void, done?: () => void) => {
     e.preventDefault();
     const el = e.currentTarget;
     el.setPointerCapture(e.pointerId);
-    const move = (ev: PointerEvent) => {
-      const r = track.current!.getBoundingClientRect();
-      const t = Math.round(Math.min(Math.max((ev.clientX - r.left) / r.width, 0), 1) * duration * 10) / 10;
-      if (edge === "start") onChange(Math.min(t, end - MIN_LENGTH), end, "start");
-      else onChange(start, Math.max(t, start + MIN_LENGTH), "end");
-    };
+    const onMove = (ev: PointerEvent) => move(at(ev.clientX));
     const up = () => {
-      el.removeEventListener("pointermove", move);
+      el.removeEventListener("pointermove", onMove);
       el.removeEventListener("pointerup", up);
       el.removeEventListener("pointercancel", up);
+      done?.();
     };
-    el.addEventListener("pointermove", move);
+    el.addEventListener("pointermove", onMove);
     el.addEventListener("pointerup", up);
     el.addEventListener("pointercancel", up);
+  };
+
+  const drag = (edge: "start" | "end", e: React.PointerEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    onHold(edge);
+    follow(
+      e,
+      (t) => {
+        if (edge === "start") onChange(Math.min(t, end - MIN_LENGTH), end, "start");
+        else onChange(start, Math.max(t, start + MIN_LENGTH), "end");
+      },
+      () => onHold(null)
+    );
+  };
+
+  // Anywhere else on the line scrubs: within the trim, since only that plays.
+  const scrub = (e: React.PointerEvent<HTMLDivElement>) => {
+    const seek = (t: number) => onSeek(Math.min(Math.max(t, start), end - 0.05));
+    seek(at(e.clientX));
+    follow(e, seek);
   };
 
   // Arrow keys nudge a handle by a tenth of a second, shift for a whole one.
@@ -133,25 +203,32 @@ function TrimBar({
   };
 
   const handle =
-    "absolute top-0 bottom-0 w-3 -translate-x-1/2 cursor-ew-resize rounded-[2px] bg-[#ffd994] outline-none focus-visible:ring-2 focus-visible:ring-white";
+    "absolute top-0 bottom-0 w-3 -translate-x-1/2 cursor-ew-resize rounded-[2px] bg-accent outline-none focus-visible:ring-2 focus-visible:ring-white";
 
   return (
     <div className="flex flex-col gap-1.5">
-      <div ref={track} className="relative h-10 touch-none rounded-[2px] bg-[#242424]">
+      <div
+        ref={track}
+        onPointerDown={scrub}
+        className="relative h-10 cursor-pointer touch-none rounded-[2px] bg-[#242424]"
+      >
         {/* What plays, framed; what does not, dimmed either side. */}
         <div className="absolute inset-y-0 left-0 bg-black/50" style={{ width: pct(start) }} />
         <div className="absolute inset-y-0 right-0 bg-black/50" style={{ left: pct(end) }} />
         <div
-          className="absolute inset-y-0 border-y-2 border-[#ffd994]"
+          className="absolute inset-y-0 border-y-2 border-accent"
           style={{ left: pct(start), width: `calc(${pct(end)} - ${pct(start)})` }}
         />
-        <div className="absolute inset-y-0 w-px bg-white/80" style={{ left: pct(playhead) }} />
+        <div
+          className="pointer-events-none absolute inset-y-0 w-0.5 -translate-x-1/2 bg-white"
+          style={{ left: pct(playhead) }}
+        />
         <button
           type="button"
           aria-label="Trim start"
           className={handle}
           style={{ left: pct(start) }}
-          onPointerDown={drag("start")}
+          onPointerDown={(e) => drag("start", e)}
           onKeyDown={key("start")}
         />
         <button
@@ -159,13 +236,13 @@ function TrimBar({
           aria-label="Trim end"
           className={handle}
           style={{ left: pct(end) }}
-          onPointerDown={drag("end")}
+          onPointerDown={(e) => drag("end", e)}
           onKeyDown={key("end")}
         />
       </div>
       <div className="flex justify-between text-sm text-foreground/50 tabular-nums">
         <span>{fmt(start)}</span>
-        <span className="text-[#ffd994]">{fmt(end - start)} long</span>
+        <span className="text-accent">{fmt(end - start)} long</span>
         <span>{fmt(end)}</span>
       </div>
     </div>
@@ -198,7 +275,7 @@ function Thumb({
     <li
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`relative w-36 shrink-0 ${isDragging ? "z-10" : ""}`}
+      className={`relative ${isDragging ? "z-10" : ""}`}
     >
       <button
         type="button"
@@ -208,7 +285,7 @@ function Thumb({
         aria-label={`Slide ${index + 1}`}
         aria-pressed={selected}
         className={`relative block aspect-video w-full cursor-grab overflow-hidden rounded-[2px] bg-black active:cursor-grabbing ${
-          selected ? "outline-2 outline-offset-2 outline-[#ffd994]" : "opacity-70 hover:opacity-100"
+          selected ? "outline-2 outline-offset-2 outline-accent" : "opacity-70 hover:opacity-100"
         }`}
       >
         {src &&
@@ -266,9 +343,6 @@ export default function PostComposer({
   );
   const [selected, setSelected] = useState(0);
   const [show, setShow] = useState(post?.show ?? "");
-  const [title, setTitle] = useState(post?.title ?? "");
-  const [caption, setCaption] = useState(post?.caption ?? "");
-  const [embed, setEmbed] = useState(post?.embed ?? "");
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -278,6 +352,8 @@ export default function PostComposer({
 
   const input = useRef<HTMLInputElement>(null);
   const player = useRef<HTMLVideoElement>(null);
+  // Which trim handle is held, if any: the end one loops the last moments.
+  const holding = useRef<"start" | "end" | null>(null);
   // Object URLs made for added files, let go when the composer is.
   const made = useRef<string[]>([]);
 
@@ -304,14 +380,17 @@ export default function PostComposer({
     setSelected(items.length);
   };
 
-  // The selected clip loops its trim: back to the start whenever it passes the end.
+  // The selected clip loops its trim: back to the start whenever it passes the
+  // end — or, while the end handle is held, back to just before the end.
   useEffect(() => {
     const video = player.current;
     if (!video || !current?.source) return;
     let frame = 0;
     const watch = () => {
       const stop = current.end ?? video.duration;
-      if (stop && video.currentTime >= stop) video.currentTime = current.start ?? 0;
+      const from =
+        holding.current === "end" ? Math.max(current.start ?? 0, stop - TAIL) : (current.start ?? 0);
+      if (stop && video.currentTime >= stop) video.currentTime = from;
       setPlayhead(video.currentTime);
       frame = requestAnimationFrame(watch);
     };
@@ -322,12 +401,27 @@ export default function PostComposer({
   const trim = (s: number, e: number, edge: "start" | "end") => {
     if (!current) return;
     update(current.key, { start: s, end: e });
-    // Show the frame at the end being moved; playing resumes from the start.
+    // Play from the edge being moved: the start from itself, the end from the
+    // last moments before it (and round again, for as long as it is held).
     const video = player.current;
     if (video) {
-      video.currentTime = edge === "start" ? s : Math.max(s, e - 0.05);
-      if (edge === "end") window.setTimeout(() => video && (video.currentTime = s), 350);
+      video.currentTime = edge === "start" ? s : Math.max(s, e - TAIL);
+      video.play().catch(() => {});
     }
+  };
+
+  const seek = (t: number) => {
+    const video = player.current;
+    if (!video) return;
+    video.currentTime = t;
+    video.play().catch(() => {});
+  };
+
+  const hold = (edge: "start" | "end" | null) => {
+    const released = holding.current;
+    holding.current = edge;
+    // Letting go of the end: back to playing the whole trim from its start.
+    if (!edge && released === "end" && player.current) player.current.currentTime = start;
   };
 
   const sensors = useSensors(
@@ -354,7 +448,7 @@ export default function PostComposer({
   /** Publishes: makes and uploads what is new, then saves the post whole. */
   const publish = async () => {
     if (busy) return;
-    if (!items.length && !embed.trim()) return setError("Add a clip first.");
+    if (!items.length && !post?.embed) return setError("Add a clip first.");
     setBusy(true);
     setError(null);
     try {
@@ -367,9 +461,26 @@ export default function PostComposer({
         const retrimmed = !item.file && ((item.saved?.start ?? 0) !== s || item.saved?.end !== e);
         let { video, poster, cover, width, height } = item;
 
+        // The trim as saved: in the uploaded file's own time, which is the
+        // original's unless the file was cut down to it below.
+        let savedStart = s;
+        let savedEnd = e;
+
         if (item.file) {
+          // Only the trimmed part (and a little either side) goes up, when that
+          // is much less than the whole file.
+          const cut =
+            item.duration && (s > 0 || e !== undefined)
+              ? await cutToTrim(item.file, s, e ?? item.duration, item.duration, (t) =>
+                  setStatus(`${t.replace(/…$/, "")}${label}…`)
+                )
+              : null;
+          if (cut) {
+            savedStart = cut.start;
+            savedEnd = cut.end;
+          }
           setStatus(`Uploading clip${label}…`);
-          video = await upload(item.file, item.file.name);
+          video = await upload(cut?.file ?? item.file, item.file.name);
         }
         if ((item.file || retrimmed) && item.source) {
           setStatus(`Making the cover${label}…`);
@@ -385,11 +496,20 @@ export default function PostComposer({
             height = frame.height;
           }
         }
-        slides.push({ video, poster, cover, width, height, start: s, end: e });
+        slides.push({ video, poster, cover, width, height, start: savedStart, end: savedEnd });
       }
 
       setStatus("Posting…");
-      await saveCinemaPost({ id: post?.id, title, show, caption, embed, slides });
+      // The name is the show's. A post made before that keeps its own title,
+      // caption and link (no longer asked for here) as they were.
+      await saveCinemaPost({
+        id: post?.id,
+        title: show.trim() || post?.title || "",
+        show,
+        caption: post?.caption,
+        embed: post?.embed,
+        slides,
+      });
       router.push("/dashboard/cinema");
       router.refresh();
     } catch (err) {
@@ -500,7 +620,15 @@ export default function PostComposer({
           </div>
 
           {canTrim ? (
-            <TrimBar duration={current.duration!} start={start} end={end} playhead={playhead} onChange={trim} />
+            <TrimBar
+              duration={current.duration!}
+              start={start}
+              end={end}
+              playhead={playhead}
+              onChange={trim}
+              onSeek={seek}
+              onHold={hold}
+            />
           ) : (
             current?.loopOnly && (
               <p className="text-foreground/40">This slide is a loop without a clip, so it has nothing to trim.</p>
@@ -508,8 +636,9 @@ export default function PostComposer({
           )}
 
           <DndContext id="composer-strip" sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-            <SortableContext items={items.map((i) => i.key)} strategy={horizontalListSortingStrategy}>
-              <ul className="flex gap-2 overflow-x-auto p-1">
+            <SortableContext items={items.map((i) => i.key)} strategy={rectSortingStrategy}>
+              {/* Five to a row, sized to fill it exactly; more wrap onto the next. */}
+              <ul className="grid grid-cols-3 gap-2 p-1 sm:grid-cols-5">
                 {items.map((item, i) => (
                   <Thumb
                     key={item.key}
@@ -520,7 +649,7 @@ export default function PostComposer({
                     onRemove={() => remove(item.key)}
                   />
                 ))}
-                <li className="w-36 shrink-0">
+                <li>
                   <button
                     type="button"
                     onClick={() => input.current?.click()}
@@ -539,32 +668,6 @@ export default function PostComposer({
       <label className="label">
         Movie or show
         <input className="field" placeholder="Beef" value={show} onChange={(e) => setShow(e.target.value)} />
-      </label>
-
-      <label className="label">
-        Title
-        <input
-          className="field"
-          placeholder="The scene, in a few words — the show's name if left blank"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-      </label>
-
-      <label className="label">
-        Caption
-        <textarea className="field" value={caption} onChange={(e) => setCaption(e.target.value)} />
-      </label>
-
-      <label className="label">
-        Official link
-        <input
-          className="field"
-          inputMode="url"
-          placeholder="Where the scene is officially posted — credited, or played if there is no clip"
-          value={embed}
-          onChange={(e) => setEmbed(e.target.value)}
-        />
       </label>
 
       {error && <p className="text-[#ff6b6b]">{error}</p>}

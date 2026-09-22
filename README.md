@@ -68,6 +68,7 @@ Each writes a module that is committed; re-run after changing its inputs.
 | `npm run icons:data` | inline SVG for the icons found in `src/` |
 | `npm run stacks` | the searchable tech-stack index |
 | `npm run fonts:subset` | the CJK and `@` font subsets, and their unicode-ranges |
+| `npm run ffmpeg:worker` | `public/ffmpeg/`, ffmpeg.wasm's worker served unbundled for the clip cutter |
 
 ## Bucket layout
 

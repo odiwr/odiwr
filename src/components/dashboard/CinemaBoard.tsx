@@ -124,9 +124,18 @@ function Tile({
         <Icon name="material-symbols:close-rounded" size="1.1em" />
       </button>
 
-      <p className={`cinema-meta ${post.hidden ? "opacity-40" : ""}`}>
-        <span>{post.hidden ? `Archived · ${post.show || post.title}` : post.show || post.title}</span>
-        <time dateTime={post.date}>{shortDate(post.date)}</time>
+      {/* The site's line under a tile, in the dashboard's own accent. */}
+      <p
+        className={`flex justify-between gap-3 pt-1 text-[13px] leading-5 text-accent ${
+          post.hidden ? "opacity-40" : ""
+        }`}
+      >
+        <span className="min-w-0 truncate">
+          {post.hidden ? `Archived · ${post.show || post.title}` : post.show || post.title}
+        </span>
+        <time dateTime={post.date} className="shrink-0 tabular-nums">
+          {shortDate(post.date)}
+        </time>
       </p>
     </li>
   );
