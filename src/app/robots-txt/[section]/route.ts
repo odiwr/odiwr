@@ -10,6 +10,7 @@ import { SITE } from "@/lib/site";
 const ORIGINS: Record<string, string> = {
   projects: SITE.projectsUrl,
   creative: SITE.creativeUrl,
+  cinema: SITE.cinemaUrl,
   // No wishlist: it is unlisted, and its page carries noindex instead.
 };
 

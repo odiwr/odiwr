@@ -1,0 +1,935 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { flushSync } from "react-dom";
+import Icon from "@/components/icons";
+import {
+  clipHref,
+  slidePath,
+  slideUrl,
+  type ViewClip,
+  type ViewSlide,
+} from "@/lib/cinema";
+import { cached, cool, hold, release, warm } from "./preload";
+import { makeStory, shareStory } from "./story";
+
+/**
+ * cinema.odiwr.com, all of it: the grid, and the viewer a tile opens into.
+ *
+ * Opening a post is one element travelling: a box starts exactly over the tile,
+ * then grows to fill most of the screen at the clip's own shape, while the rest
+ * of the grid dissolves and a black backdrop comes up behind it. The box starts
+ * with the tile's 2.39:1 shape and its black bars; as its shape moves to the
+ * clip's, the bars narrow, and the box's own black fades into the backdrop's,
+ * so they are gone without ever being cut. The cover loop it starts on is the
+ * tile's own, so nothing changes under the eye; the full clip fades in over it
+ * once playing. Closing runs the same travel backwards, into the tile.
+ *
+ * A post can have several slides. The dots are that post's slides (under it;
+ * down the right side on a phone), and the arrow keys step through them; the
+ * box re-shapes to each in turn. Every slide is its own address: /slug for the
+ * first, /slug/2 and on for the rest. Opening pushes one, so Back closes;
+ * changing slides replaces it, so Back still means "back to the grid". The same
+ * component renders those addresses directly, opened already.
+ *
+ * Built to stay quick with hundreds of posts: only the rows near the screen
+ * exist at all (the rest are one spacer above and one below), a loop plays only
+ * while a quarter of its tile is on screen, and a tile shows a skeleton until
+ * its picture arrives. Anything that fails to load turns grey rather than
+ * black; an open slide gets a second first. A tile the pointer settles on (not
+ * one it merely crosses) has its post's clips fetched into memory, so opening
+ * it plays at once; leaving without opening lets them go (preload.ts).
+ *
+ * Before anything, a first visit is asked whether clips may play with sound.
+ * The answer is kept in this browser only.
+ */
+
+const DURATION = 700;
+const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
+/** Space around the open clip, and the strip below it for the dots. */
+const MARGIN = 24;
+const DOTS = 48;
+/** On a phone the dots run down the right; the clip keeps this much either side, so it stays centred. */
+const SIDE = 28;
+const PHONE = 640;
+/** How long the dots stay fully visible after being looked at, before dimming. */
+const LINGER = 1500;
+/** How long an open slide gets to show something before it is marked grey. */
+const PATIENCE = 1000;
+/** A tile's loop plays only while at least this much of it is on screen. */
+const VISIBLE = 0.25;
+const SOUND_KEY = "cinema-sound";
+/**
+ * Pointer intent: the pointer has settled on a tile when it moves slower than
+ * this (px per ms, over the last few moves), or rests without moving for
+ * SETTLE ms. A sweep across the grid does neither on the tiles it passes.
+ */
+const SLOW = 0.25;
+const SETTLE = 140;
+
+type Rect = { left: number; top: number; width: number; height: number };
+type Sound = "on" | "off";
+/** Which posts are mounted, and the space standing in for the rest. */
+type Window = { start: number; end: number; above: number; below: number };
+
+/**
+ * The sound answer, as a tiny store: this browser's storage, with a copy in
+ * memory so a browser that refuses storage still gets past the prompt (and is
+ * simply asked again next visit).
+ */
+let soundMemory: Sound | null = null;
+const soundListeners = new Set<() => void>();
+
+function readSound(): Sound | "ask" {
+  if (soundMemory) return soundMemory;
+  try {
+    const value = localStorage.getItem(SOUND_KEY);
+    if (value === "on" || value === "off") return value;
+  } catch {
+    // Blocked storage reads as unanswered.
+  }
+  return "ask";
+}
+
+function writeSound(value: Sound) {
+  soundMemory = value;
+  try {
+    localStorage.setItem(SOUND_KEY, value);
+  } catch {
+    // Private window or blocked storage: the memory copy covers this visit.
+  }
+  soundListeners.forEach((listener) => listener());
+}
+
+function subscribeSound(listener: () => void) {
+  soundListeners.add(listener);
+  return () => soundListeners.delete(listener);
+}
+
+/** YYYY-MM-DD -> MM/DD/YY. */
+function shortDate(iso: string): string {
+  const [y, m, d] = iso.split("-");
+  return `${m}/${d}/${y.slice(2)}`;
+}
+
+function isVideo(href: string): boolean {
+  return /\.(mp4|webm)(?:[?#]|$)/i.test(href);
+}
+
+/**
+ * The grid's measurements, the same numbers globals.css lays it out with:
+ * columns and gaps by width, the tile at 2.39:1, the line under it 24px.
+ */
+function gridMetrics(listWidth: number) {
+  const w = window.innerWidth;
+  const cols = w < PHONE ? 2 : w <= 1024 ? 3 : 5;
+  const colGap = w < PHONE ? 4 : 6;
+  const rowGap = w < PHONE ? 14 : 18;
+  const tile = (listWidth - colGap * (cols - 1)) / cols / 2.39;
+  return { cols, tile, stride: tile + 24 + rowGap };
+}
+
+/**
+ * Everything a browser might lay over a playing video on its own — the
+ * picture-in-picture and cast buttons, the download and fullscreen items — is
+ * switched off. There is no `controls` attribute, and CSS hides the control
+ * layer itself for the browsers that draw one anyway (globals.css).
+ */
+const BARE = {
+  disablePictureInPicture: true,
+  disableRemotePlayback: true,
+  controlsList: "nodownload nofullscreen noremoteplayback noplaybackrate",
+  playsInline: true,
+} as const;
+
+/**
+ * A tile's picture: the post's first slide, moving if anything moves,
+ * contained, never cropped. Plays only while a quarter of it is on screen.
+ */
+function TileMedia({
+  slide,
+  onReady,
+  onFail,
+}: {
+  slide: ViewSlide;
+  onReady: () => void;
+  onFail: () => void;
+}) {
+  const ref = useRef<HTMLVideoElement>(null);
+  const src = slide.loop ?? (slide.video && !slide.still ? slide.video : undefined);
+
+  useEffect(() => {
+    const video = ref.current;
+    if (!video) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.intersectionRatio >= VISIBLE) video.play().catch(() => {});
+        else video.pause();
+      },
+      { threshold: [0, VISIBLE, 0.5, 1] }
+    );
+    observer.observe(video);
+    return () => observer.disconnect();
+  }, []);
+
+  if (src && isVideo(src)) {
+    return (
+      <video
+        ref={ref}
+        src={src}
+        poster={slide.still}
+        muted
+        loop
+        preload="none"
+        {...BARE}
+        onLoadedData={onReady}
+        onError={onFail}
+      />
+    );
+  }
+  const picture = src ?? slide.still;
+  if (slide.video && !picture) {
+    return (
+      <video
+        ref={ref}
+        src={`${slide.video}#t=0.1`}
+        muted
+        loop
+        preload="metadata"
+        {...BARE}
+        onLoadedData={onReady}
+        onError={onFail}
+      />
+    );
+  }
+  if (!picture) return null;
+  // Not next/image: the optimiser would flatten a GIF to a still.
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={picture} alt="" loading="lazy" onLoad={onReady} onError={onFail} />;
+}
+
+/** Every file worth fetching ahead for a post, across its slides. */
+function postFiles(clip: ViewClip) {
+  return clip.slides.flatMap((s) => s.preload);
+}
+
+/** A tile: a skeleton until its picture arrives, grey if it never does. */
+function Tile({
+  clip,
+  hidden,
+  tileRef,
+  onOpen,
+}: {
+  clip: ViewClip;
+  hidden: boolean;
+  tileRef: (el: HTMLAnchorElement | null) => void;
+  onOpen: () => void;
+}) {
+  const [state, setState] = useState<"loading" | "ready" | "failed">("loading");
+  // Recent pointer positions over this tile, for its speed; and the timer that
+  // counts a still pointer as settled.
+  const trail = useRef<{ x: number; y: number; t: number }[]>([]);
+  const settle = useRef<number | null>(null);
+  const warmed = useRef(false);
+
+  const intend = () => {
+    if (warmed.current) return;
+    warmed.current = true;
+    warm(clip.slug, postFiles(clip));
+  };
+  const restartSettle = () => {
+    if (settle.current !== null) window.clearTimeout(settle.current);
+    settle.current = window.setTimeout(intend, SETTLE);
+  };
+
+  useEffect(
+    () => () => {
+      if (settle.current !== null) window.clearTimeout(settle.current);
+    },
+    []
+  );
+
+  return (
+    <li>
+      <a
+        ref={tileRef}
+        href={clipHref(clip.slug)}
+        className="cinema-tile"
+        data-state={state}
+        aria-label={clip.title}
+        // The box stands in for it while open, so it is not there twice.
+        style={{ visibility: hidden ? "hidden" : undefined }}
+        // A mouse only: touch has no hover, and a tap opens it anyway.
+        onPointerEnter={(e) => {
+          if (e.pointerType !== "mouse") return;
+          trail.current = [{ x: e.clientX, y: e.clientY, t: e.timeStamp }];
+          restartSettle();
+        }}
+        onPointerMove={(e) => {
+          if (e.pointerType !== "mouse" || warmed.current) return;
+          const now = { x: e.clientX, y: e.clientY, t: e.timeStamp };
+          const points = [...trail.current, now].filter((p) => now.t - p.t <= 100);
+          trail.current = points;
+          const from = points[0];
+          const ms = now.t - from.t;
+          if (ms >= 30 && Math.hypot(now.x - from.x, now.y - from.y) / ms < SLOW) intend();
+          else restartSettle();
+        }}
+        onPointerLeave={(e) => {
+          if (e.pointerType !== "mouse") return;
+          if (settle.current !== null) window.clearTimeout(settle.current);
+          settle.current = null;
+          if (warmed.current) cool(clip.slug);
+          warmed.current = false;
+        }}
+        onClick={(e) => {
+          // A modified click means "somewhere else": let it be a link.
+          if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+          e.preventDefault();
+          onOpen();
+        }}
+      >
+        <TileMedia
+          slide={clip.slides[0]}
+          onReady={() => setState("ready")}
+          onFail={() => setState("failed")}
+        />
+      </a>
+      <p className="cinema-meta">
+        <span>{clip.show || clip.title}</span>
+        <time dateTime={clip.date}>{shortDate(clip.date)}</time>
+      </p>
+    </li>
+  );
+}
+
+/**
+ * One open slide. Starts on its loop, and lays the real clip over it once it
+ * plays. Reports the clip's real shape as soon as any layer knows it, so the
+ * box can settle on it, and whether it has shown anything within PATIENCE.
+ */
+function ViewerMedia({
+  slide,
+  title,
+  sound,
+  active,
+  onAspect,
+  onStalled,
+}: {
+  slide: ViewSlide;
+  title: string;
+  sound: Sound;
+  /** False until the prompt is answered: nothing plays before that. */
+  active: boolean;
+  onAspect: (aspect: number) => void;
+  onStalled: (stalled: boolean) => void;
+}) {
+  const full = useRef<HTMLVideoElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const shown = useRef(false);
+  const cover = slide.loop ?? slide.still;
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      if (!shown.current) onStalled(true);
+    }, PATIENCE);
+    return () => {
+      window.clearTimeout(timer);
+      onStalled(false);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const video = full.current;
+    if (!video || !active) return;
+    video.muted = sound !== "on";
+    // With sound, a browser only plays from a click. Opening from a tile is one;
+    // arriving at /slug directly is not, so that falls back to silent.
+    video.play().catch(() => {
+      video.muted = true;
+      video.play().catch(() => {});
+    });
+  }, [active, sound]);
+
+  const measure = (w: number, h: number) => {
+    if (w && h) onAspect(w / h);
+  };
+  const ready = () => {
+    shown.current = true;
+    onStalled(false);
+  };
+
+  return (
+    <>
+      {cover &&
+        (isVideo(cover) ? (
+          <video
+            src={cached(cover)}
+            poster={slide.still}
+            autoPlay
+            muted
+            loop
+            {...BARE}
+            onLoadedMetadata={(e) => measure(e.currentTarget.videoWidth, e.currentTarget.videoHeight)}
+            onLoadedData={ready}
+          />
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={cover}
+            alt=""
+            onLoad={(e) => {
+              measure(e.currentTarget.naturalWidth, e.currentTarget.naturalHeight);
+              ready();
+            }}
+          />
+        ))}
+
+      {slide.video && (
+        <video
+          ref={full}
+          src={cached(slide.video)}
+          loop
+          preload="auto"
+          {...BARE}
+          className="cinema-full"
+          data-playing={playing ? "" : undefined}
+          onLoadedMetadata={(e) => measure(e.currentTarget.videoWidth, e.currentTarget.videoHeight)}
+          onPlaying={() => {
+            setPlaying(true);
+            ready();
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            const v = e.currentTarget;
+            if (v.paused) v.play().catch(() => {});
+            else v.pause();
+          }}
+        />
+      )}
+
+      {!slide.video && slide.embed && active && (
+        <iframe
+          src={`${slide.embed}${slide.embed.includes("?") ? "&" : "?"}autoplay=1${sound === "on" ? "" : "&mute=1"}`}
+          title={title}
+          className="cinema-full"
+          data-playing=""
+          allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+          allowFullScreen
+          referrerPolicy="strict-origin-when-cross-origin"
+          onLoad={ready}
+        />
+      )}
+    </>
+  );
+}
+
+export default function CinemaGallery({
+  clips,
+  initialSlug,
+  initialSlide = 0,
+}: {
+  clips: ViewClip[];
+  /** Set on /slug: open on that post, already large. */
+  initialSlug?: string;
+  /** And on /slug/2 and on: that slide, from 0. */
+  initialSlide?: number;
+}) {
+  // Null on the server and in the first render, which has to match it.
+  const sound = useSyncExternalStore(subscribeSound, readSound, () => null);
+  // A /slug page renders already open, so the grid is never seen first. Where
+  // the box goes needs the window, so it is placed right after mounting.
+  const initialIndex = initialSlug ? clips.findIndex((c) => c.slug === initialSlug) : -1;
+  const [index, setIndex] = useState<number | null>(initialIndex >= 0 ? initialIndex : null);
+  const [slide, setSlide] = useState(initialIndex >= 0 ? initialSlide : 0);
+  const [expanded, setExpanded] = useState(initialIndex >= 0);
+  const [box, setBox] = useState<Rect | null>(null);
+  const [animate, setAnimate] = useState(initialIndex < 0);
+  const [stalled, setStalled] = useState(false);
+  // The dots (and the share button) show fully for a while after anything
+  // draws the eye to them — opening, a slide changing, the pointer on them —
+  // then dim.
+  const [awake, setAwake] = useState(true);
+  const [sharing, setSharing] = useState<string | null>(null);
+  // Null until measured: the server, and the first render, have every post.
+  const [win, setWin] = useState<Window | null>(null);
+
+  const list = useRef<HTMLUListElement>(null);
+  const tiles = useRef<(HTMLAnchorElement | null)[]>([]);
+  /** Measured shapes, by "post:slide". */
+  const aspects = useRef(new Map<string, number>());
+  const base = useRef("");
+  const pushed = useRef(false);
+  const closing = useRef<number | null>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
+  const awakeTimer = useRef<number | null>(null);
+  const hovering = useRef(false);
+
+  /* ---------------------------------------------------------------- */
+  /* The window of mounted posts                                       */
+  /* ---------------------------------------------------------------- */
+
+  /** Mounts the rows from a screen above the viewport to a screen below it. */
+  const measureWindow = useCallback(
+    (scrollY = window.scrollY) => {
+      const ul = list.current;
+      if (!ul) return;
+      const { cols, stride } = gridMetrics(ul.clientWidth);
+      const rows = Math.ceil(clips.length / cols);
+      const top = ul.getBoundingClientRect().top + window.scrollY;
+      const vh = window.innerHeight;
+      const first = Math.max(0, Math.floor((scrollY - top - vh) / stride));
+      const last = Math.min(rows - 1, Math.ceil((scrollY - top + 2 * vh) / stride));
+      const next: Window = {
+        start: first * cols,
+        end: Math.min(clips.length, (last + 1) * cols),
+        above: first * stride,
+        // Each unmounted row stands in with its gap: the rows above end in
+        // theirs, the rows below start with theirs.
+        below: Math.max(0, rows - 1 - last) * stride,
+      };
+      setWin((prev) =>
+        prev && prev.start === next.start && prev.end === next.end && Math.abs(prev.above - next.above) < 0.5 && Math.abs(prev.below - next.below) < 0.5
+          ? prev
+          : next
+      );
+    },
+    [clips.length]
+  );
+
+  useEffect(() => {
+    const onScroll = () => measureWindow();
+    measureWindow();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    const observer = new ResizeObserver(() => measureWindow());
+    if (list.current) observer.observe(list.current);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      observer.disconnect();
+    };
+  }, [measureWindow]);
+
+  /**
+   * Makes sure post i's tile is mounted, scrolling the (invisible) grid to it
+   * if it was not, so the box has somewhere to close into.
+   */
+  const ensureTile = (i: number) => {
+    const ul = list.current;
+    if (tiles.current[i] || !ul) return;
+    const { cols, stride, tile } = gridMetrics(ul.clientWidth);
+    const top = ul.getBoundingClientRect().top + window.scrollY;
+    const y = Math.max(0, top + Math.floor(i / cols) * stride + tile / 2 - window.innerHeight / 2);
+    window.scrollTo(0, y);
+    flushSync(() => measureWindow(y));
+  };
+
+  /* ---------------------------------------------------------------- */
+  /* The open post                                                     */
+  /* ---------------------------------------------------------------- */
+
+  const aspectOf = useCallback(
+    (i: number, s: number) =>
+      aspects.current.get(`${i}:${s}`) ?? clips[i]?.slides[s]?.aspect ?? 16 / 9,
+    [clips]
+  );
+
+  /**
+   * As large as fits, at the slide's own shape. Above the dots and centred
+   * across; on a phone, dead centre, with the dots in the margin on the right.
+   */
+  const target = useCallback(
+    (i: number, s: number): Rect => {
+      const a = aspectOf(i, s);
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const phone = vw < PHONE;
+      const maxW = vw - (phone ? SIDE : MARGIN) * 2;
+      const maxH = vh - MARGIN * 2 - (phone ? 0 : DOTS);
+      let width = maxW;
+      let height = width / a;
+      if (height > maxH) {
+        height = maxH;
+        width = height * a;
+      }
+      return {
+        left: (vw - width) / 2,
+        top: phone ? (vh - height) / 2 : MARGIN + (maxH - height) / 2,
+        width,
+        height,
+      };
+    },
+    [aspectOf]
+  );
+
+  /** Full now, dim after a while — unless the pointer is still on them. */
+  const wake = useCallback(() => {
+    setAwake(true);
+    if (awakeTimer.current !== null) window.clearTimeout(awakeTimer.current);
+    awakeTimer.current = window.setTimeout(() => {
+      awakeTimer.current = null;
+      if (!hovering.current) setAwake(false);
+    }, LINGER);
+  }, []);
+
+  /** The shape of whatever the tile has already loaded, so the box knows where to grow to. */
+  const measureTile = (i: number) => {
+    const media = tiles.current[i]?.querySelector("video, img");
+    const [w, h] =
+      media instanceof HTMLVideoElement
+        ? [media.videoWidth, media.videoHeight]
+        : media instanceof HTMLImageElement
+          ? [media.naturalWidth, media.naturalHeight]
+          : [0, 0];
+    // An uploaded clip's own measured size wins over its cover's.
+    const key = `${i}:0`;
+    if (w && h && !clips[i].slides[0]?.aspect && !aspects.current.has(key)) {
+      aspects.current.set(key, w / h);
+    }
+  };
+
+  const tileRect = (i: number): Rect => {
+    const tile = tiles.current[i];
+    if (!tile) return target(i, 0);
+    const r = tile.getBoundingClientRect();
+    return { left: r.left, top: r.top, width: r.width, height: r.height };
+  };
+
+  /** The address for a slide, on whichever host this is being served from. */
+  const hrefFor = (i: number, s: number) => `${base.current}/${slidePath(clips[i].slug, s)}`;
+
+  const open = useCallback(
+    (i: number, s: number, push: boolean) => {
+      if (closing.current !== null) {
+        window.clearTimeout(closing.current);
+        closing.current = null;
+      }
+      measureTile(i);
+      // Lay the box over the tile and make the browser take that in (reading
+      // its size forces it to), and only then send it off. Set in one go, the
+      // two would fold together and there would be nothing to animate. No
+      // animation frames: a background tab never gets any.
+      flushSync(() => {
+        setAnimate(true);
+        setIndex(i);
+        setSlide(s);
+        setBox(tileRect(i));
+        setExpanded(false);
+      });
+      boxRef.current?.getBoundingClientRect();
+      setBox(target(i, s));
+      setExpanded(true);
+      wake();
+      hold(clips[i].slug, postFiles(clips[i]));
+      if (push) {
+        window.history.pushState(null, "", hrefFor(i, s));
+        pushed.current = true;
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [clips, target, wake]
+  );
+
+  const shrink = useCallback(() => {
+    if (index === null) return;
+    // The grid is invisible now, so moving it to the tile is not seen.
+    ensureTile(index);
+    tiles.current[index]?.scrollIntoView({ block: "nearest" });
+    setAnimate(true);
+    setBox(tileRect(index));
+    setExpanded(false);
+    const slug = clips[index].slug;
+    closing.current = window.setTimeout(() => {
+      setIndex(null);
+      setSlide(0);
+      setBox(null);
+      setSharing(null);
+      closing.current = null;
+      release(slug);
+    }, DURATION);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index]);
+
+  /** Close from the page (Esc, a click on black): Back does the work if we pushed. */
+  const close = useCallback(() => {
+    if (pushed.current) {
+      pushed.current = false;
+      window.history.back();
+    } else {
+      window.history.replaceState(null, "", base.current || "/");
+      shrink();
+    }
+  }, [shrink]);
+
+  /** Another slide of the open post, at its own address. The box re-shapes to it. */
+  const show = useCallback(
+    (s: number) => {
+      if (index === null || s < 0 || s >= clips[index].slides.length || s === slide) return;
+      setAnimate(true);
+      setSlide(s);
+      setBox(target(index, s));
+      setSharing(null);
+      wake();
+      window.history.replaceState(null, "", hrefFor(index, s));
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [clips, index, slide, target, wake]
+  );
+
+  // First look: where this is served from, and a /slug page's box placed.
+  useEffect(() => {
+    base.current = window.location.pathname.startsWith("/cinema") ? "/cinema" : "";
+    if (initialIndex < 0) return;
+    const timer = window.setTimeout(() => {
+      setBox(target(initialIndex, initialSlide));
+      wake();
+    });
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Back and Forward. Back from an open post lands on the grid's address.
+  useEffect(() => {
+    const onPop = () => {
+      const [slug = "", n] = window.location.pathname
+        .slice(base.current.length)
+        .split("/")
+        .filter(Boolean);
+      const i = clips.findIndex((c) => c.slug === slug);
+      if (i >= 0) {
+        const s = n ? Math.min(Math.max(Number(n) - 1, 0), clips[i].slides.length - 1) : 0;
+        open(i, s, false);
+      } else {
+        pushed.current = false;
+        shrink();
+      }
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [clips, open, shrink]);
+
+  // Keys, the page not scrolling under an open post, and a resize re-fitting it.
+  useEffect(() => {
+    if (index === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close();
+      else if (e.key === "ArrowRight" || e.key === "ArrowDown") show(slide + 1);
+      else if (e.key === "ArrowLeft" || e.key === "ArrowUp") show(slide - 1);
+    };
+    const onResize = () => {
+      setAnimate(false);
+      setBox(target(index, slide));
+    };
+    const root = document.documentElement;
+    const overflow = root.style.overflow;
+    root.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("resize", onResize);
+    return () => {
+      root.style.overflow = overflow;
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [index, slide, close, show, target]);
+
+  useEffect(
+    () => () => {
+      if (awakeTimer.current !== null) window.clearTimeout(awakeTimer.current);
+    },
+    []
+  );
+
+  const onAspect = (i: number, s: number, aspect: number) => {
+    const key = `${i}:${s}`;
+    if (Math.abs((aspects.current.get(key) ?? 0) - aspect) < 0.001) return;
+    aspects.current.set(key, aspect);
+    // Settle on the real shape if this slide is the one open and grown.
+    if (i === index && s === slide && expanded && closing.current === null) {
+      setAnimate(true);
+      setBox(target(i, s));
+    }
+  };
+
+  /**
+   * On a phone, the story card for the slide showing, to the share sheet. On a
+   * computer, where there is no story to post it to, just the slide's link, copied.
+   */
+  const share = async () => {
+    if (index === null || sharing === "Making story…") return;
+    const post = clips[index];
+    const current = post.slides[slide];
+    const url = slideUrl(post.slug, slide);
+    wake();
+    if (!window.matchMedia("(pointer: coarse)").matches) {
+      const copied = await navigator.clipboard?.writeText(url).then(
+        () => true,
+        () => false
+      );
+      setSharing(copied ? "Link copied" : url);
+      return;
+    }
+    setSharing("Making story…");
+    const file = current?.share
+      ? await makeStory({
+          src: current.share,
+          label: post.show || post.title,
+          date: shortDate(post.date),
+          url: url.replace(/^https?:\/\//, ""),
+          name: slidePath(post.slug, slide).replace("/", "-"),
+        })
+      : null;
+    const result = await shareStory(file, url);
+    setSharing(
+      result === "saved"
+        ? "Story saved · link copied"
+        : result === "copied"
+          ? "Link copied"
+          : result === "shared"
+            ? "Shared"
+            : null
+    );
+    wake();
+  };
+
+  const ready = sound === "on" || sound === "off";
+  const transition = animate
+    ? `left ${DURATION}ms ${EASE}, top ${DURATION}ms ${EASE}, width ${DURATION}ms ${EASE}, height ${DURATION}ms ${EASE}, background-color ${DURATION}ms ${EASE}`
+    : "none";
+  const fade = animate ? `opacity ${DURATION}ms ${EASE}` : "none";
+  const chrome = {
+    opacity: expanded ? (awake ? 1 : 0.3) : 0,
+    transition: expanded && animate ? "opacity 400ms ease" : fade,
+  };
+  const post = index !== null ? clips[index] : null;
+  const shown = win ? clips.slice(win.start, win.end) : clips;
+  const offset = win?.start ?? 0;
+
+  return (
+    <>
+      {sound === "ask" && (
+        <div className="cinema-ask" role="dialog" aria-label="Sound">
+          <p>Play clips with sound when you open them?</p>
+          {/* Two equal columns, so both buttons are as wide as the wider label. */}
+          <div className="grid grid-cols-2 gap-3">
+            <button type="button" className="btn btn-primary" onClick={() => writeSound("on")}>
+              Allow
+            </button>
+            <button type="button" className="btn" onClick={() => writeSound("off")}>
+              Not now
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div style={{ visibility: ready ? "visible" : "hidden" }}>
+        <ul
+          ref={list}
+          className="cinema-grid"
+          style={{
+            opacity: expanded ? 0 : 1,
+            transition: fade,
+            paddingTop: win?.above,
+            paddingBottom: win?.below,
+          }}
+        >
+          {shown.map((clip, k) => {
+            const i = offset + k;
+            return (
+              <Tile
+                key={clip.slug}
+                clip={clip}
+                hidden={index === i}
+                tileRef={(el) => {
+                  tiles.current[i] = el;
+                }}
+                onOpen={() => open(i, 0, true)}
+              />
+            );
+          })}
+        </ul>
+
+        {post && index !== null && (
+          <>
+            <div
+              className="cinema-backdrop"
+              style={{ opacity: expanded ? 1 : 0, transition: fade }}
+              onClick={close}
+            />
+
+            {box && (
+              <div
+                ref={boxRef}
+                className="cinema-box"
+                style={{
+                  ...box,
+                  transition,
+                  // The bars' black, fading into the backdrop's as it grows;
+                  // grey instead if the slide has shown nothing.
+                  backgroundColor: stalled
+                    ? "#2a2a2a"
+                    : expanded
+                      ? "rgb(0 0 0 / 0)"
+                      : "rgb(0 0 0 / 1)",
+                }}
+              >
+                <ViewerMedia
+                  key={`${post.slug}:${slide}`}
+                  slide={post.slides[slide] ?? post.slides[0]}
+                  title={post.title}
+                  sound={sound === "on" ? "on" : "off"}
+                  active={ready}
+                  onAspect={(a) => onAspect(index, slide, a)}
+                  onStalled={setStalled}
+                />
+              </div>
+            )}
+
+            <div
+              className="cinema-share"
+              style={chrome}
+              onMouseEnter={() => {
+                hovering.current = true;
+                setAwake(true);
+              }}
+              onMouseLeave={() => {
+                hovering.current = false;
+                wake();
+              }}
+            >
+              {sharing && <span>{sharing}</span>}
+              <button type="button" aria-label="Share" onClick={share}>
+                <Icon name="material-symbols:ios-share-rounded" size="1.3em" />
+              </button>
+            </div>
+
+            {post.slides.length > 1 && (
+              <nav
+                className="cinema-dots"
+                aria-label="Slides"
+                style={chrome}
+                onMouseEnter={() => {
+                  hovering.current = true;
+                  setAwake(true);
+                }}
+                onMouseLeave={() => {
+                  hovering.current = false;
+                  wake();
+                }}
+              >
+                {post.slides.map((_, s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    aria-label={`Slide ${s + 1} of ${post.slides.length}`}
+                    aria-current={s === slide ? "true" : undefined}
+                    onClick={() => show(s)}
+                  />
+                ))}
+              </nav>
+            )}
+          </>
+        )}
+      </div>
+    </>
+  );
+}

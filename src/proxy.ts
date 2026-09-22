@@ -5,8 +5,8 @@ import { SITE } from "@/lib/site";
 /**
  * Host-based routing for the subdomains.
  *
- * projects., creative. and wishlist.odiwr.com are served by THIS app: the request
- * is rewritten onto /projects, /creative or /wishlist so each subdomain has its own pages
+ * projects., creative., wishlist. and cinema.odiwr.com are served by THIS app: the
+ * request is rewritten onto /projects, /creative, /wishlist or /cinema so each subdomain has its own pages
  * without a second deployment. A rewrite, not a redirect — the visitor stays on
  * the subdomain and never sees the internal path.
  *
@@ -68,7 +68,21 @@ const SUBDOMAINS: Record<string, string> = {
   projects: "/projects",
   creative: "/creative",
   wishlist: "/wishlist",
+  cinema: "/cinema",
 };
+
+/**
+ * Hosts whose every page lives under their base, not just the root.
+ *
+ * cinema.odiwr.com/some-clip is a post, /cinema/some-clip internally. The other
+ * subdomains link their entries to the apex's own routes (see the note above);
+ * the cinema's posts exist nowhere else, so its paths are its own.
+ *
+ * Only a post's path (/slug) and its slides' (/slug/2) are rewritten, and not
+ * these, which are app routes any host has to reach.
+ */
+const OWNS_PATHS = new Set(["cinema"]);
+const SHARED_ROUTES = new Set(["media", "r2-list", "dashboard", "cinema"]);
 
 export function proxy(request: NextRequest) {
   // One canonical spelling first, so everything below only ever sees it.
@@ -96,6 +110,15 @@ export function proxy(request: NextRequest) {
   if (pathname === "/robots.txt") {
     url.pathname = `/robots-txt/${section}`;
     return NextResponse.rewrite(url);
+  }
+
+  if (OWNS_PATHS.has(section)) {
+    // A post, or one of its slides: /slug or /slug/2.
+    const match = /^\/([a-z0-9-]+)(\/\d+)?\/?$/.exec(pathname);
+    if (match && !SHARED_ROUTES.has(match[1])) {
+      url.pathname = `${base}/${match[1]}${match[2] ?? ""}`;
+      return NextResponse.rewrite(url);
+    }
   }
 
   // Only the root otherwise. See the note above.

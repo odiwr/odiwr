@@ -38,6 +38,8 @@ yarn-error.log*
 
 # the dashboard's local content, used by `next dev` when R2 is not configured
 /.local/
+# and its uploads, which have to be under public/ to be served
+/public/_local/
 
 # typescript
 *.tsbuildinfo

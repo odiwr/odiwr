@@ -1708,3 +1708,265 @@ textarea.field.blurb {
     animation-duration: 1ms;
   }
 }
+
+/**
+ * cinema.odiwr.com.
+ *
+ * Edge to edge (.page-full), a small margin all round. Every tile is the same
+ * cinema frame, 2.39:1, and what is in it is letterboxed rather than cropped:
+ * black bars above and below a taller clip, either side of a wider one. The
+ * clip's own shape is what it opens to (components/cinema/CinemaGallery.tsx).
+ */
+
+/* The body's side padding is pulled back so only --cinema-margin is left. */
+.page-full {
+  --cinema-margin: 12px;
+  max-width: none;
+  margin-inline: calc(var(--cinema-margin) - var(--body-margin));
+  padding: var(--cinema-margin) 0;
+}
+
+/**
+ * Five across, each as wide as that leaves; fewer as the screen narrows, so
+ * they never get small.
+ */
+.cinema-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 18px 6px;
+}
+
+@media (max-width: 1024px) {
+  .cinema-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 639px) {
+  .cinema-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 4px;
+  }
+}
+
+.cinema-tile {
+  position: relative;
+  display: block;
+  aspect-ratio: 2.39 / 1;
+  overflow: hidden;
+  border-radius: 2px;
+  background: #000;
+}
+
+/* Waiting for its picture: a sweep of light across the frame. */
+.cinema-tile[data-state="loading"] {
+  background: linear-gradient(100deg, #000 30%, #161616 50%, #000 70%) 0 0 / 300% 100%;
+  animation: cinema-skeleton 1.4s ease-in-out infinite;
+}
+
+/* The picture never came: grey, not black, so it reads as missing rather than dark. */
+.cinema-tile[data-state="failed"] {
+  background: #2a2a2a;
+}
+
+.cinema-tile[data-state="failed"] > * {
+  visibility: hidden;
+}
+
+@keyframes cinema-skeleton {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cinema-tile[data-state="loading"] {
+    animation: none;
+    background: #111;
+  }
+}
+
+/* Contained, so the frame's black shows as bars round anything not 2.39:1. */
+.cinema-tile img,
+.cinema-tile video,
+.cinema-box img,
+.cinema-box video,
+.cinema-box iframe {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border: 0;
+}
+
+/* The one line under a tile: what it is from on the left, the date on the right. */
+.cinema-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 4px;
+  font-size: 13px;
+  line-height: 20px;
+  color: #ffd994;
+}
+
+.cinema-meta > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cinema-meta > time {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Behind an open clip: black, coming up as the clip grows. */
+.cinema-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: #000;
+}
+
+/* The open clip. Its position, size and black are driven inline, per frame. */
+.cinema-box {
+  position: fixed;
+  z-index: 50;
+  overflow: hidden;
+  border-radius: 2px;
+}
+
+/* The full clip, over the cover loop it opened on, fading in once it plays. */
+.cinema-full {
+  opacity: 0;
+  transition: opacity 400ms ease;
+}
+
+.cinema-full[data-playing] {
+  opacity: 1;
+}
+
+/* One dot per slide of the open post, under it. Dimmed while not looked at. */
+.cinema-dots {
+  position: fixed;
+  z-index: 50;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  max-width: calc(100vw - 48px);
+}
+
+.cinema-dots > button {
+  width: 16px;
+  height: 16px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.cinema-dots > button::before {
+  content: "";
+  display: block;
+  width: 6px;
+  height: 6px;
+  margin: auto;
+  border-radius: 50%;
+  background: color-mix(in srgb, #ffd994 35%, transparent);
+  transition:
+    background-color 200ms ease,
+    transform 200ms ease;
+}
+
+.cinema-dots > button:hover::before {
+  background: color-mix(in srgb, #ffd994 65%, transparent);
+}
+
+.cinema-dots > button[aria-current]::before {
+  background: #ffd994;
+  transform: scale(1.35);
+}
+
+/* On a phone the clip sits dead centre, so the dots run down the right margin. */
+@media (max-width: 639px) {
+  .cinema-dots {
+    left: auto;
+    right: 6px;
+    bottom: auto;
+    top: 50%;
+    transform: translateY(-50%);
+    flex-direction: column;
+    flex-wrap: nowrap;
+    max-width: none;
+    max-height: calc(100dvh - 48px);
+    overflow-y: auto;
+  }
+}
+
+/* Share, in the top right corner over an open post; dims with the dots. */
+.cinema-share {
+  position: fixed;
+  z-index: 50;
+  top: 14px;
+  right: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #ffd994;
+}
+
+.cinema-share > button {
+  display: flex;
+  border: 0;
+  padding: 6px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+/*
+ * No browser controls over the clips, ever. None are asked for, but WebKit and
+ * iOS draw their own layer (the big play button when autoplay is refused, the
+ * overlay on tap); these hide it.
+ */
+.cinema-grid video::-webkit-media-controls,
+.cinema-box video::-webkit-media-controls,
+.cinema-grid video::-webkit-media-controls-enclosure,
+.cinema-box video::-webkit-media-controls-enclosure,
+.cinema-grid video::-webkit-media-controls-panel,
+.cinema-box video::-webkit-media-controls-panel,
+.cinema-grid video::-webkit-media-controls-start-playback-button,
+.cinema-box video::-webkit-media-controls-start-playback-button,
+.cinema-grid video::-webkit-media-controls-overlay-play-button,
+.cinema-box video::-webkit-media-controls-overlay-play-button {
+  display: none !important;
+  -webkit-appearance: none;
+}
+
+/* A first visit: this and nothing else, until it is answered. */
+.cinema-ask {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 24px;
+  text-align: center;
+  background: var(--color-background);
+}
