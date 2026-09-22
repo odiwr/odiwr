@@ -1956,6 +1956,38 @@ textarea.field.blurb {
   -webkit-appearance: none;
 }
 
+/* Black under an open post, all the way to the edges of the browser. */
+html[data-cinema-open],
+html[data-cinema-open] body {
+  background: #000;
+  transition: background-color 700ms ease;
+}
+
+/*
+ * A phone on its side: the clip takes the whole screen (CinemaGallery's
+ * target()), so the dots and share sit over it, shadowed to stay legible on
+ * a bright frame.
+ */
+@media (orientation: landscape) and (max-height: 500px) {
+  .cinema-box {
+    border-radius: 0;
+  }
+
+  .cinema-dots {
+    bottom: max(10px, env(safe-area-inset-bottom));
+  }
+
+  .cinema-dots,
+  .cinema-share {
+    filter: drop-shadow(0 1px 3px rgb(0 0 0 / 0.8));
+  }
+
+  .cinema-share {
+    top: max(10px, env(safe-area-inset-top));
+    right: max(10px, env(safe-area-inset-right));
+  }
+}
+
 /* A first visit: this and nothing else, until it is answered. */
 .cinema-ask {
   position: fixed;

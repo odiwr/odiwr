@@ -52,6 +52,8 @@ const DOTS = 48;
 /** On a phone the dots run down the right; the clip keeps this much either side, so it stays centred. */
 const SIDE = 28;
 const PHONE = 640;
+/** A screen this short and wider than tall is a phone on its side. */
+const SIDEWAYS = 500;
 /** How long the dots stay fully visible after being looked at, before dimming. */
 const LINGER = 1500;
 /** How long an open slide gets to show something before it is marked grey. */
@@ -563,7 +565,8 @@ export default function CinemaGallery({
 
   /**
    * As large as fits, at the slide's own shape. Above the dots and centred
-   * across; on a phone, dead centre, with the dots in the margin on the right.
+   * across; on a phone, dead centre, with the dots in the margin on the right;
+   * on a phone turned sideways, the whole screen, with the dots over the clip.
    */
   const target = useCallback(
     (i: number, s: number): Rect => {
@@ -571,8 +574,11 @@ export default function CinemaGallery({
       const vw = window.innerWidth;
       const vh = window.innerHeight;
       const phone = vw < PHONE;
-      const maxW = vw - (phone ? SIDE : MARGIN) * 2;
-      const maxH = vh - MARGIN * 2 - (phone ? 0 : DOTS);
+      // A phone on its side: too short for margins. The same test as the CSS
+      // that lays the dots over the clip (globals.css).
+      const sideways = vh <= SIDEWAYS && vw > vh;
+      const maxW = sideways ? vw : vw - (phone ? SIDE : MARGIN) * 2;
+      const maxH = sideways ? vh : vh - MARGIN * 2 - (phone ? 0 : DOTS);
       let width = maxW;
       let height = width / a;
       if (height > maxH) {
@@ -581,7 +587,7 @@ export default function CinemaGallery({
       }
       return {
         left: (vw - width) / 2,
-        top: phone ? (vh - height) / 2 : MARGIN + (maxH - height) / 2,
+        top: phone || sideways ? (vh - height) / 2 : MARGIN + (maxH - height) / 2,
         width,
         height,
       };
@@ -750,10 +756,19 @@ export default function CinemaGallery({
     const root = document.documentElement;
     const overflow = root.style.overflow;
     root.style.overflow = "hidden";
+    // Black behind everything while a post is open — the page itself and the
+    // browser's own colour, so on a phone the strip behind the address bar, the
+    // notch and any overscroll are black too, not the site's grey.
+    root.dataset.cinemaOpen = "";
+    const theme = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    const themeColor = theme?.content;
+    if (theme) theme.content = "#000000";
     window.addEventListener("keydown", onKey);
     window.addEventListener("resize", onResize);
     return () => {
       root.style.overflow = overflow;
+      delete root.dataset.cinemaOpen;
+      if (theme && themeColor) theme.content = themeColor;
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("resize", onResize);
     };
