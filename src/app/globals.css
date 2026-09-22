@@ -1827,10 +1827,15 @@ textarea.field.blurb {
   font-variant-numeric: tabular-nums;
 }
 
-/* Behind an open clip: black, coming up as the clip grows. */
+/*
+ * Behind an open clip: black, coming up as the clip grows. Well past the top
+ * and bottom of the screen, so it is also under a phone's browser bars (iOS
+ * Safari's bottom bar floats over the page) and whatever the page does as they
+ * slide in and out.
+ */
 .cinema-backdrop {
   position: fixed;
-  inset: 0;
+  inset: -50vh 0;
   z-index: 40;
   background: #000;
 }
@@ -1956,11 +1961,14 @@ textarea.field.blurb {
   -webkit-appearance: none;
 }
 
-/* Black under an open post, all the way to the edges of the browser. */
+/*
+ * Black under an open post, all the way to the edges of the browser, and at
+ * once: iOS Safari tints its bars from the page when the post opens, and a
+ * colour still fading from grey gets picked up grey and kept.
+ */
 html[data-cinema-open],
 html[data-cinema-open] body {
   background: #000;
-  transition: background-color 700ms ease;
 }
 
 /*
