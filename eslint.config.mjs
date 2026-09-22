@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // ffmpeg.wasm's own worker, copied in as it ships (npm run ffmpeg:worker).
+    "public/ffmpeg/**",
   ]),
 ]);
 

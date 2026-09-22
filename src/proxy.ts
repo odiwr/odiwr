@@ -129,11 +129,12 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Everything except Next's own assets and the files that must resolve at the
-  // root of whichever host asks for them.
+  // Everything except Next's own assets, the files that must resolve at the
+  // root of whichever host asks for them, and the dashboard's upload routes —
+  // a request through proxy has its body buffered, capped at 10 MB.
   // robots.txt and sitemap.xml are deliberately NOT excluded: on a subdomain
   // they need redirecting to that host's own versions.
   matcher: [
-    "/((?!_next/|favicon.ico|icon.png|icon.svg|apple-icon.png|manifest.webmanifest|brand/|icons/).*)",
+    "/((?!_next/|dashboard/api/|favicon.ico|icon.png|icon.svg|apple-icon.png|manifest.webmanifest|brand/|icons/).*)",
   ],
 };
