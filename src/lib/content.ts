@@ -115,6 +115,13 @@ export type Slide = {
   cover?: string;
   width?: number;
   height?: number;
+  /**
+   * The trim, in seconds into the video: the part that plays. Absent start is
+   * the beginning, absent end the end. The file itself is never cut, so a trim
+   * can be changed later; the cover loop is recorded from the trimmed part.
+   */
+  start?: number;
+  end?: number;
 };
 
 /**
@@ -155,9 +162,12 @@ export type Clip = {
   /** Pixel size of the video, so its tile and player hold the right shape before it loads. */
   width?: number;
   height?: number;
-  /** ISO date, YYYY-MM-DD. The grid is newest first. */
+  /** The first slide's trim (Slide.start and end). */
+  start?: number;
+  end?: number;
+  /** ISO date, YYYY-MM-DD. Shown under the tile; the order is the list's own. */
   date: string;
-  /** True when it is kept off the site. Absent is shown. */
+  /** Archived: kept, greyed in the dashboard, and off the site. Absent is shown. */
   hidden?: boolean;
   /** Every slide after the first, in order. The viewer's dots step through them all. */
   slides?: Slide[];
@@ -397,15 +407,15 @@ export function wishGroups(content: Content): { category: string; items: WishIte
   }));
 }
 
-/** Clips newest first, the order the grid shows them. Ties keep the order they were added, latest first. */
+/**
+ * Posts in the order the grid shows them: the list's own order, which the
+ * dashboard sets by dragging. A new post goes in at the front.
+ */
 export function sortedClips(content: Content): Clip[] {
-  return content.clips
-    .map((clip, i) => ({ clip, i }))
-    .sort((a, b) => b.clip.date.localeCompare(a.clip.date) || b.i - a.i)
-    .map(({ clip }) => clip);
+  return content.clips;
 }
 
-/** The clips on the site: newest first, hidden ones left out. */
+/** The posts on the site: in order, archived ones left out. */
 export function publicClips(content: Content): Clip[] {
   return sortedClips(content).filter((c) => !c.hidden);
 }

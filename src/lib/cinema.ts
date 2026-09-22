@@ -141,7 +141,7 @@ export function stillFor(href: string | undefined): string | undefined {
  * local files are same-origin already. Server only: it reads the bucket's
  * public address from the environment.
  */
-function readable(href: string | undefined): string | undefined {
+export function readable(href: string | undefined): string | undefined {
   if (!href) return undefined;
   const bucket = (process.env.R2_PUBLIC_URL || "").replace(/\/$/, "");
   if (bucket && href.startsWith(`${bucket}/`)) {
@@ -162,6 +162,8 @@ export function clipSlides(clip: Clip): Slide[] {
     cover: clip.cover,
     width: clip.width,
     height: clip.height,
+    start: clip.start,
+    end: clip.end,
   };
   return [first, ...(clip.slides ?? [])];
 }
@@ -174,6 +176,9 @@ export type ViewSlide = {
   still?: string;
   /** The full clip, played with sound once opened. */
   video?: string;
+  /** The part of it that plays, in seconds (Slide.start and end). */
+  start?: number;
+  end?: number;
   /** An official player to open instead, when there is no upload (first slide only). */
   embed?: string;
   /** Width over height, when known ahead; otherwise measured as it loads. */
@@ -209,6 +214,8 @@ function viewSlide(slide: Slide, embedLink?: string): ViewSlide {
     loop,
     still,
     video: slide.video,
+    start: slide.start,
+    end: slide.end,
     embed: embed?.src,
     share: readable(loop ?? slide.video),
     preload: [slide.video, loop]

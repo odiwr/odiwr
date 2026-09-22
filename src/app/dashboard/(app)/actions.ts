@@ -10,7 +10,6 @@ import {
   slugify,
   autoClipSlug,
   isAutoClipSlug,
-  uniqueClipSlug,
   type Clip,
   type Slide,
   type Post,
@@ -389,59 +388,128 @@ export async function deleteWishCategory(form: FormData) {
 /* Cinema                                                              */
 /* ------------------------------------------------------------------ */
 
-export async function saveClip(form: FormData) {
+/** A slide as the composer sends it. Everything is checked again here. */
+export type SlideInput = {
+  video?: string;
+  poster?: string;
+  cover?: string;
+  width?: number;
+  height?: number;
+  start?: number;
+  end?: number;
+};
+
+export type PostInput = {
+  /** Absent for a new post. */
+  id?: string;
+  title: string;
+  show?: string;
+  caption?: string;
+  embed?: string;
+  slides: SlideInput[];
+};
+
+/** A whole number of pixels, or nothing. */
+const pixels = (n: unknown) =>
+  typeof n === "number" && Number.isFinite(n) && n > 0 ? Math.round(n) : undefined;
+
+/** Seconds to the tenth, or nothing. A start of 0 is the default, so it is dropped. */
+const seconds = (n: unknown, dropZero = false) =>
+  typeof n === "number" && Number.isFinite(n) && n >= 0 && !(dropZero && n === 0)
+    ? Math.round(n * 100) / 100
+    : undefined;
+
+function cleanSlide(input: SlideInput): Slide {
+  const start = seconds(input.start, true);
+  let end = seconds(input.end);
+  if (end !== undefined && end <= (start ?? 0)) end = undefined;
+  return {
+    video: url(String(input.video ?? "").trim()),
+    poster: url(String(input.poster ?? "").trim()),
+    cover: url(String(input.cover ?? "").trim()),
+    width: pixels(input.width),
+    height: pixels(input.height),
+    start,
+    end,
+  };
+}
+
+/**
+ * Saves a post from the composer: every slide, in order, with its trim.
+ *
+ * A new post goes to the front of the grid and is live at once; there is no
+ * draft. An existing one keeps its place, its date, and its archived state.
+ * Files the post no longer uses (a slide removed, a cover re-recorded after a
+ * new trim) are deleted.
+ */
+export async function saveCinemaPost(input: PostInput): Promise<{ id: string; slug: string }> {
   await requireAdmin();
-  const title = str(form, "title");
-  if (!title) throw new Error("A title is required");
+
+  const slides = (Array.isArray(input.slides) ? input.slides : [])
+    .map(cleanSlide)
+    .filter((s) => s.video || s.poster || s.cover);
+  const embed = url(String(input.embed ?? "").trim());
+  if (!slides.length && !embed) throw new Error("A post needs a clip");
+
+  const show = opt(String(input.show ?? "").trim());
+  const title = String(input.title ?? "").trim() || show || "Untitled";
 
   const content = await getFreshContent();
-  const id = str(form, "id") || newId();
-  const index = content.clips.findIndex((c) => c.id === id);
+  const index = input.id ? content.clips.findIndex((c) => c.id === input.id) : -1;
   const existing = index >= 0 ? content.clips[index] : undefined;
+  const id = existing?.id ?? newId();
+  const date = existing?.date ?? new Date().toISOString().slice(0, 10);
 
-  const video = url(str(form, "video"));
-  const embed = url(str(form, "embed"));
-  const poster = url(str(form, "poster"));
-  if (!video && !embed && !poster) throw new Error("A clip needs a video, a link, or a poster");
-
-  const show = opt(str(form, "show"));
-  const date = str(form, "date") || existing?.date || new Date().toISOString().slice(0, 10);
-
-  // Generated unless a slug of your own was typed. Left blank, or left as the
-  // generated one it already had, it follows the name and date; that way
-  // naming the show after an upload replaces the file-name slug.
-  const typed = slugify(str(form, "slug"));
-  const generated = !typed || (typed === existing?.slug && isAutoClipSlug(typed));
-
+  const [first = {}, ...rest] = slides;
   const clip: Clip = {
     id,
-    slug: generated
-      ? autoClipSlug(content, show || title, date, id)
-      : // Two posts cannot share an address, so a taken slug gets a number.
-        uniqueClipSlug(content, typed, id),
+    // Follows the name while it is a generated one; a typed slug stays.
+    slug:
+      !existing || isAutoClipSlug(existing.slug)
+        ? autoClipSlug(content, show || title, date, id)
+        : existing.slug,
     title,
     show,
-    caption: opt(str(form, "caption")),
-    video,
-    poster,
-    cover: url(str(form, "cover")),
+    caption: opt(String(input.caption ?? "").trim()),
+    ...first,
     embed,
-    // Measured when it was uploaded. Kept while the video is the same one.
-    width: existing?.video === video ? existing?.width : undefined,
-    height: existing?.video === video ? existing?.height : undefined,
     date,
-    hidden: form.has("visible") ? undefined : true,
-    // Added and removed from their own controls, not this form.
-    slides: existing?.slides,
+    hidden: existing?.hidden,
+    slides: rest.length ? rest : undefined,
   };
 
   const clips = [...content.clips];
   if (existing) clips[index] = clip;
-  else clips.push(clip);
+  else clips.unshift(clip);
+  await saveContent({ ...content, clips });
 
+  // Whatever the old version used and the saved list no longer does.
+  if (existing) await removeSlideFiles(clipSlides(existing), clips);
+
+  flush();
+  return { id, slug: clip.slug };
+}
+
+/** Applies a dragged order to the whole grid. A payload that is not every post is ignored. */
+export async function reorderClips(ids: string[]) {
+  await requireAdmin();
+  const content = await getFreshContent();
+  const byId = new Map(content.clips.map((c) => [c.id, c]));
+  const ordered = ids.map((id) => byId.get(id)).filter((c): c is Clip => Boolean(c));
+  if (ordered.length !== content.clips.length) return;
+  await saveContent({ ...content, clips: ordered });
+  flush();
+  revalidatePath("/dashboard/cinema");
+}
+
+/** Archived posts stay in the dashboard, greyed, and leave the site. */
+export async function setArchived(id: string, archived: boolean) {
+  await requireAdmin();
+  const content = await getFreshContent();
+  const clips = content.clips.map((c) => (c.id === id ? { ...c, hidden: archived || undefined } : c));
   await saveContent({ ...content, clips });
   flush();
-  redirect("/dashboard/cinema");
+  revalidatePath("/dashboard/cinema");
 }
 
 /** The bucket key behind one of our own public URLs, if it is one uploaded for the cinema. */
@@ -450,26 +518,17 @@ function cinemaKey(href: string | undefined): string | null {
   return href.slice(MEDIA_BASE.length + 1);
 }
 
-/**
- * Deletes the post, and the files uploaded for it.
- *
- * Only files in the bucket's cinema/ folder go: those were made for this post
- * alone. Anything else it pointed at (a picked file, another site) is left be.
- */
-export async function deleteClip(form: FormData) {
+/** Deletes a post, and every file uploaded for it that nothing else uses. */
+export async function deletePost(id: string) {
   await requireAdmin();
-  const id = str(form, "id");
   const content = await getFreshContent();
   const clip = content.clips.find((c) => c.id === id);
-  await saveContent({ ...content, clips: content.clips.filter((c) => c.id !== id) });
-
-  if (clip) {
-    const others = content.clips.filter((c) => c.id !== id);
-    await removeSlideFiles(clipSlides(clip), others);
-  }
-
+  if (!clip) return;
+  const clips = content.clips.filter((c) => c.id !== id);
+  await saveContent({ ...content, clips });
+  await removeSlideFiles(clipSlides(clip), clips);
   flush();
-  redirect("/dashboard/cinema");
+  revalidatePath("/dashboard/cinema");
 }
 
 /** Every file a set of posts points at. */
@@ -482,7 +541,7 @@ function filesOf(clips: Clip[]): Set<string> {
 }
 
 /**
- * Deletes the files uploaded for these slides that nothing else still uses.
+ * Deletes the files uploaded for these slides that no remaining post uses.
  *
  * Only files in the bucket's cinema/ folder go: those were made for a post
  * alone. Anything else a slide pointed at (a picked file, another site) is left
@@ -490,8 +549,10 @@ function filesOf(clips: Clip[]): Set<string> {
  */
 async function removeSlideFiles(slides: Slide[], remaining: Clip[]) {
   const used = filesOf(remaining);
-  const hrefs = slides.flatMap((s) => [s.video, s.poster, s.cover]).filter((h): h is string => !!h && !used.has(h));
-  for (const href of hrefs) {
+  const hrefs = slides
+    .flatMap((s) => [s.video, s.poster, s.cover])
+    .filter((h): h is string => !!h && !used.has(h));
+  for (const href of new Set(hrefs)) {
     const key = cinemaKey(href);
     if (key) await remove(key).catch(() => {});
     else if (process.env.NODE_ENV === "development" && href.startsWith("/_local/cinema/")) {
@@ -500,25 +561,4 @@ async function removeSlideFiles(slides: Slide[], remaining: Clip[]) {
       await unlink(join(process.cwd(), "public", href)).catch(() => {});
     }
   }
-}
-
-/** Takes one slide (not the first, which is the post's own) out of a post. */
-export async function removeSlide(form: FormData) {
-  await requireAdmin();
-  const id = str(form, "id");
-  const at = Number(str(form, "slide"));
-  const content = await getFreshContent();
-  const index = content.clips.findIndex((c) => c.id === id);
-  const post = content.clips[index];
-  if (!post?.slides || !Number.isInteger(at) || at < 0 || at >= post.slides.length) return;
-
-  const removed = post.slides[at];
-  const slides = post.slides.filter((_, i) => i !== at);
-  const clips = [...content.clips];
-  clips[index] = { ...post, slides: slides.length ? slides : undefined };
-  await saveContent({ ...content, clips });
-  await removeSlideFiles([removed], clips);
-
-  flush();
-  revalidatePath(`/dashboard/cinema/${id}`);
 }

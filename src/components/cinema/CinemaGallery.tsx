@@ -192,7 +192,7 @@ function TileMedia({
     return (
       <video
         ref={ref}
-        src={`${slide.video}#t=0.1`}
+        src={`${slide.video}#t=${slide.start ?? 0.1}`}
         muted
         loop
         preload="metadata"
@@ -352,6 +352,21 @@ function ViewerMedia({
     });
   }, [active, sound]);
 
+  // The trim's end, checked every frame: the time events alone come a quarter
+  // second apart, which overshoots the cut. They stay as the fallback, and for
+  // a tab not drawing frames.
+  useEffect(() => {
+    const video = full.current;
+    if (!video || slide.end === undefined || !("requestVideoFrameCallback" in video)) return;
+    let id = 0;
+    const check = () => {
+      if (slide.end !== undefined && video.currentTime >= slide.end) video.currentTime = slide.start ?? 0;
+      id = video.requestVideoFrameCallback(check);
+    };
+    id = video.requestVideoFrameCallback(check);
+    return () => video.cancelVideoFrameCallback(id);
+  }, [slide.start, slide.end]);
+
   const measure = (w: number, h: number) => {
     if (w && h) onAspect(w / h);
   };
@@ -390,12 +405,24 @@ function ViewerMedia({
         <video
           ref={full}
           src={cached(slide.video)}
-          loop
           preload="auto"
           {...BARE}
           className="cinema-full"
           data-playing={playing ? "" : undefined}
-          onLoadedMetadata={(e) => measure(e.currentTarget.videoWidth, e.currentTarget.videoHeight)}
+          onLoadedMetadata={(e) => {
+            measure(e.currentTarget.videoWidth, e.currentTarget.videoHeight);
+            if (slide.start) e.currentTarget.currentTime = slide.start;
+          }}
+          // Only the trim plays: past its end (or the file's), back to its start.
+          onTimeUpdate={(e) => {
+            const v = e.currentTarget;
+            if (slide.end !== undefined && v.currentTime >= slide.end) v.currentTime = slide.start ?? 0;
+          }}
+          onEnded={(e) => {
+            const v = e.currentTarget;
+            v.currentTime = slide.start ?? 0;
+            v.play().catch(() => {});
+          }}
           onPlaying={() => {
             setPlaying(true);
             ready();
