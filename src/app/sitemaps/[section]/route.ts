@@ -1,5 +1,6 @@
 import { SITE } from "@/lib/site";
-import { getContent, sectionWork, type Section } from "@/lib/content";
+import { getContent, publicClips, sectionWork, type Section } from "@/lib/content";
+import { clipSlides, slidePath } from "@/lib/cinema";
 
 /**
  * Per-subdomain sitemaps.
@@ -22,23 +23,33 @@ const ORIGINS: Record<string, { origin: string; section: Section }> = {
 };
 
 export function generateStaticParams() {
-  return Object.keys(ORIGINS).map((section) => ({ section }));
+  return [...Object.keys(ORIGINS), "cinema"].map((section) => ({ section }));
 }
 
 export const dynamicParams = false;
 
 export async function GET(_request: Request, { params }: { params: Promise<{ section: string }> }) {
   const { section } = await params;
+  const content = await getContent();
   const config = ORIGINS[section];
-  if (!config) return new Response("Not found", { status: 404 });
 
-  const items = sectionWork(await getContent(), config.section);
+  let urls: string[];
+  if (section === "cinema") {
+    // Every visible post is a page of its own there, and so is each of its slides.
+    urls = [
+      SITE.cinemaUrl,
+      ...publicClips(content).flatMap((c) =>
+        clipSlides(c).map((_, i) => `${SITE.cinemaUrl}/${slidePath(c.slug, i)}`)
+      ),
+    ];
+  } else if (config) {
+    const items = sectionWork(content, config.section);
+    urls = [config.origin, ...items.filter((w) => w.slug).map((w) => `${config.origin}/${w.slug}`)];
+  } else {
+    return new Response("Not found", { status: 404 });
+  }
 
   const now = new Date().toISOString();
-  const urls = [
-    config.origin,
-    ...items.filter((w) => w.slug).map((w) => `${config.origin}/${w.slug}`),
-  ];
 
   const body = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

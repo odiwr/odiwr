@@ -104,6 +104,65 @@ export type WishItem = {
   hidden?: boolean;
 };
 
+/**
+ * One slide of a post: an uploaded clip, what the grid plays for it, and its
+ * shape. A post's own video, poster, cover and size are its first slide; the
+ * rest are in `slides`.
+ */
+export type Slide = {
+  video?: string;
+  poster?: string;
+  cover?: string;
+  width?: number;
+  height?: number;
+};
+
+/**
+ * A post on cinema.odiwr.com: one or more clips, with its own page at /slug there.
+ *
+ * Either an uploaded video in the bucket, or an embed of where the clip is
+ * officially published (YouTube, TikTok, Instagram, Vimeo — see lib/cinema.ts).
+ * An upload wins when both are set; the embed is then only credited as the
+ * source.
+ */
+export type Clip = {
+  id: string;
+  /**
+   * Unique among clips. The post's address: cinema.odiwr.com/slug. Generated
+   * from the name and date (autoClipSlug) unless one was typed.
+   */
+  slug: string;
+  title: string;
+  /** The movie or show it is from, by name only ("Beef", never an episode). */
+  show?: string;
+  /** The words under the clip. Blank lines separate paragraphs. */
+  caption?: string;
+  /** Public URL of an uploaded mp4 or webm. */
+  video?: string;
+  /**
+   * The grid tile. A still captured from the video on upload, or anything set
+   * by hand — a GIF, or a looping MP4/WebM, which the grid plays muted.
+   */
+  poster?: string;
+  /**
+   * The grid's moving cover: a muted loop of at most four seconds, recorded
+   * from the clip in the browser on upload (ClipUploader). Wins over the poster
+   * on the grid; the poster stays the still for link previews and the player.
+   */
+  cover?: string;
+  /** A link to the clip where it is officially posted. */
+  embed?: string;
+  /** Pixel size of the video, so its tile and player hold the right shape before it loads. */
+  width?: number;
+  height?: number;
+  /** ISO date, YYYY-MM-DD. The grid is newest first. */
+  date: string;
+  /** True when it is kept off the site. Absent is shown. */
+  hidden?: boolean;
+  /** Every slide after the first, in order. The viewer's dots step through them all. */
+  slides?: Slide[];
+};
+
 export type Content = {
   work: Work[];
   /** The one on the site now. */
@@ -116,6 +175,7 @@ export type Content = {
    * category made in the dropdown exists before anything is filed under it.
    */
   wishCategories: string[];
+  clips: Clip[];
 };
 
 export const EMPTY_CONTENT: Content = {
@@ -124,6 +184,7 @@ export const EMPTY_CONTENT: Content = {
   archive: [],
   wishlist: [],
   wishCategories: [],
+  clips: [],
 };
 
 const KEY = "site/content.json";
@@ -147,6 +208,7 @@ function normalise(raw: unknown): Content {
 
   const wishlist = Array.isArray(doc.wishlist) ? doc.wishlist : [];
   const wishCategories = Array.isArray(doc.wishCategories) ? doc.wishCategories : [];
+  const clips = Array.isArray(doc.clips) ? doc.clips : [];
 
   // Documents written before the blog became one-live-post carried a `posts`
   // array. Newest becomes the live one, the rest become the archive.
@@ -158,6 +220,7 @@ function normalise(raw: unknown): Content {
       archive: sorted.slice(1),
       wishlist,
       wishCategories,
+      clips,
     };
   }
 
@@ -180,6 +243,7 @@ function normalise(raw: unknown): Content {
     archive: Array.isArray(doc.archive) ? doc.archive : [],
     wishlist,
     wishCategories,
+    clips,
   };
 }
 
@@ -331,6 +395,71 @@ export function wishGroups(content: Content): { category: string; items: WishIte
     category,
     items: content.wishlist.filter((i) => i.category === category),
   }));
+}
+
+/** Clips newest first, the order the grid shows them. Ties keep the order they were added, latest first. */
+export function sortedClips(content: Content): Clip[] {
+  return content.clips
+    .map((clip, i) => ({ clip, i }))
+    .sort((a, b) => b.clip.date.localeCompare(a.clip.date) || b.i - a.i)
+    .map(({ clip }) => clip);
+}
+
+/** The clips on the site: newest first, hidden ones left out. */
+export function publicClips(content: Content): Clip[] {
+  return sortedClips(content).filter((c) => !c.hidden);
+}
+
+/**
+ * The short code a name contributes to a slug: the initials of a name of several
+ * words ("The Dark Knight" -> "tdk"), or a single word whole ("Beef" -> "beef"),
+ * up to twelve letters.
+ */
+function nameCode(name: string): string {
+  const words = slugify(name).split("-").filter(Boolean);
+  if (words.length > 1) return words.map((w) => w[0]).join("").slice(0, 6);
+  return (words[0] ?? "clip").slice(0, 12);
+}
+
+/** What every generated slug looks like: code-yymmdd-nn. */
+const AUTO_SLUG = /^[a-z0-9]+-\d{6}-\d{2,}$/;
+
+export function isAutoClipSlug(slug: string): boolean {
+  return AUTO_SLUG.test(slug);
+}
+
+/**
+ * A slug made from what the clip is: the name's code, the post's date, and a
+ * running number for that name on that day. "Pulp Fiction" on 2026-09-22 is
+ * pf-260922-01; a second one that day, pf-260922-02.
+ *
+ * A clip whose slug already has the right code and date keeps it, so saving a
+ * post again never renumbers it.
+ */
+export function autoClipSlug(
+  content: Content,
+  name: string,
+  date: string,
+  id?: string
+): string {
+  const [y = "", m = "", d = ""] = date.split("-");
+  const base = `${nameCode(name)}-${y.slice(2)}${m}${d}`;
+  const current = id ? content.clips.find((c) => c.id === id)?.slug : undefined;
+  if (current && current.startsWith(`${base}-`) && isAutoClipSlug(current)) return current;
+
+  const taken = new Set(content.clips.filter((c) => c.id !== id).map((c) => c.slug));
+  let n = 1;
+  while (taken.has(`${base}-${String(n).padStart(2, "0")}`)) n++;
+  return `${base}-${String(n).padStart(2, "0")}`;
+}
+
+/** `base`, or `base-2`, `base-3`… — whichever no other clip already has. */
+export function uniqueClipSlug(content: Content, base: string, id?: string): string {
+  const root = base || "clip";
+  const taken = new Set(content.clips.filter((c) => c.id !== id).map((c) => c.slug));
+  let slug = root;
+  for (let n = 2; taken.has(slug); n++) slug = `${root}-${n}`;
+  return slug;
 }
 
 /** Where an entry points, whether it lives here or somewhere else. */

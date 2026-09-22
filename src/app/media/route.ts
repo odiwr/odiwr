@@ -23,7 +23,9 @@ import { media } from "@/lib/media";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const ALLOWED_PREFIXES = ["legacy/music/", "mp3/"];
+// cinema/: the story card records a clip's loop through a canvas, which needs
+// it same-origin (lib/cinema.ts, readable()).
+const ALLOWED_PREFIXES = ["legacy/music/", "mp3/", "cinema/"];
 
 export async function GET(req: NextRequest) {
   const key = req.nextUrl.searchParams.get("key") || "";

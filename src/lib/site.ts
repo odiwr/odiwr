@@ -27,6 +27,8 @@ export const SITE = {
   /** The subdomains linked from the home page. */
   projectsUrl: "https://projects.odiwr.com",
   creativeUrl: "https://creative.odiwr.com",
+  /** Clips from films and shows, each with its own page. */
+  cinemaUrl: "https://cinema.odiwr.com",
   /** Unlisted: not linked anywhere public, not in any sitemap, and noindex. */
   wishlistUrl: "https://wishlist.odiwr.com",
 
@@ -83,6 +85,7 @@ export const SUBDOMAIN_LINKS = {
   projects: process.env.NODE_ENV === "production" ? SITE.projectsUrl : "/projects",
   creative: process.env.NODE_ENV === "production" ? SITE.creativeUrl : "/creative",
   wishlist: process.env.NODE_ENV === "production" ? SITE.wishlistUrl : "/wishlist",
+  cinema: process.env.NODE_ENV === "production" ? SITE.cinemaUrl : "/cinema",
 };
 
 /** Profile URLs by label, for anything that needs one by name. */

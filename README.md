@@ -10,9 +10,11 @@ Personal site, plus a dashboard that edits it.
 | `projects.odiwr.com` | the projects listing |
 | `creative.odiwr.com` | the creative mosaic |
 | `wishlist.odiwr.com` | the wishlist — unlisted: not linked, not in a sitemap, noindex |
+| `cinema.odiwr.com` | clips from films and shows; each post at `/<slug>` on that host |
 
 Every subdomain is this same app: `src/proxy.ts` rewrites their root onto
-`/projects`, `/creative` and `/wishlist`, and gives each host its own
+`/projects`, `/creative`, `/wishlist` and `/cinema` (the cinema's posts too, not
+just its root), and gives each host its own
 `robots.txt` and `sitemap.xml`. DNS has to point them here.
 
 ## Content
@@ -27,8 +29,9 @@ disappears on its own once the first entry is published.
 ## Dashboard
 
 `/dashboard`, behind Google sign-in restricted to `ADMIN_EMAILS`. Analytics reads
-GA4 through a service account; Work, Blog and Media edit the document and the
-bucket.
+GA4 through a service account; Work, Wishlist, Cinema, Blog and Media edit the
+document and the bucket. Cinema takes any number of clips at once: each becomes a
+post, with a still cut from it in the browser for its tile.
 
 ## Environment
 
