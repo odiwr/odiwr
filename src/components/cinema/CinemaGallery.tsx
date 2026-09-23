@@ -182,6 +182,10 @@ function TileMedia({
   if (src && isVideo(src)) {
     return (
       <video
+        // Keyed by what it plays: handed a new address, a video element keeps
+        // the old picture until it is replaced outright, so a cover just
+        // remade would not show.
+        key={src}
         ref={ref}
         src={src}
         poster={slide.still}
@@ -198,6 +202,7 @@ function TileMedia({
   if (slide.video && !picture) {
     return (
       <video
+        key={slide.video}
         ref={ref}
         src={`${slide.video}#t=${slide.start ?? 0.1}`}
         muted
@@ -212,7 +217,7 @@ function TileMedia({
   if (!picture) return null;
   // Not next/image: the optimiser would flatten a GIF to a still.
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src={picture} alt="" loading="lazy" onLoad={onReady} onError={onFail} />;
+  return <img key={picture} src={picture} alt="" loading="lazy" onLoad={onReady} onError={onFail} />;
 }
 
 /** Every file worth fetching ahead for a post, across its slides. */
@@ -680,7 +685,15 @@ export default function CinemaGallery({
     setBox(tileRect(index));
     setExpanded(false);
     const slug = clips[index].slug;
+    const closed = index;
     closing.current = window.setTimeout(() => {
+      // Back to the first frame, so the tile picks up where the post left off
+      // rather than wherever its loop had wandered to.
+      const media = tiles.current[closed]?.querySelector("video");
+      if (media instanceof HTMLVideoElement) {
+        media.currentTime = 0;
+        media.play().catch(() => {});
+      }
       setIndex(null);
       setSlide(0);
       setBox(null);
