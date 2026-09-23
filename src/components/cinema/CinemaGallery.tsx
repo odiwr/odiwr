@@ -17,14 +17,11 @@ import { makeStory, shareStory } from "./story";
 /**
  * cinema.odiwr.com, all of it: the grid, and the viewer a tile opens into.
  *
- * Opening a post is one element travelling: a box starts exactly over the tile,
- * then grows to fill most of the screen at the clip's own shape, while the rest
- * of the grid dissolves and a black backdrop comes up behind it. The box starts
- * with the tile's 2.39:1 shape and its black bars; as its shape moves to the
- * clip's, the bars narrow, and the box's own black fades into the backdrop's,
- * so they are gone without ever being cut. The cover loop it starts on is the
- * tile's own, so nothing changes under the eye; the full clip fades in over it
- * once playing. Closing runs the same travel backwards, into the tile.
+ * Opening a post is a fade: the grid goes, black comes up over the page, and
+ * the clip appears in the middle at its own shape. Closing fades the other way
+ * — the clip out, the grid back, and the page's own colour back under it. The
+ * clip opens on its cover loop, the same one the tile was playing, and the full
+ * clip takes its place once it is up.
  *
  * A post can have several slides. The dots are that post's slides (under it;
  * down the right side on a phone), and the arrow keys step through them; the
@@ -49,6 +46,8 @@ import { makeStory, shareStory } from "./story";
  */
 
 const DURATION = 700;
+/** Opening, closing, and the page's colour with them. */
+const FADE = 320;
 const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 /** Space around the open clip, and the strip below it for the dots. */
 const MARGIN = 24;
@@ -345,6 +344,7 @@ function TrimmedVideo({
   active,
   onReady,
   onMeasure,
+  onSilent,
 }: {
   src: string;
   poster?: string;
@@ -354,6 +354,8 @@ function TrimmedVideo({
   active: boolean;
   onReady: () => void;
   onMeasure: (width: number, height: number) => void;
+  /** It had to start without sound, and a tap is needed to have it. */
+  onSilent: () => void;
 }) {
   const one = useRef<HTMLVideoElement>(null);
   const two = useRef<HTMLVideoElement>(null);
@@ -380,13 +382,18 @@ function TrimmedVideo({
     // arriving at /slug directly is not, so that falls back to silent.
     front.play().catch(() => {
       front.muted = true;
+      onSilent();
       front.play().catch(() => {});
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, start]);
 
-  // The changeover, checked on a timer: frame callbacks stop for a tab that is
-  // not drawing, and this has to keep its place either way.
+  /**
+   * The changeover, watched two ways: once per drawn frame, which is as close
+   * to the cut as a page can get, and on a timer as well, since frame callbacks
+   * stop for a tab that is not drawing (and a phone saving power slows timers,
+   * which on its own let clips run past their end).
+   */
   useEffect(() => {
     let timer = 0;
     const tick = () => {
@@ -405,7 +412,27 @@ function TrimmedVideo({
       timer = window.setTimeout(tick, SWAP_TICK);
     };
     timer = window.setTimeout(tick, SWAP_TICK);
-    return () => window.clearTimeout(timer);
+
+    // Both re-register themselves; whichever is in front is the one that
+    // matters, and the check knows which that is.
+    let live = true;
+    const perFrame = (video: HTMLVideoElement | null) => {
+      if (!video || !("requestVideoFrameCallback" in video)) return;
+      const again = () => {
+        if (!live) return;
+        const { front, back } = pair();
+        if (front && back && front.currentTime >= end - SWAP_LEAD) tick();
+        video.requestVideoFrameCallback(again);
+      };
+      video.requestVideoFrameCallback(again);
+    };
+    perFrame(one.current);
+    perFrame(two.current);
+
+    return () => {
+      live = false;
+      window.clearTimeout(timer);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [start, end]);
 
@@ -457,6 +484,7 @@ function ViewerMedia({
   active,
   onAspect,
   onStalled,
+  onSilent,
 }: {
   slide: ViewSlide;
   title: string;
@@ -464,6 +492,8 @@ function ViewerMedia({
   active: boolean;
   onAspect: (aspect: number) => void;
   onStalled: (stalled: boolean) => void;
+  /** It had to start without sound, and a tap is needed to have it. */
+  onSilent: () => void;
 }) {
   const full = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
@@ -489,8 +519,10 @@ function ViewerMedia({
     // arriving at /slug directly is not, so that falls back to silent.
     video.play().catch(() => {
       video.muted = true;
+      onSilent();
       video.play().catch(() => {});
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, slide.end]);
 
   const measure = (w: number, h: number) => {
@@ -560,6 +592,7 @@ function ViewerMedia({
             end={slide.end}
             active={active}
             onMeasure={measure}
+            onSilent={onSilent}
             onReady={() => {
               setPlaying(true);
               ready();
@@ -610,6 +643,11 @@ export default function CinemaGallery({
   // then dim.
   const [awake, setAwake] = useState(true);
   const [sharing, setSharing] = useState<string | null>(null);
+  // A clip that had to start silent: a browser only plays sound after a tap,
+  // and arriving straight at /slug (or reloading there) is not one.
+  const [silent, setSilent] = useState(false);
+  // Black behind everything, page and browser bars included, while a post is up.
+  const [dark, setDark] = useState(false);
   // Signed into the dashboard: only then is there a Share button. Asked once,
   // since these pages are the same for everyone and cached as such.
   const [admin, setAdmin] = useState(false);
@@ -753,13 +791,6 @@ export default function CinemaGallery({
     }
   };
 
-  const tileRect = (i: number): Rect => {
-    const tile = tiles.current[i];
-    if (!tile) return target(i, 0);
-    const r = tile.getBoundingClientRect();
-    return { left: r.left, top: r.top, width: r.width, height: r.height };
-  };
-
   /** The address for a slide, on whichever host this is being served from. */
   const hrefFor = (i: number, s: number) => `${base.current}/${slidePath(clips[i].slug, s)}`;
 
@@ -770,20 +801,23 @@ export default function CinemaGallery({
         closing.current = null;
       }
       measureTile(i);
-      // Lay the box over the tile and make the browser take that in (reading
-      // its size forces it to), and only then send it off. Set in one go, the
-      // two would fold together and there would be nothing to animate. No
-      // animation frames: a background tab never gets any.
+      // Put the box where it belongs, still invisible, and make the browser
+      // take that in (reading its size forces it to) before fading it up. Set
+      // in one go, the two would fold together and there would be nothing to
+      // fade. No animation frames: a background tab never gets any.
       flushSync(() => {
-        setAnimate(true);
+        setAnimate(false);
         setIndex(i);
         setSlide(s);
-        setBox(tileRect(i));
+        setSilent(false);
+        setBox(target(i, s));
         setExpanded(false);
       });
       boxRef.current?.getBoundingClientRect();
-      setBox(target(i, s));
       setExpanded(true);
+      setDark(true);
+      // From here on the box may move between slides, and that does animate.
+      setAnimate(true);
       wake();
       hold(clips[i].slug, postFiles(clips[i]));
       if (push) {
@@ -797,12 +831,12 @@ export default function CinemaGallery({
 
   const shrink = useCallback(() => {
     if (index === null) return;
-    // The grid is invisible now, so moving it to the tile is not seen.
+    // The grid is still behind the fade, so bringing the tile into view is not
+    // seen; it has to exist for its loop to be started again below.
     ensureTile(index);
-    tiles.current[index]?.scrollIntoView({ block: "nearest" });
-    setAnimate(true);
-    setBox(tileRect(index));
     setExpanded(false);
+    setDark(false);
+    setSilent(false);
     const slug = clips[index].slug;
     const closed = index;
     closing.current = window.setTimeout(() => {
@@ -819,7 +853,7 @@ export default function CinemaGallery({
       setSharing(null);
       closing.current = null;
       release(slug);
-    }, DURATION);
+    }, FADE);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index]);
 
@@ -909,19 +943,10 @@ export default function CinemaGallery({
     const root = document.documentElement;
     const overflow = root.style.overflow;
     root.style.overflow = "hidden";
-    // Black behind everything while a post is open — the page itself and the
-    // browser's own colour, so on a phone the strip behind the address bar, the
-    // notch and any overscroll are black too, not the site's grey.
-    root.dataset.cinemaOpen = "";
-    const theme = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
-    const themeColor = theme?.content;
-    if (theme) theme.content = "#000000";
     window.addEventListener("keydown", onKey);
     window.addEventListener("resize", onResize);
     return () => {
       root.style.overflow = overflow;
-      delete root.dataset.cinemaOpen;
-      if (theme && themeColor) theme.content = themeColor;
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("resize", onResize);
     };
@@ -933,6 +958,33 @@ export default function CinemaGallery({
     },
     []
   );
+
+  /**
+   * Black behind everything while a post is up, and the page's own colour back
+   * when it goes — faded, not switched, so closing does not jump. On the way in
+   * it is immediate: iOS Safari tints its bars from the page the moment the
+   * post opens, and would catch a colour still on its way to black.
+   */
+  useEffect(() => {
+    const root = document.documentElement;
+    const theme = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    if (dark) {
+      if (theme && !theme.dataset.was) theme.dataset.was = theme.content;
+      root.dataset.cinemaOpen = "";
+      if (theme) theme.content = "#000000";
+      return;
+    }
+    // Its value is an empty string, so ask whether it is there at all.
+    if (!("cinemaOpen" in root.dataset)) return;
+    delete root.dataset.cinemaOpen;
+    root.dataset.cinemaClosing = "";
+    if (theme?.dataset.was) {
+      theme.content = theme.dataset.was;
+      delete theme.dataset.was;
+    }
+    const timer = window.setTimeout(() => delete root.dataset.cinemaClosing, FADE);
+    return () => window.clearTimeout(timer);
+  }, [dark]);
 
   const onAspect = (i: number, s: number, aspect: number) => {
     const key = `${i}:${s}`;
@@ -988,10 +1040,12 @@ export default function CinemaGallery({
 
   // Null in the first render, to match the server's; false puts the prompt up.
   const ready = sound === true;
-  const transition = animate
-    ? `left ${DURATION}ms ${EASE}, top ${DURATION}ms ${EASE}, width ${DURATION}ms ${EASE}, height ${DURATION}ms ${EASE}, background-color ${DURATION}ms ${EASE}`
-    : "none";
-  const fade = animate ? `opacity ${DURATION}ms ${EASE}` : "none";
+  // The box only travels between slides of a post; opening and closing it is a
+  // fade, so that is always on.
+  const moves = animate
+    ? `left ${DURATION}ms ${EASE}, top ${DURATION}ms ${EASE}, width ${DURATION}ms ${EASE}, height ${DURATION}ms ${EASE}, `
+    : "";
+  const fade = `opacity ${FADE}ms ease`;
   const chrome = {
     opacity: expanded ? (awake ? 1 : 0.3) : 0,
     transition: expanded && animate ? "opacity 400ms ease" : fade,
@@ -1059,14 +1113,26 @@ export default function CinemaGallery({
                 className="cinema-box"
                 style={{
                   ...box,
-                  transition,
-                  // The bars' black, fading into the backdrop's as it grows;
-                  // grey instead if the slide has shown nothing.
-                  backgroundColor: stalled
-                    ? "#2a2a2a"
-                    : expanded
-                      ? "rgb(0 0 0 / 0)"
-                      : "rgb(0 0 0 / 1)",
+                  opacity: expanded ? 1 : 0,
+                  transition: `${moves}${fade}`,
+                  // Grey if the slide has shown nothing; the backdrop is the
+                  // black behind it otherwise.
+                  backgroundColor: stalled ? "#2a2a2a" : undefined,
+                }}
+                // A browser that refused sound gives it up for a tap.
+                onPointerUp={() => {
+                  let found = false;
+                  boxRef.current?.querySelectorAll("video").forEach((video) => {
+                    // The spare copy of a trimmed clip is muted on purpose.
+                    if (video.muted && !video.paused) {
+                      video.muted = false;
+                      // Some browsers stop a video the moment it gains a voice;
+                      // the tap that got it here allows it to carry on.
+                      void video.play().catch(() => {});
+                      found = true;
+                    }
+                  });
+                  if (found) setSilent(false);
                 }}
               >
                 <ViewerMedia
@@ -1076,6 +1142,7 @@ export default function CinemaGallery({
                   active={ready}
                   onAspect={(a) => onAspect(index, slide, a)}
                   onStalled={setStalled}
+                  onSilent={() => setSilent(true)}
                 />
               </div>
             )}
@@ -1098,6 +1165,12 @@ export default function CinemaGallery({
                   <Icon name="material-symbols:ios-share-rounded" size="1.3em" />
                 </button>
               </div>
+            )}
+
+            {silent && (
+              <p className="cinema-silent" style={chrome}>
+                Tap for sound
+              </p>
             )}
 
             {post.slides.length > 1 && (

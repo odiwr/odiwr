@@ -9,6 +9,7 @@
 // Google account can never hold a dashboard session.
 import { createHmac, randomBytes, timingSafeEqual } from "crypto";
 import { cookies } from "next/headers";
+import { SITE } from "./site";
 
 export const SESSION_COOKIE = "odiwr_admin";
 export const OAUTH_STATE_COOKIE = "odiwr_oauth_state";
@@ -108,6 +109,21 @@ export async function requireAdmin(): Promise<Session> {
   return s;
 }
 
+/**
+ * The session belongs to the whole site, subdomains and all.
+ *
+ * cinema.odiwr.com asks /dashboard/api/session whether to show its Share
+ * button, and a cookie left host-only never reaches it — the dashboard is on
+ * the apex. Nothing else changes: the subdomains are this same app.
+ *
+ * Absent in development, where the host is localhost and has no domain to set.
+ */
+function cookieDomain(): string | undefined {
+  if (process.env.NODE_ENV !== "production") return undefined;
+  const host = new URL(SITE.url).hostname.replace(/^www\./, "");
+  return host.includes(".") ? `.${host}` : undefined;
+}
+
 export async function setSessionCookie(profile: {
   email: string;
   name?: string;
@@ -125,13 +141,17 @@ export async function setSessionCookie(profile: {
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
+    domain: cookieDomain(),
     maxAge: SESSION_MAX_AGE,
   });
 }
 
 export async function clearSessionCookie(): Promise<void> {
   const store = await cookies();
-  store.delete(SESSION_COOKIE);
+  // Both spellings: the one set for the whole site, and any older one left
+  // over from when it was set for the apex alone.
+  store.delete({ name: SESSION_COOKIE, path: "/", domain: cookieDomain() });
+  store.delete({ name: SESSION_COOKIE, path: "/" });
 }
 
 /* ------------------------------------------------------------------ */
