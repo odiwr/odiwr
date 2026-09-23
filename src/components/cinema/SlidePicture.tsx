@@ -6,6 +6,10 @@ import type { ViewSlide } from "@/lib/cinema";
  *
  * The site's grid has its own (CinemaGallery's TileMedia), which also pauses
  * off screen; a dashboard list is short enough not to need that.
+ *
+ * Keyed by what it is showing, so a post whose cover has just been remade shows
+ * the new one: a video element handed a new address keeps the old picture until
+ * it is replaced outright.
  */
 export default function SlidePicture({
   slide,
@@ -18,6 +22,7 @@ export default function SlidePicture({
   if (loop && /\.(mp4|webm)(?:[?#]|$)/i.test(loop)) {
     return (
       <video
+        key={loop}
         src={loop}
         poster={slide.still}
         autoPlay
@@ -32,10 +37,19 @@ export default function SlidePicture({
   const picture = loop ?? slide.still;
   if (picture) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={picture} alt="" loading="lazy" className={className} />;
+    return <img key={picture} src={picture} alt="" loading="lazy" className={className} />;
   }
   if (slide.video) {
-    return <video src={`${slide.video}#t=0.1`} muted playsInline preload="metadata" className={className} />;
+    return (
+      <video
+        key={slide.video}
+        src={`${slide.video}#t=0.1`}
+        muted
+        playsInline
+        preload="metadata"
+        className={className}
+      />
+    );
   }
   return null;
 }
