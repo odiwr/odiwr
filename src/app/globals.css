@@ -1968,10 +1968,39 @@ textarea.field.blurb {
  * Black under an open post, all the way to the edges of the browser, and at
  * once: iOS Safari tints its bars from the page when the post opens, and a
  * colour still fading from grey gets picked up grey and kept.
+ *
+ * On the way out it fades back with the rest of the closing, rather than
+ * switching under it.
  */
 html[data-cinema-open],
 html[data-cinema-open] body {
   background: #000;
+}
+
+html[data-cinema-closing],
+html[data-cinema-closing] body {
+  transition: background-color 320ms ease;
+}
+
+/* Said only when a browser refused sound until it is asked for. */
+.cinema-silent {
+  position: fixed;
+  z-index: 50;
+  left: 50%;
+  bottom: 52px;
+  transform: translateX(-50%);
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.55);
+  font-size: 13px;
+  color: #ffd994;
+  pointer-events: none;
+}
+
+@media (max-width: 639px) {
+  .cinema-silent {
+    bottom: max(16px, env(safe-area-inset-bottom));
+  }
 }
 
 /*
