@@ -10,6 +10,7 @@ import {
   type ViewClip,
   type ViewSlide,
 } from "@/lib/cinema";
+import { HOME_HREF } from "@/lib/site";
 import { cached, cool, hold, release, warm } from "./preload";
 import { makeStory, shareStory } from "./story";
 
@@ -40,8 +41,11 @@ import { makeStory, shareStory } from "./story";
  * one it merely crosses) has its post's clips fetched into memory, so opening
  * it plays at once; leaving without opening lets them go (preload.ts).
  *
- * Before anything, a first visit is asked whether clips may play with sound.
- * The answer is kept in this browser only.
+ * Before anything, a first visit is asked whether clips may play with sound;
+ * saying no leaves for the main site. The answer is kept in this browser only.
+ *
+ * Share is for whoever keeps the place: it appears only for a browser signed
+ * into the dashboard.
  */
 
 const DURATION = 700;
@@ -70,33 +74,34 @@ const SLOW = 0.25;
 const SETTLE = 140;
 
 type Rect = { left: number; top: number; width: number; height: number };
-type Sound = "on" | "off";
 /** Which posts are mounted, and the space standing in for the rest. */
 type Window = { start: number; end: number; above: number; below: number };
 
 /**
- * The sound answer, as a tiny store: this browser's storage, with a copy in
- * memory so a browser that refuses storage still gets past the prompt (and is
- * simply asked again next visit).
+ * Whether sound has been allowed, as a tiny store: this browser's storage, with
+ * a copy in memory so a browser that refuses storage still gets past the prompt
+ * (and is simply asked again next visit).
+ *
+ * There is only one answer to keep. Saying no leaves for the main site rather
+ * than watching in silence, so nothing here turns sound off again.
  */
-let soundMemory: Sound | null = null;
+let allowedMemory = false;
 const soundListeners = new Set<() => void>();
 
-function readSound(): Sound | "ask" {
-  if (soundMemory) return soundMemory;
+function allowed(): boolean {
+  if (allowedMemory) return true;
   try {
-    const value = localStorage.getItem(SOUND_KEY);
-    if (value === "on" || value === "off") return value;
+    return localStorage.getItem(SOUND_KEY) === "on";
   } catch {
     // Blocked storage reads as unanswered.
+    return false;
   }
-  return "ask";
 }
 
-function writeSound(value: Sound) {
-  soundMemory = value;
+function allow() {
+  allowedMemory = true;
   try {
-    localStorage.setItem(SOUND_KEY, value);
+    localStorage.setItem(SOUND_KEY, "on");
   } catch {
     // Private window or blocked storage: the memory copy covers this visit.
   }
@@ -313,15 +318,13 @@ function Tile({
 function ViewerMedia({
   slide,
   title,
-  sound,
   active,
   onAspect,
   onStalled,
 }: {
   slide: ViewSlide;
   title: string;
-  sound: Sound;
-  /** False until the prompt is answered: nothing plays before that. */
+  /** False until sound is allowed: nothing plays before that. */
   active: boolean;
   onAspect: (aspect: number) => void;
   onStalled: (stalled: boolean) => void;
@@ -345,14 +348,14 @@ function ViewerMedia({
   useEffect(() => {
     const video = full.current;
     if (!video || !active) return;
-    video.muted = sound !== "on";
-    // With sound, a browser only plays from a click. Opening from a tile is one;
+    video.muted = false;
+    // A browser only plays sound from a click. Opening from a tile is one;
     // arriving at /slug directly is not, so that falls back to silent.
     video.play().catch(() => {
       video.muted = true;
       video.play().catch(() => {});
     });
-  }, [active, sound]);
+  }, [active]);
 
   // The trim's end, checked every frame: the time events alone come a quarter
   // second apart, which overshoots the cut. They stay as the fallback, and for
@@ -379,7 +382,11 @@ function ViewerMedia({
 
   return (
     <>
-      {cover &&
+      {/* Until the clip plays, its cover holds the frame. It goes the moment
+          the clip is up rather than fading under it: two nearly-alike frames
+          fading through each other read as a ghost. */}
+      {!playing &&
+        cover &&
         (isVideo(cover) ? (
           <video
             src={cached(cover)}
@@ -407,6 +414,10 @@ function ViewerMedia({
         <video
           ref={full}
           src={cached(slide.video)}
+          // A clip cut to its trim is looped by the browser, seamlessly. One
+          // carrying a trim inside a longer file has to be sent back by hand
+          // (onTimeUpdate below), which costs a seek.
+          loop={slide.end === undefined}
           preload="auto"
           {...BARE}
           className="cinema-full"
@@ -429,18 +440,12 @@ function ViewerMedia({
             setPlaying(true);
             ready();
           }}
-          onClick={(e) => {
-            e.stopPropagation();
-            const v = e.currentTarget;
-            if (v.paused) v.play().catch(() => {});
-            else v.pause();
-          }}
         />
       )}
 
       {!slide.video && slide.embed && active && (
         <iframe
-          src={`${slide.embed}${slide.embed.includes("?") ? "&" : "?"}autoplay=1${sound === "on" ? "" : "&mute=1"}`}
+          src={`${slide.embed}${slide.embed.includes("?") ? "&" : "?"}autoplay=1`}
           title={title}
           className="cinema-full"
           data-playing=""
@@ -466,7 +471,7 @@ export default function CinemaGallery({
   initialSlide?: number;
 }) {
   // Null on the server and in the first render, which has to match it.
-  const sound = useSyncExternalStore(subscribeSound, readSound, () => null);
+  const sound = useSyncExternalStore(subscribeSound, allowed, () => null);
   // A /slug page renders already open, so the grid is never seen first. Where
   // the box goes needs the window, so it is placed right after mounting.
   const initialIndex = initialSlug ? clips.findIndex((c) => c.slug === initialSlug) : -1;
@@ -481,6 +486,9 @@ export default function CinemaGallery({
   // then dim.
   const [awake, setAwake] = useState(true);
   const [sharing, setSharing] = useState<string | null>(null);
+  // Signed into the dashboard: only then is there a Share button. Asked once,
+  // since these pages are the same for everyone and cached as such.
+  const [admin, setAdmin] = useState(false);
   // Null until measured: the server, and the first render, have every post.
   const [win, setWin] = useState<Window | null>(null);
 
@@ -709,6 +717,19 @@ export default function CinemaGallery({
     [clips, index, slide, target, wake]
   );
 
+  useEffect(() => {
+    let live = true;
+    fetch("/dashboard/api/session")
+      .then((res) => (res.ok ? res.json() : { admin: false }))
+      .then((data: { admin?: boolean }) => {
+        if (live && data.admin) setAdmin(true);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
+
   // First look: where this is served from, and a /slug page's box placed.
   useEffect(() => {
     base.current = window.location.pathname.startsWith("/cinema") ? "/cinema" : "";
@@ -833,7 +854,8 @@ export default function CinemaGallery({
     wake();
   };
 
-  const ready = sound === "on" || sound === "off";
+  // Null in the first render, to match the server's; false puts the prompt up.
+  const ready = sound === true;
   const transition = animate
     ? `left ${DURATION}ms ${EASE}, top ${DURATION}ms ${EASE}, width ${DURATION}ms ${EASE}, height ${DURATION}ms ${EASE}, background-color ${DURATION}ms ${EASE}`
     : "none";
@@ -848,17 +870,18 @@ export default function CinemaGallery({
 
   return (
     <>
-      {sound === "ask" && (
+      {sound === false && (
         <div className="cinema-ask" role="dialog" aria-label="Sound">
-          <p>Play clips with sound when you open them?</p>
-          {/* Two equal columns, so both buttons are as wide as the wider label. */}
+          <p>Clips play with sound. Is that all right?</p>
+          {/* Two equal columns, so both are as wide as the wider label. */}
           <div className="grid grid-cols-2 gap-3">
-            <button type="button" className="btn btn-primary" onClick={() => writeSound("on")}>
+            <button type="button" className="btn btn-primary" onClick={allow}>
               Allow
             </button>
-            <button type="button" className="btn" onClick={() => writeSound("off")}>
-              Not now
-            </button>
+            {/* No quiet way in: sound is the point, so no leaves for the site. */}
+            <a href={HOME_HREF} className="btn text-center">
+              No thanks
+            </a>
           </div>
         </div>
       )}
@@ -918,7 +941,6 @@ export default function CinemaGallery({
                   key={`${post.slug}:${slide}`}
                   slide={post.slides[slide] ?? post.slides[0]}
                   title={post.title}
-                  sound={sound === "on" ? "on" : "off"}
                   active={ready}
                   onAspect={(a) => onAspect(index, slide, a)}
                   onStalled={setStalled}
@@ -926,23 +948,25 @@ export default function CinemaGallery({
               </div>
             )}
 
-            <div
-              className="cinema-share"
-              style={chrome}
-              onMouseEnter={() => {
-                hovering.current = true;
-                setAwake(true);
-              }}
-              onMouseLeave={() => {
-                hovering.current = false;
-                wake();
-              }}
-            >
-              {sharing && <span>{sharing}</span>}
-              <button type="button" aria-label="Share" onClick={share}>
-                <Icon name="material-symbols:ios-share-rounded" size="1.3em" />
-              </button>
-            </div>
+            {admin && (
+              <div
+                className="cinema-share"
+                style={chrome}
+                onMouseEnter={() => {
+                  hovering.current = true;
+                  setAwake(true);
+                }}
+                onMouseLeave={() => {
+                  hovering.current = false;
+                  wake();
+                }}
+              >
+                {sharing && <span>{sharing}</span>}
+                <button type="button" aria-label="Share" onClick={share}>
+                  <Icon name="material-symbols:ios-share-rounded" size="1.3em" />
+                </button>
+              </div>
+            )}
 
             {post.slides.length > 1 && (
               <nav

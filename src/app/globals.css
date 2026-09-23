@@ -1848,10 +1848,13 @@ textarea.field.blurb {
   border-radius: 2px;
 }
 
-/* The full clip, over the cover loop it opened on, fading in once it plays. */
+/*
+ * The full clip, hidden until it plays: its cover is taken away in the same
+ * breath, so the swap is one frame rather than a cross-fade of two nearly-alike
+ * frames, which showed as a ghost.
+ */
 .cinema-full {
   opacity: 0;
-  transition: opacity 400ms ease;
 }
 
 .cinema-full[data-playing] {
