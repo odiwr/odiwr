@@ -62,6 +62,12 @@ const SIDEWAYS = 500;
 const LINGER = 1500;
 /** How long an open slide gets to show something before it is marked grey. */
 const PATIENCE = 1000;
+/**
+ * Looping a trim inside a longer clip: how long before its end the spare copy
+ * takes over, and how often that is checked.
+ */
+const SWAP_LEAD = 0.06;
+const SWAP_TICK = 25;
 /** A tile's loop plays only while at least this much of it is on screen. */
 const VISIBLE = 0.25;
 const SOUND_KEY = "cinema-sound";
@@ -316,6 +322,131 @@ function Tile({
 }
 
 /**
+ * A trim inside a longer clip, looped without a stall.
+ *
+ * Sending one video back to the trim's start is a backwards seek, and on a file
+ * still arriving over the network that takes long enough to look like a freeze
+ * at the end of every round. So the clip is opened twice: one plays while the
+ * other waits, parked at the start and already buffered there. At the end they
+ * change places — the spare is simply told to play, which it can do at once —
+ * and the one that just finished parks itself for the next round.
+ *
+ * Which of the two is in front is kept in a ref and shown by setting their
+ * opacity directly: going through React would put a frame between them.
+ *
+ * Clips cut to their trim (nothing to skip) do not come through here; the
+ * browser loops those on its own.
+ */
+function TrimmedVideo({
+  src,
+  poster,
+  start,
+  end,
+  active,
+  onReady,
+  onMeasure,
+}: {
+  src: string;
+  poster?: string;
+  start: number;
+  end: number;
+  /** False until sound is allowed: nothing plays before that. */
+  active: boolean;
+  onReady: () => void;
+  onMeasure: (width: number, height: number) => void;
+}) {
+  const one = useRef<HTMLVideoElement>(null);
+  const two = useRef<HTMLVideoElement>(null);
+  const frontIsOne = useRef(true);
+
+  const pair = () => ({
+    front: (frontIsOne.current ? one : two).current,
+    back: (frontIsOne.current ? two : one).current,
+  });
+
+  const park = (video: HTMLVideoElement | null) => {
+    if (video && Math.abs(video.currentTime - start) > 0.05) video.currentTime = start;
+  };
+
+  // Both to the start, and the front away.
+  useEffect(() => {
+    if (!active) return;
+    const { front, back } = pair();
+    park(front);
+    park(back);
+    if (!front) return;
+    front.muted = false;
+    // A browser only plays sound from a click. Opening from a tile is one;
+    // arriving at /slug directly is not, so that falls back to silent.
+    front.play().catch(() => {
+      front.muted = true;
+      front.play().catch(() => {});
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, start]);
+
+  // The changeover, checked on a timer: frame callbacks stop for a tab that is
+  // not drawing, and this has to keep its place either way.
+  useEffect(() => {
+    let timer = 0;
+    const tick = () => {
+      const { front, back } = pair();
+      if (front && back && front.currentTime >= end - SWAP_LEAD) {
+        park(back);
+        back.muted = front.muted;
+        back.style.opacity = "1";
+        front.style.opacity = "0";
+        void back.play().catch(() => {});
+        front.pause();
+        // Ready for its turn again, out of sight.
+        front.currentTime = start;
+        frontIsOne.current = !frontIsOne.current;
+      }
+      timer = window.setTimeout(tick, SWAP_TICK);
+    };
+    timer = window.setTimeout(tick, SWAP_TICK);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [start, end]);
+
+  const common = {
+    src,
+    poster,
+    preload: "auto" as const,
+    className: "cinema-full",
+    ...BARE,
+  };
+
+  return (
+    <>
+      <video
+        {...common}
+        ref={one}
+        onLoadedMetadata={(e) => {
+          onMeasure(e.currentTarget.videoWidth, e.currentTarget.videoHeight);
+          park(e.currentTarget);
+        }}
+        onPlaying={(e) => {
+          // Whichever is in front is the one to show.
+          if (frontIsOne.current) e.currentTarget.style.opacity = "1";
+          onReady();
+        }}
+      />
+      <video
+        {...common}
+        ref={two}
+        muted
+        onLoadedMetadata={(e) => park(e.currentTarget)}
+        onPlaying={(e) => {
+          if (!frontIsOne.current) e.currentTarget.style.opacity = "1";
+          onReady();
+        }}
+      />
+    </>
+  );
+}
+
+/**
  * One open slide. Starts on its loop, and lays the real clip over it once it
  * plays. Reports the clip's real shape as soon as any layer knows it, so the
  * box can settle on it, and whether it has shown anything within PATIENCE.
@@ -352,7 +483,7 @@ function ViewerMedia({
 
   useEffect(() => {
     const video = full.current;
-    if (!video || !active) return;
+    if (!video || !active || slide.end !== undefined) return;
     video.muted = false;
     // A browser only plays sound from a click. Opening from a tile is one;
     // arriving at /slug directly is not, so that falls back to silent.
@@ -360,22 +491,7 @@ function ViewerMedia({
       video.muted = true;
       video.play().catch(() => {});
     });
-  }, [active]);
-
-  // The trim's end, checked every frame: the time events alone come a quarter
-  // second apart, which overshoots the cut. They stay as the fallback, and for
-  // a tab not drawing frames.
-  useEffect(() => {
-    const video = full.current;
-    if (!video || slide.end === undefined || !("requestVideoFrameCallback" in video)) return;
-    let id = 0;
-    const check = () => {
-      if (slide.end !== undefined && video.currentTime >= slide.end) video.currentTime = slide.start ?? 0;
-      id = video.requestVideoFrameCallback(check);
-    };
-    id = video.requestVideoFrameCallback(check);
-    return () => video.cancelVideoFrameCallback(id);
-  }, [slide.start, slide.end]);
+  }, [active, slide.end]);
 
   const measure = (w: number, h: number) => {
     if (w && h) onAspect(w / h);
@@ -415,38 +531,41 @@ function ViewerMedia({
           />
         ))}
 
-      {slide.video && (
-        <video
-          ref={full}
-          src={cached(slide.video)}
-          // A clip cut to its trim is looped by the browser, seamlessly. One
-          // carrying a trim inside a longer file has to be sent back by hand
-          // (onTimeUpdate below), which costs a seek.
-          loop={slide.end === undefined}
-          preload="auto"
-          {...BARE}
-          className="cinema-full"
-          data-playing={playing ? "" : undefined}
-          onLoadedMetadata={(e) => {
-            measure(e.currentTarget.videoWidth, e.currentTarget.videoHeight);
-            if (slide.start) e.currentTarget.currentTime = slide.start;
-          }}
-          // Only the trim plays: past its end (or the file's), back to its start.
-          onTimeUpdate={(e) => {
-            const v = e.currentTarget;
-            if (slide.end !== undefined && v.currentTime >= slide.end) v.currentTime = slide.start ?? 0;
-          }}
-          onEnded={(e) => {
-            const v = e.currentTarget;
-            v.currentTime = slide.start ?? 0;
-            v.play().catch(() => {});
-          }}
-          onPlaying={() => {
-            setPlaying(true);
-            ready();
-          }}
-        />
-      )}
+      {slide.video &&
+        (slide.end === undefined ? (
+          <video
+            ref={full}
+            src={cached(slide.video)}
+            // Cut to its trim: the browser loops it, seamlessly.
+            loop
+            preload="auto"
+            {...BARE}
+            className="cinema-full"
+            data-playing={playing ? "" : undefined}
+            onLoadedMetadata={(e) => {
+              measure(e.currentTarget.videoWidth, e.currentTarget.videoHeight);
+              if (slide.start) e.currentTarget.currentTime = slide.start;
+            }}
+            onPlaying={() => {
+              setPlaying(true);
+              ready();
+            }}
+          />
+        ) : (
+          // A trim inside a longer clip: two copies, taking turns.
+          <TrimmedVideo
+            src={cached(slide.video)}
+            poster={slide.still}
+            start={slide.start ?? 0}
+            end={slide.end}
+            active={active}
+            onMeasure={measure}
+            onReady={() => {
+              setPlaying(true);
+              ready();
+            }}
+          />
+        ))}
 
       {!slide.video && slide.embed && active && (
         <iframe
