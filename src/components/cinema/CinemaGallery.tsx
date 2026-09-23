@@ -1007,11 +1007,15 @@ export default function CinemaGallery({
     const current = post.slides[slide];
     const url = slideUrl(post.slug, slide);
     wake();
+    // Copied the moment Share is tapped, while the tap still allows it. A story
+    // carries no link of its own — only Instagram's own link sticker does, and
+    // only the person posting can add one — so the address is ready to paste
+    // into it.
+    const copied = await navigator.clipboard?.writeText(url).then(
+      () => true,
+      () => false
+    );
     if (!window.matchMedia("(pointer: coarse)").matches) {
-      const copied = await navigator.clipboard?.writeText(url).then(
-        () => true,
-        () => false
-      );
       setSharing(copied ? "Link copied" : url);
       return;
     }
@@ -1032,7 +1036,9 @@ export default function CinemaGallery({
         : result === "copied"
           ? "Link copied"
           : result === "shared"
-            ? "Shared"
+            ? copied
+              ? "Shared · link copied, paste it into a link sticker"
+              : "Shared"
             : null
     );
     wake();
