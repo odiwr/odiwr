@@ -22,7 +22,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import Icon from "@/components/icons";
 import { captureFrame, captureLoop } from "./capture";
-import { cutToTrim } from "./cut";
+import { prepare, restills } from "./media";
 import { deletePost, saveCinemaPost, type SlideInput } from "@/app/dashboard/(app)/actions";
 
 /**
@@ -121,6 +121,65 @@ async function upload(file: File | Blob, name: string): Promise<string> {
   const data = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
   if (!res.ok || !data.url) throw new Error(data.error ?? `Upload failed (${res.status})`);
   return data.url;
+}
+
+/** A clip's length and shape, asked of the browser. Zeroes if it will not say. */
+function metaOf(src: string): Promise<{ duration: number; width?: number; height?: number }> {
+  return new Promise((resolve) => {
+    if (!src) return resolve({ duration: 0 });
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    const done = (value: { duration: number; width?: number; height?: number }) => {
+      video.removeAttribute("src");
+      video.load();
+      resolve(value);
+    };
+    const timer = window.setTimeout(() => done({ duration: 0 }), 8000);
+    video.onloadedmetadata = () => {
+      window.clearTimeout(timer);
+      done({
+        duration: Number.isFinite(video.duration) ? video.duration : 0,
+        width: video.videoWidth || undefined,
+        height: video.videoHeight || undefined,
+      });
+    };
+    video.onerror = () => {
+      window.clearTimeout(timer);
+      done({ duration: 0 });
+    };
+    video.src = src;
+  });
+}
+
+/** An uploaded clip fetched back, to be cut or read again. */
+async function asFile(src: string, name: string): Promise<File | null> {
+  return fetch(src)
+    .then((res) => res.blob())
+    .then((blob) => new File([blob], `${name}.mp4`, { type: blob.type || "video/mp4" }))
+    .catch(() => null);
+}
+
+/**
+ * The fallback for when ffmpeg cannot be used: the still and the cover taken
+ * by playing the clip (capture.ts) and uploaded.
+ */
+async function record(
+  source: string,
+  name: string,
+  start: number,
+  end: number | undefined,
+  say: (text: string) => void
+) {
+  say("Making the cover");
+  const frame = await captureFrame(source, start, end);
+  const loop = await captureLoop(source, name, start, end);
+  say("Uploading the cover");
+  return {
+    poster: frame.poster ? await upload(frame.poster, `${name}-poster.jpg`) : undefined,
+    cover: loop ? await upload(loop, loop.name) : undefined,
+    width: frame.width || undefined,
+    height: frame.height || undefined,
+  };
 }
 
 /* ------------------------------------------------------------------ */
@@ -259,12 +318,15 @@ function Thumb({
   selected,
   onSelect,
   onRemove,
+  onMeasure,
 }: {
   item: Item;
   index: number;
   selected: boolean;
   onSelect: () => void;
   onRemove: () => void;
+  /** Its length, as soon as the browser knows it. */
+  onMeasure: (duration: number) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.key,
@@ -296,6 +358,7 @@ function Thumb({
               muted
               playsInline
               preload="metadata"
+              onLoadedMetadata={(e) => onMeasure(e.currentTarget.duration)}
               autoPlay={!item.source}
               loop={!item.source}
               className="pointer-events-none absolute inset-0 h-full w-full object-contain"
@@ -456,46 +519,75 @@ export default function PostComposer({
       for (const [n, item] of items.entries()) {
         const label = items.length > 1 ? ` ${n + 1} of ${items.length}` : "";
         const name = (item.file?.name ?? "clip").replace(/\.[^.]+$/, "");
+        const say = (text: string) => setStatus(`${text}${label}…`);
         const s = item.start ?? 0;
         const e = item.end;
         const retrimmed = !item.file && ((item.saved?.start ?? 0) !== s || item.saved?.end !== e);
+        // Posted before clips were cut to their trim: the trim sits inside a
+        // longer file, which the site can only loop by seeking back.
+        const loose = !item.file && (item.start !== undefined || item.end !== undefined);
+        // Posted before covers were encoded: recorded by playing the clip,
+        // which dropped frames on a busy machine.
+        const recorded = !item.file && !!item.cover && /\.webm(?:[?#]|$)/i.test(item.cover);
         let { video, poster, cover, width, height } = item;
-
-        // The trim as saved: in the uploaded file's own time, which is the
-        // original's unless the file was cut down to it below.
-        let savedStart = s;
+        // The trim as saved: in the uploaded clip's own time, which is the
+        // original's unless it was cut down below.
+        let savedStart: number | undefined = s || undefined;
         let savedEnd = e;
 
-        if (item.file) {
-          // Only the trimmed part (and a little either side) goes up, when that
-          // is much less than the whole file.
-          const cut =
-            item.duration && (s > 0 || e !== undefined)
-              ? await cutToTrim(item.file, s, e ?? item.duration, item.duration, (t) =>
-                  setStatus(`${t.replace(/…$/, "")}${label}…`)
-                )
-              : null;
-          if (cut) {
-            savedStart = cut.start;
-            savedEnd = cut.end;
+        if (item.file || (loose && item.source)) {
+          // A clip just added, or one posted before clips were cut: ffmpeg cuts
+          // it to its trim and makes the still and cover from the result.
+          // Whatever it cannot manage falls back below.
+          const source = item.file ?? (await asFile(item.source!, name));
+          const full = item.duration || (await metaOf(item.source!)).duration || e || 0;
+          const made = source ? await prepare(source, s, e ?? full, full, say) : null;
+
+          if (made) {
+            savedStart = made.start;
+            savedEnd = made.end;
+            if (made.clip || item.file) {
+              say("Uploading clip");
+              video = await upload(made.clip ?? source!, source!.name);
+            }
+            if (made.poster || made.cover) {
+              say("Uploading the cover");
+              if (made.poster) poster = await upload(made.poster, made.poster.name);
+              if (made.cover) cover = await upload(made.cover, made.cover.name);
+            }
+          } else if (item.file) {
+            say("Uploading clip");
+            video = await upload(item.file, item.file.name);
           }
-          setStatus(`Uploading clip${label}…`);
-          video = await upload(cut?.file ?? item.file, item.file.name);
-        }
-        if ((item.file || retrimmed) && item.source) {
-          setStatus(`Making the cover${label}…`);
-          const frame = await captureFrame(item.source, s, e);
-          const loop = await captureLoop(item.source, name, s, e);
-          setStatus(`Uploading the cover${label}…`);
-          if (frame.poster) poster = await upload(frame.poster, `${name}-poster.jpg`);
-          if (loop) cover = await upload(loop, loop.name);
-          // A clip whose cover could not be recorded plays itself on the grid.
-          else if (item.file) cover = undefined;
-          if (frame.width) {
-            width = frame.width;
-            height = frame.height;
+
+          // Anything ffmpeg left undone is taken by playing the clip instead.
+          if (item.source && (!made?.poster || !made?.cover)) {
+            const taken = await record(item.source, name, s, e, say);
+            poster = made?.poster ? poster : (taken.poster ?? poster);
+            cover = made?.cover ? cover : (taken.cover ?? cover);
+            width = width ?? taken.width;
+            height = height ?? taken.height;
+          }
+        } else if ((retrimmed || recorded) && item.source) {
+          // The clip itself is untouched; only its still and cover follow.
+          const made = await restills(item.source, name, s, e ?? item.duration ?? 0, say);
+          if (made.poster || made.cover) {
+            say("Uploading the cover");
+            if (made.poster) poster = await upload(made.poster, made.poster.name);
+            if (made.cover) cover = await upload(made.cover, made.cover.name);
+          } else {
+            const taken = await record(item.source, name, s, e, say);
+            poster = taken.poster ?? poster;
+            cover = taken.cover ?? cover;
           }
         }
+
+        if (!width || !height) {
+          const size = await metaOf(item.source ?? video ?? "");
+          width = width ?? size.width;
+          height = height ?? size.height;
+        }
+
         slides.push({ video, poster, cover, width, height, start: savedStart, end: savedEnd });
       }
 
@@ -598,7 +690,6 @@ export default function PostComposer({
                   e.currentTarget.currentTime = current.start ?? 0;
                   e.currentTarget.play().catch(() => {});
                 }}
-                onClick={(e) => (e.currentTarget.paused ? e.currentTarget.play() : e.currentTarget.pause())}
               />
             ) : current?.loopOnly ? (
               isVideo(current.loopOnly) ? (
@@ -647,6 +738,9 @@ export default function PostComposer({
                     selected={i === Math.min(selected, items.length - 1)}
                     onSelect={() => setSelected(i)}
                     onRemove={() => remove(item.key)}
+                    onMeasure={(duration) => {
+                      if (!item.duration) update(item.key, { duration });
+                    }}
                   />
                 ))}
                 <li>
