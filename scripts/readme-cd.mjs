@@ -1,4 +1,6 @@
-// Builds .github/cd.svg, the spinning CD at the top of the README.
+// Builds the spinning CD at the top of the README: .github/cd.svg, beside the
+// text on a computer, and .github/cd-phone.svg, full width above it on a phone.
+// The README picks between them by screen width.
 //
 //   npm run readme:cd                                the disc printed matte black
 //   npm run readme:cd -- <cover>                     the disc printed with a cover
@@ -56,11 +58,25 @@ const DRIFT = 14;
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = join(root, ".github/cd.svg");
+const OUT_PHONE = join(root, ".github/cd-phone.svg");
 const DUST = join(root, "scripts/cd-dust.png");
 
 const SANS = `-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans',Helvetica,Arial,sans-serif`;
 const W = 240;
+/** Height of the picture. The artists' line sits 12 px from its bottom. */
 const H = 300;
+/**
+ * Width the README shows the disc at on a computer, in px. Small enough that
+ * the text and all three buttons fit beside it on GitHub's narrowest
+ * two-column profile. If this or H changes, .github/gap.svg (the spacer that
+ * lines the buttons up with the artists' line) needs a new height.
+ */
+const SHOW = 200;
+/** On a phone: the width the picture is drawn across, and its stated size. */
+const PHONE_VIEW = 360;
+const PHONE_SIZE = 1080;
+/** Space under the artists on a phone, before the README's text. */
+const PHONE_ROOM = 18;
 const C = 118; // centre, x and y
 const MM = 1.8; // px per mm: 60 mm radius → 108 px
 const r = (mm) => +(mm * MM).toFixed(2);
@@ -291,9 +307,7 @@ const fineText = art
   ? `<g mask="url(#ink)"><use href="#art" filter="url(#contrast)"/></g>`
   : finePrint.replace("<text ", '<text fill="#f0f6fc" fill-opacity=".72" ');
 
-const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-labelledby="t">
-<title id="t">${escape(TITLE)}, by ${escape(ARTISTS)}</title>
-<style>
+const body = `<style>
 text{font-family:${SANS}}
 .spin{transform-origin:${C}px ${C}px;animation:spin ${TURN}s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -407,9 +421,31 @@ text{font-family:${SANS}}
 </g>
 
 <text class="title" x="${C}" y="${H - 34}" font-size="16" font-weight="600" text-anchor="middle">${escape(TITLE)}</text>
-<text class="artists" x="${C}" y="${H - 12}" font-size="13" text-anchor="middle">${escape(ARTISTS)}</text>
+<text class="artists" x="${C}" y="${H - 12}" font-size="13" text-anchor="middle">${escape(ARTISTS)}</text>`;
+
+const open = (width, viewWidth, viewHeight) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${f(
+    (width * viewHeight) / viewWidth
+  )}" viewBox="0 0 ${viewWidth} ${viewHeight}" role="img" aria-labelledby="t">
+<title id="t">${escape(TITLE)}, by ${escape(ARTISTS)}</title>`;
+
+// Computers: the disc beside the text, SHOW px wide.
+const computer = `${open(SHOW, W, H)}
+${body}
 </svg>
 `;
 
-await writeFile(OUT, svg);
-console.log(`Wrote ${OUT}${art ? " with the cover" : " (no cover)"}`);
+// Phones: the same disc centred in a wider picture, with room under the
+// artists before the text starts. Its size is set far larger than any phone,
+// so GitHub shrinks it to the full width of the README and the text drops
+// below it instead of being squeezed beside it.
+const phone = `${open(PHONE_SIZE, PHONE_VIEW, H + PHONE_ROOM)}
+<svg x="${(PHONE_VIEW - W) / 2}" y="0" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+${body}
+</svg>
+</svg>
+`;
+
+await writeFile(OUT, computer);
+await writeFile(OUT_PHONE, phone);
+console.log(`Wrote ${OUT} and ${OUT_PHONE}${art ? " with the cover" : " (no cover)"}`);
