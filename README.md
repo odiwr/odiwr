@@ -1,13 +1,11 @@
-<a href="https://open.spotify.com/track/2dk8LiJ7yViAjfvyzpfA9i">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset=".github/now-playing-dark.svg">
-    <source media="(prefers-color-scheme: light)" srcset=".github/now-playing-light.svg">
-    <img alt="Now playing: Broken Hearts by Skepta feat. Central Cee and Jorja Smith" src=".github/now-playing-light.svg" width="100%">
-  </picture>
-</a>
+<a href="https://open.spotify.com/track/2dk8LiJ7yViAjfvyzpfA9i"><img align="right" width="220" src=".github/cd.svg" alt="Broken Hearts, by Skepta, Central Cee and Jorja Smith"></a>
 
 I hate boring design. Ironic right?
 
 [odiwr.com](https://odiwr.com)
+
+<a href="https://www.linkedin.com/in/odiwr/"><img height="32" src=".github/linkedin.svg" alt="LinkedIn"></a>
+<a href="https://instagram.com/odiwr"><img height="32" src=".github/instagram.svg" alt="Instagram"></a>
+<a href="https://open.spotify.com/user/31jonnrg5rhgd4s3f347ah6wwz4q"><img height="32" src=".github/spotify.svg" alt="Spotify"></a>
 
 因为热爱
