@@ -27,18 +27,15 @@ const LINK =
   "underline decoration-foreground/30 underline-offset-[2.5px] decoration-1 transition-colors hover:text-accent hover:decoration-accent";
 
 /**
- * The subdomains.
+ * The subdomains shown here. The others (creative, wishlist, cinema) still
+ * work at their own addresses; they just aren't listed.
  *
- * These open in the SAME tab, which is what the sideways arrow means here — the
- * outward arrow is reserved for links that leave for somewhere that is not mine.
+ * The sideways arrow opens in the SAME tab. The diagonal one opens a NEW tab.
  */
 const DESTINATIONS = [
   { label: "projects.odiwr.com", href: SUBDOMAIN_LINKS.projects },
-  { label: "creative.odiwr.com", href: SUBDOMAIN_LINKS.creative },
-  // portfolio.odiwr.com joins this list once its domain points here.
   // Barely there: findable by someone looking, not an invitation.
-  { label: "wishlist.odiwr.com", href: SUBDOMAIN_LINKS.wishlist, muted: true },
-  { label: "cinema.odiwr.com", href: SUBDOMAIN_LINKS.cinema, muted: true },
+  { label: "portfolio.odiwr.com", href: SUBDOMAIN_LINKS.portfolio, muted: true, newTab: true },
 ];
 
 /**
@@ -102,11 +99,18 @@ export default async function Home() {
               <li key={d.href} className="pl-4">
                 <a
                   href={d.href}
+                  {...(d.newTab ? OUT : {})}
                   className={`inline-flex items-center gap-1.5 transition-colors hover:text-accent ${
                     d.muted ? "text-foreground/15" : "text-foreground/80"
                   }`}
                 >
-                  <Icon name="material-symbols:arrow-right-alt-rounded" />
+                  <Icon
+                    name={
+                      d.newTab
+                        ? "material-symbols:arrow-outward-rounded"
+                        : "material-symbols:arrow-right-alt-rounded"
+                    }
+                  />
                   {d.label}
                 </a>
               </li>
