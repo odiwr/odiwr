@@ -35,6 +35,20 @@ html {
   color-scheme: dark;
 }
 
+/**
+ * No scrollbars, anywhere on the site, ever (a rule — see CLAUDE.md). Every
+ * page and every box still scrolls by wheel, trackpad, touch and keys; only the
+ * bar is gone. Firefox reads scrollbar-width, Chrome and Safari the
+ * pseudo-element.
+ */
+* {
+  scrollbar-width: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+}
+
 body {
   font-family: var(--font-sans);
 }

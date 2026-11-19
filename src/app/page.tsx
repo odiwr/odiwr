@@ -35,7 +35,7 @@ const LINK =
 const DESTINATIONS = [
   { label: "projects.odiwr.com", href: SUBDOMAIN_LINKS.projects },
   { label: "creative.odiwr.com", href: SUBDOMAIN_LINKS.creative },
-  { label: "portfolio.odiwr.com", href: SUBDOMAIN_LINKS.portfolio },
+  // portfolio.odiwr.com joins this list once its domain points here.
   // Barely there: findable by someone looking, not an invitation.
   { label: "wishlist.odiwr.com", href: SUBDOMAIN_LINKS.wishlist, muted: true },
   { label: "cinema.odiwr.com", href: SUBDOMAIN_LINKS.cinema, muted: true },
