@@ -1,4 +1,4 @@
-<a href="https://open.spotify.com/track/2dk8LiJ7yViAjfvyzpfA9i"><img align="right" width="220" src=".github/cd.svg" alt="Broken Hearts, by Skepta, Central Cee and Jorja Smith"></a>
+<a href="https://open.spotify.com/track/2dk8LiJ7yViAjfvyzpfA9i"><img align="right" width="220" src="https://i.scdn.co/image/ab67616d0000e1a38c0a712f6b42bc76ee707f8c" alt="Broken Hearts, by Skepta, Central Cee and Jorja Smith"></a>
 
 I hate boring design. Ironic right?
 
