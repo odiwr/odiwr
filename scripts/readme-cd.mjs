@@ -1,12 +1,22 @@
 // Builds .github/cd.svg, the spinning CD at the top of the README.
 //
-//   npm run readme:cd                      the disc printed matte black
-//   npm run readme:cd -- <cover>           the disc printed with a cover
+//   npm run readme:cd                                the disc printed matte black
+//   npm run readme:cd -- <cover>                     the disc printed with a cover
+//   npm run readme:cd -- <cover> --dust <picture>    and your own dust on it
 //
-// <cover> is a link (https://…) or a file path. It is downloaded and written
-// INTO the SVG, because GitHub shows README images as plain pictures, and a
-// picture cannot load anything from anywhere else — a link left in the SVG
-// would show nothing.
+// <cover> and <picture> are links (https://…) or file paths. They are
+// downloaded and written INTO the SVG, because GitHub shows README images as
+// plain pictures, and a picture cannot load anything from anywhere else — a
+// link left in the SVG would show nothing.
+//
+// The dust is a photo, not drawn. Without --dust it is scripts/cd-dust.png: a
+// 120 mm patch, at real scale, of the dust scan "Surface Imperfections 015"
+// from ambientCG (ambientcg.com/a/SurfaceImperfections015, CC0), with only the
+// specks that catch the light kept. With --dust, give a photo of dust and
+// scratches on a disc: light marks on black, with the disc's outer edge and
+// its centre hole showing as rings. The script finds both rings, all the way
+// round, and stretches the photo so they sit exactly on this disc's edge and
+// hole. That step needs sharp, so run `npm install` once first.
 //
 // Built the way a real disc is, from the centre out, at real proportions
 // (120 mm across, 15 mm hole):
@@ -20,8 +30,8 @@
 // The light does not turn with the disc. On a real CD the rainbow and the
 // shine stay where the light is while the disc spins under them; only a
 // change of angle moves them, which the light here does slowly, as if the
-// disc were tilting a little. Scratches and dust turn with the disc and show
-// most as they pass through the light.
+// disc were tilting a little. The dust and scratches turn with the disc and
+// show most as they pass through the light.
 //
 // The song is set just below.
 
@@ -46,6 +56,7 @@ const DRIFT = 14;
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = join(root, ".github/cd.svg");
+const DUST = join(root, "scripts/cd-dust.png");
 
 const SANS = `-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans',Helvetica,Arial,sans-serif`;
 const W = 240;
@@ -70,80 +81,157 @@ const ringPath = (id, radius) =>
 const annulus = (id, inner, outer) =>
   `<mask id="${id}"><circle cx="${C}" cy="${C}" r="${outer}" fill="#fff"/><circle cx="${C}" cy="${C}" r="${inner}" fill="#000"/></mask>`;
 
-async function cover(source) {
-  if (!source) return null;
-  let bytes;
-  let type;
+/** The bytes of a link or a file. */
+async function load(source, what) {
   if (/^https?:\/\//.test(source)) {
     const res = await fetch(source);
-    if (!res.ok) throw new Error(`Couldn't download the cover (${res.status})`);
-    bytes = Buffer.from(await res.arrayBuffer());
-    type = res.headers.get("content-type")?.split(";")[0];
-  } else {
-    bytes = await readFile(source);
+    if (!res.ok) throw new Error(`Couldn't download the ${what} (${res.status})`);
+    return { bytes: Buffer.from(await res.arrayBuffer()), type: res.headers.get("content-type")?.split(";")[0] };
   }
+  return { bytes: await readFile(source) };
+}
+
+const dataUri = (bytes, type) => `data:${type};base64,${bytes.toString("base64")}`;
+
+async function cover(source) {
+  if (!source) return null;
+  let { bytes, type } = await load(source, "cover");
   if (!type || !type.startsWith("image/")) {
     type = /\.png$/i.test(source) ? "image/png" : /\.webp$/i.test(source) ? "image/webp" : "image/jpeg";
   }
-  return `data:${type};base64,${bytes.toString("base64")}`;
+  return dataUri(bytes, type);
 }
 
-/** Deterministic randomness, so rebuilding gives the same dust. */
-function seeded(seed) {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+/** Where the dust photo's two rings go on this disc: just inside the edge, just outside the hole. */
+const EDGE_AT = R - 1;
+const HOLE_AT = HOLE + 1.2;
+/** Pixels per px of the disc in the finished dust picture. */
+const DUST_SCALE = 2;
+
+/**
+ * The dust, as a picture whose brightness is how much dust there is: black
+ * for none. Used as a mask, so the dust shows as light catching on it.
+ */
+async function dust(source) {
+  if (!source) return dataUri(await readFile(DUST), "image/png");
+  let sharp;
+  try {
+    sharp = (await import("sharp")).default;
+  } catch {
+    throw new Error("Lining up a dust picture needs sharp. Run `npm install` once, then this again.");
+  }
+  const { bytes } = await load(source, "dust picture");
+
+  // The photo in grey, and a softened copy to find the rings in.
+  const grey = await sharp(bytes).greyscale().raw().toBuffer({ resolveWithObject: true });
+  const { width: w, height: h } = grey.info;
+  const soft = await sharp(bytes).greyscale().blur(Math.max(0.8, Math.min(w, h) / 450)).raw().toBuffer();
+  const sampler = (data) => (x, y) => {
+    const x0 = Math.floor(x), y0 = Math.floor(y);
+    if (x0 < 0 || y0 < 0 || x0 >= w - 1 || y0 >= h - 1) return 0;
+    const fx = x - x0, fy = y - y0, i = y0 * w + x0;
+    return (data[i] * (1 - fx) + data[i + 1] * fx) * (1 - fy) + (data[i + w] * (1 - fx) + data[i + w + 1] * fx) * fy;
   };
-}
+  const sharpAt = sampler(grey.data);
+  const softAt = sampler(soft);
 
-function wear() {
-  const rand = seeded(11);
-  const at = (radius, angle) => [f(C + radius * Math.cos(angle)), f(C + radius * Math.sin(angle))];
-  const dust = [];
-  for (let i = 0; i < 160; i++) {
-    const [x, y] = at(HOLE + 3 + rand() * (R - HOLE - 4), rand() * Math.PI * 2);
-    const dark = rand() < 0.25;
-    dust.push(
-      `<circle cx="${x}" cy="${y}" r="${f(0.15 + rand() ** 2 * 0.5)}" fill="${dark ? "#000" : "#fff"}" fill-opacity="${f(
-        dark ? 0.2 + rand() * 0.2 : 0.25 + rand() * 0.45
-      )}"/>`
-    );
-  }
-  // A few fibres: short curls.
-  for (let i = 0; i < 4; i++) {
-    const [x, y] = at(BAND + rand() * (PRINT - BAND - 6), rand() * Math.PI * 2);
-    const dx = 3 + rand() * 6;
-    dust.push(
-      `<path d="M ${x} ${y} q ${f(dx / 2)} ${f(-2 + rand() * 4)} ${f(dx)} ${f(-1 + rand() * 2)} t ${f(dx * 0.6)} ${f(-1 + rand() * 2)}" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width=".22"/>`
-    );
-  }
-  // Scratches: mostly round the disc, the way handling and drawers make them.
-  const scratches = [];
-  for (let i = 0; i < 34; i++) {
-    const radius = HUB + 2 + rand() * (R - HUB - 4);
-    const start = rand() * Math.PI * 2;
-    const sweep = (6 + rand() * 32) * (Math.PI / 180);
-    const [x1, y1] = at(radius, start);
-    const [x2, y2] = at(radius + (rand() - 0.5) * 2, start + sweep);
-    scratches.push(
-      `<path d="M ${x1} ${y1} A ${f(radius)} ${f(radius)} 0 0 1 ${x2} ${y2}" fill="none" stroke="#fff" stroke-width="${f(
-        0.15 + rand() * 0.2
-      )}"/>`
-    );
-  }
-  // And a couple straight across.
-  for (let i = 0; i < 3; i++) {
-    const [x, y] = at(BAND + rand() * 60, rand() * Math.PI * 2);
-    const a = rand() * Math.PI;
-    const len = 8 + rand() * 18;
-    scratches.push(
-      `<path d="M ${x} ${y} l ${f(Math.cos(a) * len)} ${f(Math.sin(a) * len)}" fill="none" stroke="#fff" stroke-width=".18"/>`
-    );
-  }
-  return { dust: dust.join(""), scratches: scratches.join("") };
+  // 1. Each ring as a circle: the one that is brightest against just inside
+  //    and just outside it. Searched coarse, then fine.
+  const size = Math.min(w, h);
+  const unit = size / 360; // searches step in the same share of the picture at any size
+  const round = (cx, cy, r, n = 180) => {
+    let s = 0;
+    for (let k = 0; k < n; k++) {
+      const a = (k / n) * 2 * Math.PI;
+      s += softAt(cx + r * Math.cos(a), cy + r * Math.sin(a));
+    }
+    return s / n;
+  };
+  const ringScore = (cx, cy, r) => round(cx, cy, r) - (round(cx, cy, r - 3 * unit) + round(cx, cy, r + 3 * unit)) / 2;
+  const search = (cx0, cy0, span, step, r0, r1, rStep) => {
+    let best = { score: -Infinity };
+    for (let cy = cy0 - span; cy <= cy0 + span; cy += step)
+      for (let cx = cx0 - span; cx <= cx0 + span; cx += step)
+        for (let r = r0; r <= r1; r += rStep) {
+          // Keep the ring, and the circles either side of it, inside the picture.
+          const reach = r + 3 * unit + 1;
+          if (cx - reach < 0 || cy - reach < 0 || cx + reach > w - 1 || cy + reach > h - 1) continue;
+          const score = ringScore(cx, cy, r);
+          if (score > best.score) best = { score, cx, cy, r };
+        }
+    return best;
+  };
+  let edge = search(w / 2, h / 2, size * 0.08, 2 * unit, size * 0.3, size * 0.5, unit);
+  edge = search(edge.cx, edge.cy, 2 * unit, unit / 4, edge.r - 2 * unit, edge.r + 2 * unit, unit / 4);
+  let hole = search(edge.cx, edge.cy, size * 0.04, unit, size * 0.03, edge.r * 0.35, unit / 2);
+  hole = search(hole.cx, hole.cy, 1.5 * unit, unit / 4, hole.r - 1.5 * unit, hole.r + 1.5 * unit, unit / 4);
+
+  // 2. A photo is rarely square on, so each ring's radius is found again at
+  //    every angle round the edge's centre, then smoothed so a speck next to
+  //    a ring can't pull it.
+  const A = 720;
+  const cx = edge.cx, cy = edge.cy;
+  const trace = (guess) => {
+    const radii = [];
+    for (let k = 0; k < A; k++) {
+      const a = (k / A) * 2 * Math.PI;
+      const g = guess(a);
+      const reach = Math.max(4 * unit, g * 0.04);
+      let best = g, bright = -Infinity;
+      for (let r = g - reach; r <= g + reach; r += unit / 4) {
+        const v = softAt(cx + r * Math.cos(a), cy + r * Math.sin(a));
+        if (v > bright) [bright, best] = [v, r];
+      }
+      radii.push(best);
+    }
+    const around = (list, half, pick) => list.map((_, k) => pick(Array.from({ length: half * 2 + 1 }, (_, j) => list[(k - half + j + A) % A])));
+    const median = (xs) => xs.sort((p, q) => p - q)[xs.length >> 1];
+    const mean = (xs) => xs.reduce((p, q) => p + q, 0) / xs.length;
+    return around(around(radii, 9, median), 15, mean);
+  };
+  const edgeR = trace(() => edge.r);
+  // The hole's ring, measured from the edge's centre, which it may sit off.
+  const dx = hole.cx - cx, dy = hole.cy - cy;
+  const holeR = trace((a) => {
+    const along = dx * Math.cos(a) + dy * Math.sin(a);
+    return along + Math.sqrt(Math.max(0, hole.r ** 2 - (dx * dx + dy * dy) + along * along));
+  });
+  const radiusAt = (list, a) => {
+    const t = (((a / (2 * Math.PI)) * A) % A + A) % A;
+    const k = Math.floor(t);
+    return list[k] + (list[(k + 1) % A] - list[k]) * (t - k);
+  };
+
+  // 3. Redraw it onto this disc: for every pixel, the same angle, and a
+  //    radius that puts the hole's ring at HOLE_AT and the edge's at EDGE_AT.
+  const N = Math.round(R * 2 * DUST_SCALE);
+  const out = new Float64Array(N * N);
+  for (let y = 0; y < N; y++)
+    for (let x = 0; x < N; x++) {
+      const px = (x + 0.5) / DUST_SCALE - R, py = (y + 0.5) / DUST_SCALE - R;
+      const d = Math.hypot(px, py);
+      if (d > R || d < HOLE) continue;
+      const a = Math.atan2(py, px);
+      const inner = radiusAt(holeR, a), outer = radiusAt(edgeR, a);
+      const rho = inner + ((d - HOLE_AT) * (outer - inner)) / (EDGE_AT - HOLE_AT);
+      out[y * N + x] = sharpAt(cx + rho * Math.cos(a), cy + rho * Math.sin(a));
+    }
+
+  // 4. Only what stands out from the black is dust: the bare disc goes to
+  //    nothing, the brightest marks to full.
+  const lit = Float64Array.from(out.filter((v) => v > 0)).sort();
+  const q = (p) => lit[Math.floor(p * (lit.length - 1))];
+  const low = q(0.55), high = Math.max(q(0.997), low + 1);
+  const mask = Buffer.alloc(N * N);
+  for (let i = 0; i < out.length; i++) mask[i] = Math.round(255 * Math.min(1, Math.max(0, (out[i] - low) / (high - low))) ** 0.75);
+  const png = await sharp(mask, { raw: { width: N, height: N, channels: 1 } })
+    .toColourspace("b-w")
+    .png({ compressionLevel: 9 })
+    .toBuffer();
+  console.log(
+    `Dust lined up: edge ring r ${f(edge.r)} at (${f(cx)}, ${f(cy)}), hole ring r ${f(hole.r)} at (${f(hole.cx)}, ${f(hole.cy)})`
+  );
+  return dataUri(png, "image/png");
 }
 
 /**
@@ -172,8 +260,18 @@ function rainbow() {
   return out.join("");
 }
 
-const art = await cover(process.argv[2]);
-const { dust, scratches } = wear();
+const args = process.argv.slice(2);
+const dustAt = args.indexOf("--dust");
+const dustSource = dustAt >= 0 ? args.splice(dustAt, 2)[1] : null;
+if (dustAt >= 0 && !dustSource) throw new Error("--dust needs a picture: a link or a file.");
+const art = await cover(args[0]);
+const dustPicture = await dust(dustSource);
+
+// The dust, as light on the disc. Drawn with the faint shadow each speck
+// casts, which is what shows it on light print; then light everywhere; then
+// again, brighter, where the light falls.
+const dustLight = (opacity, fill = "#fff") =>
+  `<rect x="${C - R}" y="${C - R}" width="${R * 2}" height="${R * 2}" fill="${fill}" fill-opacity="${opacity}" mask="url(#dust)"/>`;
 
 // The print: the cover, or matte black.
 const print = art
@@ -251,6 +349,9 @@ text{font-family:${SANS}}
     <stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
   </radialGradient>
   <mask id="glint"><rect x="0" y="0" width="${W}" height="${W}" fill="url(#glintSpot)"/></mask>
+  <mask id="dust" maskUnits="userSpaceOnUse" x="${C - R}" y="${C - R}" width="${R * 2}" height="${R * 2}">
+    <image href="${dustPicture}" x="${C - R}" y="${C - R}" width="${R * 2}" height="${R * 2}"/>
+  </mask>
 </defs>
 
 <!-- The shadow it casts. -->
@@ -284,13 +385,13 @@ text{font-family:${SANS}}
     <circle cx="${C}" cy="${C}" r="${PRINT}" fill="none" stroke="#000" stroke-opacity=".25" stroke-width=".4"/>
     <circle cx="${C}" cy="${C}" r="${BAND}" fill="none" stroke="#000" stroke-opacity=".3" stroke-width=".4"/>
     <circle cx="${C}" cy="${C}" r="${HUB}" fill="none" stroke="#000" stroke-opacity=".22" stroke-width=".4"/>
-    <!-- Wear, faintly everywhere. -->
-    <g opacity=".22">${scratches}</g>
-    ${dust}
+    <!-- Dust and scratches, faintly everywhere. -->
+    <g transform="translate(.35 .35)">${dustLight(0.28, "#000")}</g>
+    ${dustLight(0.6)}
   </g>
 
-  <!-- The same scratches, bright where the light catches them. Turns in step with the disc. -->
-  <g mask="url(#glint)"><g class="spin" opacity=".75">${scratches}</g></g>
+  <!-- The same dust, bright where the light catches it. Turns in step with the disc. -->
+  <g mask="url(#glint)"><g class="spin">${dustLight(0.95)}</g></g>
 
   <!-- The light. Stays put while the disc turns; drifts as the angle changes. -->
   <g class="tilt">
