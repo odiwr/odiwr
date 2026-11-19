@@ -194,39 +194,36 @@ export type PortfolioItem = {
   thumb?: string;
   /** The viewer's copy of a picture: at most 2560 on its long edge. Absent when the original fits. */
   large?: string;
-  /** Video only: a still from it, for the grid and link previews. */
+  /** Video only: a still from it, shown until its loop plays, and for link previews. */
   poster?: string;
+  /**
+   * Video only: what its tile plays, a muted loop of at most four seconds
+   * recorded from it on upload. Absent where the browser could not record
+   * one; the tile then plays the video itself, muted.
+   */
+  loop?: string;
   width: number;
   height: number;
-  /** Video only, in seconds. Shown on its tile. */
+  /** Video only, in seconds. */
   duration?: number;
-  /** Shown under it in the viewer, and its alt text. */
-  caption?: string;
-  /** The name of the set it is filed under, one of Portfolio.sets. Absent is none. */
-  set?: string;
+  /** Read out by screen readers, never shown: the page has no words on it. */
+  alt?: string;
   /** Kept in the dashboard, off the site. Absent is shown. */
   hidden?: boolean;
   /** ISO date, YYYY-MM-DD, of the upload. */
   date: string;
 };
 
-/** portfolio.odiwr.com: the gallery, its cover, and its sets. */
+/**
+ * portfolio.odiwr.com. Just the items: the page is pictures and nothing else,
+ * in a new order on every visit, so there is no title, cover or order to keep.
+ */
 export type Portfolio = {
-  /** On the cover and at the top of the page. */
-  title: string;
-  /** The smaller line under it. */
-  subtitle?: string;
-  /** The item on the cover. Absent is the first picture in the grid. */
-  cover?: string;
-  /** Where the cover stays in view when it is cropped, in percent from the top left. */
-  focus?: { x: number; y: number };
-  /** Set names, in the order their tabs are shown. */
-  sets: string[];
-  /** In the order the grid shows them. */
+  /** Newest first. The site shuffles them; this is the dashboard's order. */
   items: PortfolioItem[];
 };
 
-export const EMPTY_PORTFOLIO: Portfolio = { title: "Portfolio", sets: [], items: [] };
+export const EMPTY_PORTFOLIO: Portfolio = { items: [] };
 
 export type Content = {
   work: Work[];
@@ -325,9 +322,6 @@ function normalise(raw: unknown): Content {
 function normalisePortfolio(raw: unknown): Portfolio {
   const p = (raw ?? {}) as Partial<Portfolio>;
   return {
-    ...p,
-    title: typeof p.title === "string" && p.title.trim() ? p.title : EMPTY_PORTFOLIO.title,
-    sets: Array.isArray(p.sets) ? p.sets.filter((s) => typeof s === "string" && s.trim()) : [],
     items: Array.isArray(p.items)
       ? p.items.filter((i) => i && typeof i.src === "string" && i.width > 0 && i.height > 0)
       : [],

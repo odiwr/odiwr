@@ -8,6 +8,31 @@
  * a preview with no image on every platform that unfurls links.
  */
 
+const EMAIL = "o@odiwr.com";
+
+/**
+ * The email link, with a subject and a few lines already written, so a message
+ * sent from the site says who it is from and what it is about instead of
+ * arriving as "test / hello". The sender can still change all of it.
+ *
+ * Line breaks as CRLF, which is what mailto: asks for (RFC 6068); every part
+ * percent-encoded, since a "+" or "&" left bare would cut the message short.
+ */
+const MAILTO = `mailto:${EMAIL}?subject=${encodeURIComponent("Hey Bill (from odiwr.com)")}&body=${encodeURIComponent(
+  [
+    "Hey Bill,",
+    "",
+    "[what's on your mind]",
+    "",
+    "",
+    "Name:",
+    "Company / project:",
+    "Best way to reach me:",
+    "",
+    "Sent from odiwr.com",
+  ].join("\r\n")
+)}`;
+
 export const SITE = {
   /** Shown as the browser tab title on every page, by request. */
   name: "odiwr",
@@ -44,7 +69,10 @@ export const SITE = {
   /** The one handle, per "anywhere online with @odiwr". */
   handle: "@odiwr",
 
-  email: "o@odiwr.com",
+  email: EMAIL,
+
+  /** What every email link on the site opens: the address, a subject and a short template. */
+  mailto: MAILTO,
 
   /**
    * The accounts behind the handle. Order is the order they appear in the
@@ -58,7 +86,7 @@ export const SITE = {
   profiles: [
     { label: "LinkedIn", href: "https://www.linkedin.com/in/odiwr", icon: "simple-icons:linkedin" },
     { label: "GitHub", href: "https://github.com/odiwr", icon: "simple-icons:github" },
-    { label: "Gmail", href: "mailto:o@odiwr.com", icon: "simple-icons:gmail" },
+    { label: "Gmail", href: MAILTO, icon: "simple-icons:gmail" },
     { label: "Instagram", href: "https://www.instagram.com/odiwr", icon: "simple-icons:instagram" },
   ],
 

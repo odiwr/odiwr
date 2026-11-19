@@ -2,60 +2,37 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  arrayMove,
-  rectSortingStrategy,
-  sortableKeyboardCoordinates,
-  useSortable,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import Icon from "@/components/icons";
-import Select from "./Select";
 import { ACCEPT, gate, prepare, refusal, type Step } from "./portfolio-media";
-import { clock } from "@/lib/portfolio";
 import {
   addPortfolioItem,
   deletePortfolioItem,
-  reorderPortfolio,
-  setPortfolioCover,
+  setPortfolioAlt,
   setPortfolioHidden,
-  updatePortfolioItem,
 } from "@/app/dashboard/(app)/portfolio-actions";
 
 /**
- * The portfolio's pictures and videos, in the order the site shows them.
+ * Every picture and video on the portfolio, newest first. The site shuffles
+ * them on every visit, so there is no order to set here.
  *
  * Drop any number of files on the box (or choose them): each is read, copied
  * and uploaded in the browser (portfolio-media.ts), three at a time, and saved
- * in the order chosen, at the front of the grid. Nothing has to be cropped or
- * sized first — the site fits every shape as it comes.
+ * in the order chosen. Nothing has to be cropped or sized first — the site fits
+ * every shape as it comes.
  *
- * Every tile: drag to move it; over it, hide (off the site, kept here), cover,
- * and delete; under it, its set and caption, saved as they change.
- *
- * Changes are applied here first and saved behind them, as CinemaBoard does.
+ * Over each tile, hide (off the site, kept here) and delete; under it, its alt
+ * text, which screen readers read out and nobody sees. Changes are applied
+ * here first and saved behind them, as CinemaBoard does.
  */
 
 export type BoardItem = {
   id: string;
   kind: "image" | "video";
   thumb: string;
-  full: string;
+  loop?: string;
   width: number;
   height: number;
-  duration?: number;
-  caption?: string;
-  set?: string;
+  alt?: string;
   hidden?: boolean;
 };
 
@@ -79,70 +56,46 @@ const SAYS: Record<Pending["state"], string> = {
   failed: "Failed",
 };
 
-const NO_SET = "";
-
 function Tile({
   item,
-  sets,
-  isCover,
-  onChange,
+  onAlt,
   onHide,
-  onCover,
   onDelete,
 }: {
   item: BoardItem;
-  sets: string[];
-  isCover: boolean;
-  onChange: (patch: { caption?: string; set?: string }) => void;
+  onAlt: (alt: string) => void;
   onHide: () => void;
-  onCover: () => void;
   onDelete: () => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: item.id,
-  });
-  const label = item.caption || (item.kind === "video" ? "Video" : "Picture");
+  const label = item.alt || (item.kind === "video" ? "Video" : "Picture");
 
   return (
-    <li
-      ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`flex flex-col gap-1.5 ${isDragging ? "relative z-10" : ""}`}
-    >
+    <li className="flex flex-col gap-1.5">
       <div className="group relative">
         <div
-          {...attributes}
-          {...listeners}
-          aria-label={`Move ${label}`}
-          className={`relative aspect-square cursor-grab overflow-hidden rounded-[2px] bg-[#111] active:cursor-grabbing ${
-            isDragging ? "opacity-60 shadow-2xl" : ""
-          } ${item.hidden ? "opacity-40 grayscale" : ""}`}
+          className={`relative aspect-square overflow-hidden rounded-[2px] bg-[#111] ${
+            item.hidden ? "opacity-40 grayscale" : ""
+          }`}
         >
           {item.thumb ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={item.thumb}
-              alt=""
-              loading="lazy"
-              draggable={false}
-              className="pointer-events-none absolute inset-0 h-full w-full object-contain"
-            />
+            <img src={item.thumb} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-contain" />
           ) : (
             <video
-              src={`${item.full}#t=0.1`}
+              src={`${item.loop}#t=0.1`}
               preload="metadata"
               muted
               playsInline
-              className="pointer-events-none absolute inset-0 h-full w-full object-contain"
+              className="absolute inset-0 h-full w-full object-contain"
             />
           )}
-          <span className="pointer-events-none absolute bottom-1.5 left-2 flex items-center gap-1 text-xs text-white/80 [text-shadow:0_1px_2px_rgb(0_0_0/0.8)]">
-            {item.kind === "video" && <Icon name="material-symbols:play-arrow-rounded" size="1.2em" />}
-            {item.kind === "video" && item.duration ? clock(item.duration) : null}
-          </span>
+          {item.kind === "video" && (
+            <span className="pointer-events-none absolute bottom-1.5 left-1.5 flex text-white/80 [filter:drop-shadow(0_1px_2px_rgb(0_0_0/0.8))]">
+              <Icon name="material-symbols:play-arrow-rounded" size="1.2em" />
+            </span>
+          )}
         </div>
 
-        {/* Over the picture, not inside the drag handle, so they are never a drag. */}
         <button
           type="button"
           onClick={onHide}
@@ -169,45 +122,19 @@ function Tile({
         >
           <Icon name="material-symbols:close-rounded" size="1.1em" />
         </button>
-        <button
-          type="button"
-          onClick={onCover}
-          aria-label={isCover ? `${label} is the cover` : `Make ${label} the cover`}
-          title={isCover ? "The cover" : "Make this the cover"}
-          className={`absolute right-1.5 bottom-1.5 flex rounded-full bg-black/60 p-1 transition-opacity hover:text-accent focus-visible:opacity-100 ${
-            isCover ? "text-accent opacity-100" : "text-white/80 opacity-0 group-hover:opacity-100"
-          }`}
-        >
-          <Icon
-            name={isCover ? "material-symbols:star-rounded" : "material-symbols:star-outline-rounded"}
-            size="1.1em"
-          />
-        </button>
       </div>
 
-      {sets.length > 0 && (
-        <Select
-          name={`set-${item.id}`}
-          label={`Set for ${label}`}
-          className="text-sm"
-          value={item.set ?? NO_SET}
-          onChange={(set) => onChange({ set })}
-          options={[
-            { value: NO_SET, label: "No set", muted: true },
-            ...sets.map((s) => ({ value: s, label: s })),
-          ]}
-        />
-      )}
       <input
-        // Re-keyed by the saved caption, so a save from elsewhere shows here.
-        key={item.caption ?? ""}
+        // Re-keyed by the saved text, so a save from elsewhere shows here.
+        key={item.alt ?? ""}
         className="field text-sm"
-        placeholder="Caption"
-        aria-label={`Caption for ${label}`}
-        defaultValue={item.caption ?? ""}
+        placeholder="Alt text"
+        title="Read out by screen readers. Never shown on the page."
+        aria-label={`Alt text for ${label}`}
+        defaultValue={item.alt ?? ""}
         onBlur={(e) => {
-          const caption = e.currentTarget.value.trim();
-          if (caption !== (item.caption ?? "")) onChange({ caption });
+          const alt = e.currentTarget.value.trim();
+          if (alt !== (item.alt ?? "")) onAlt(alt);
         }}
         onKeyDown={(e) => {
           if (e.key === "Enter") e.currentTarget.blur();
@@ -217,19 +144,9 @@ function Tile({
   );
 }
 
-export default function PortfolioBoard({
-  items: initial,
-  sets,
-  cover,
-}: {
-  items: BoardItem[];
-  sets: string[];
-  /** The item on the cover: chosen, or the site's default (the first picture). */
-  cover?: string;
-}) {
+export default function PortfolioBoard({ items: initial }: { items: BoardItem[] }) {
   const [items, setItems] = useState(initial);
   const [pending, setPending] = useState<Pending[]>([]);
-  const [target, setTarget] = useState(NO_SET);
   const [over, setOver] = useState(false);
   const [busy, startTransition] = useTransition();
   const router = useRouter();
@@ -253,14 +170,6 @@ export default function PortfolioBoard({
       })
     );
   }
-  // A set taken off the list in the settings: the chosen one for uploads goes too.
-  const into = sets.includes(target) ? target : NO_SET;
-
-  const sensors = useSensors(
-    // A few pixels of movement before it is a drag, so the buttons still click.
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
 
   const save = (work: () => Promise<unknown>) =>
     startTransition(async () => {
@@ -268,23 +177,11 @@ export default function PortfolioBoard({
       router.refresh();
     });
 
-  const onDragEnd = ({ active, over }: DragEndEvent) => {
-    if (!over || active.id === over.id) return;
-    const next = arrayMove(
-      items,
-      items.findIndex((p) => p.id === active.id),
-      items.findIndex((p) => p.id === over.id)
-    );
-    setItems(next);
-    save(() => reorderPortfolio(next.map((p) => p.id)));
-  };
-
   const patch = (key: string, change: Partial<Pending>) =>
     setPending((all) => all.map((p) => (p.key === key ? { ...p, ...change } : p)));
 
   const add = (files: File[]) => {
     if (!files.length) return;
-    const set = into || undefined;
     const batch: Pending[] = files.map((file) => {
       const why = refusal(file);
       return {
@@ -295,7 +192,7 @@ export default function PortfolioBoard({
         error: why ?? undefined,
       };
     });
-    // The newest batch shows first, as it will be on the site.
+    // The newest batch shows first, as it will be in the list.
     setPending((all) => [...batch, ...all]);
 
     const limit = gate(3);
@@ -316,7 +213,7 @@ export default function PortfolioBoard({
         try {
           const item = await job;
           patch(key, { state: "saving" });
-          after = await addPortfolioItem({ ...item, set }, after);
+          after = await addPortfolioItem(item, after);
           patch(key, { state: "saved", id: after });
           router.refresh();
         } catch (error) {
@@ -344,24 +241,9 @@ export default function PortfolioBoard({
     },
   };
 
-  const change = (item: BoardItem, next: { caption?: string; set?: string }) => {
-    setItems((all) =>
-      all.map((i) =>
-        i.id === item.id
-          ? {
-              ...i,
-              ...(next.caption !== undefined ? { caption: next.caption || undefined } : {}),
-              ...(next.set !== undefined ? { set: next.set || undefined } : {}),
-            }
-          : i
-      )
-    );
-    save(() =>
-      updatePortfolioItem(item.id, {
-        ...(next.caption !== undefined ? { caption: next.caption } : {}),
-        ...(next.set !== undefined ? { set: next.set || null } : {}),
-      })
-    );
+  const alt = (item: BoardItem, text: string) => {
+    setItems((all) => all.map((i) => (i.id === item.id ? { ...i, alt: text || undefined } : i)));
+    save(() => setPortfolioAlt(item.id, text));
   };
 
   const hide = (item: BoardItem) => {
@@ -400,37 +282,19 @@ export default function PortfolioBoard({
         }}
       />
 
-      <div className="flex flex-col gap-2">
-        <button
-          type="button"
-          onClick={() => input.current?.click()}
-          className={`flex w-full flex-col items-center justify-center gap-1 rounded-[2px] bg-[#242424] px-4 py-10 transition-colors ${
-            over ? "text-accent outline outline-1 outline-accent" : "text-foreground/50 hover:text-accent"
-          }`}
-        >
-          <Icon name="material-symbols:upload-rounded" size="1.8em" />
-          Drop photos and videos here, or choose them
-          <span className="text-foreground/30">
-            Any shape, any number · JPEG, PNG, WebP, GIF, AVIF, MP4, WebM
-          </span>
-        </button>
-        {sets.length > 0 && (
-          <div className="flex items-center gap-3">
-            <span className="shrink-0 text-foreground/40">Add to</span>
-            <Select
-              name="upload-set"
-              label="Set for new uploads"
-              className="sm:w-64"
-              value={into}
-              onChange={setTarget}
-              options={[
-                { value: NO_SET, label: "No set", muted: true },
-                ...sets.map((s) => ({ value: s, label: s })),
-              ]}
-            />
-          </div>
-        )}
-      </div>
+      <button
+        type="button"
+        onClick={() => input.current?.click()}
+        className={`flex w-full flex-col items-center justify-center gap-1 rounded-[2px] bg-[#242424] px-4 py-10 transition-colors ${
+          over ? "text-accent outline outline-1 outline-accent" : "text-foreground/50 hover:text-accent"
+        }`}
+      >
+        <Icon name="material-symbols:upload-rounded" size="1.8em" />
+        Drop photos and videos here, or choose them
+        <span className="text-foreground/30">
+          Any shape, any number · JPEG, PNG, WebP, GIF, AVIF, MP4, WebM
+        </span>
+      </button>
 
       {pending.length > 0 && (
         <div className="flex flex-col gap-2">
@@ -468,33 +332,21 @@ export default function PortfolioBoard({
       {items.length === 0 ? (
         !pending.length && <p className="text-foreground/30">Nothing yet.</p>
       ) : (
-        <DndContext
-          id="portfolio-board"
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={onDragEnd}
+        <ul
+          className={`grid grid-cols-2 gap-x-3 gap-y-5 transition-opacity sm:grid-cols-3 md:grid-cols-4 ${
+            busy ? "opacity-80" : ""
+          }`}
         >
-          <SortableContext items={items.map((i) => i.id)} strategy={rectSortingStrategy}>
-            <ul
-              className={`grid grid-cols-2 gap-x-3 gap-y-6 transition-opacity sm:grid-cols-3 md:grid-cols-4 ${
-                busy ? "opacity-80" : ""
-              }`}
-            >
-              {items.map((item) => (
-                <Tile
-                  key={item.id}
-                  item={item}
-                  sets={sets}
-                  isCover={item.id === cover}
-                  onChange={(next) => change(item, next)}
-                  onHide={() => hide(item)}
-                  onCover={() => save(() => setPortfolioCover(item.id === cover ? null : item.id))}
-                  onDelete={() => remove(item)}
-                />
-              ))}
-            </ul>
-          </SortableContext>
-        </DndContext>
+          {items.map((item) => (
+            <Tile
+              key={item.id}
+              item={item}
+              onAlt={(text) => alt(item, text)}
+              onHide={() => hide(item)}
+              onDelete={() => remove(item)}
+            />
+          ))}
+        </ul>
       )}
     </div>
   );

@@ -75,16 +75,15 @@ const SUBDOMAINS: Record<string, string> = {
 /**
  * Hosts whose every page lives under their base, not just the root.
  *
- * cinema.odiwr.com/some-clip is a post, /cinema/some-clip internally, and
- * portfolio.odiwr.com/film is the portfolio's Film set, /portfolio/film. The
- * other subdomains link their entries to the apex's own routes (see the note
- * above); these pages exist nowhere else, so their paths are their own.
+ * cinema.odiwr.com/some-clip is a post, /cinema/some-clip internally. The other
+ * subdomains link their entries to the apex's own routes (see the note above);
+ * the cinema's posts exist nowhere else, so its paths are its own.
  *
- * Only a page's path (/slug) and a cinema slide's (/slug/2) are rewritten, and
- * not these, which are app routes any host has to reach.
+ * Only a post's path (/slug) and its slides' (/slug/2) are rewritten, and not
+ * these, which are app routes any host has to reach.
  */
-const OWNS_PATHS = new Set(["cinema", "portfolio"]);
-const SHARED_ROUTES = new Set(["media", "r2-list", "dashboard", "cinema", "portfolio"]);
+const OWNS_PATHS = new Set(["cinema"]);
+const SHARED_ROUTES = new Set(["media", "r2-list", "dashboard", "cinema"]);
 
 export function proxy(request: NextRequest) {
   // One canonical spelling first, so everything below only ever sees it.
@@ -115,7 +114,7 @@ export function proxy(request: NextRequest) {
   }
 
   if (OWNS_PATHS.has(section)) {
-    // A post, or one of its slides: /slug or /slug/2. Or a portfolio set: /slug.
+    // A post, or one of its slides: /slug or /slug/2.
     const match = /^\/([a-z0-9-]+)(\/\d+)?\/?$/.exec(pathname);
     if (match && !SHARED_ROUTES.has(match[1])) {
       url.pathname = `${base}/${match[1]}${match[2] ?? ""}`;

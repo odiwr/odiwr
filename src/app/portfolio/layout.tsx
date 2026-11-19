@@ -1,14 +1,11 @@
 import type { Viewport } from "next";
 import { BAND_CSS } from "@/lib/portfolio";
-import { cormorant, jost } from "./fonts";
 import "./portfolio.css";
 
 /**
- * Everything on portfolio.odiwr.com: white, where the rest of the site is dark.
- *
- * The root layout's <body> carries the site's colours and side margin;
- * portfolio.css undoes them for any body holding a .pxs, so this subdomain needs
- * no layout of its own above this one.
+ * Everything on portfolio.odiwr.com: the site's own frame and entrance, on
+ * white where the rest of the site is dark. portfolio.css swaps the colours for
+ * any body holding a .pxs, so the root layout serves it as it is.
  */
 
 export const viewport: Viewport = {
@@ -18,7 +15,7 @@ export const viewport: Viewport = {
 
 export default function PortfolioLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className={`pxs ${cormorant.variable} ${jost.variable}`}>
+    <div className="pxs">
       {/* The grid's bands (lib/portfolio.ts). Generated from the same table the
           rows are cut with, so the two cannot disagree. */}
       <style dangerouslySetInnerHTML={{ __html: BAND_CSS }} />

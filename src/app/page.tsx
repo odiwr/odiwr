@@ -165,7 +165,7 @@ export default async function Home() {
             <h2 className="text-foreground/50">Talk to me</h2>
             <p className="text-foreground/80">
               Anywhere online <HandleMenu /> or{" "}
-              <a href={`mailto:${SITE.email}`} className={LINK}>
+              <a href={SITE.mailto} className={LINK}>
                 {SITE.email}
               </a>
               .

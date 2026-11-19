@@ -1,23 +1,38 @@
 import type { Metadata } from "next";
 import PortfolioGallery from "@/components/portfolio/PortfolioGallery";
 import { getContent } from "@/lib/content";
-import { portfolioMetadata, viewPortfolio } from "@/lib/portfolio";
+import { portfolioMetadata, publicItems, shuffle } from "@/lib/portfolio";
 
 /**
- * portfolio.odiwr.com. Photographs and video, laid out the way a Pixieset
- * gallery is: a cover, then everything in justified rows at its own shape.
+ * portfolio.odiwr.com. Pictures and video, and nothing else: no words on the
+ * page at all.
  *
+ * In a new order on every visit, so the page is rendered per request rather
+ * than cached — the shuffle has to happen on the server, where the rows are cut
+ * for it, or the grid would jump once the browser reordered it. The content
+ * read behind it is still cached (lib/content.ts), so a visit costs no more
+ * than the render.
+ *
+ * Same frame as the home page (.page), with its fade along the top edge.
  * Reached by the host rewrite in proxy.ts, and at /portfolio until DNS points
- * the subdomain here. Each set is a page of its own as well ([set]/page.tsx).
+ * the subdomain here.
  */
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return portfolioMetadata(viewPortfolio((await getContent()).portfolio));
+  return portfolioMetadata(publicItems((await getContent()).portfolio));
 }
 
 export default async function PortfolioPage() {
-  const view = viewPortfolio((await getContent()).portfolio);
-  return <PortfolioGallery portfolio={view} initialSet={null} />;
+  const items = shuffle(publicItems((await getContent()).portfolio));
+
+  return (
+    <main className="page">
+      <h1 className="sr-only">Portfolio</h1>
+      {/* The strip the page scrolls under, as on the home page. */}
+      <div className="top-fade" aria-hidden="true" />
+      <PortfolioGallery items={items} />
+    </main>
+  );
 }

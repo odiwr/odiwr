@@ -1,20 +1,14 @@
 import Icon from "@/components/icons";
 import PortfolioBoard from "@/components/dashboard/PortfolioBoard";
-import PortfolioSettings from "@/components/dashboard/PortfolioSettings";
 import { getContent } from "@/lib/content";
-import { viewItem, viewPortfolio } from "@/lib/portfolio";
+import { viewItem } from "@/lib/portfolio";
 import { SUBDOMAIN_LINKS } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
-/**
- * The portfolio: its title, sets and cover (PortfolioSettings), then every
- * picture and video in the site's order (PortfolioBoard), where new ones are
- * dropped in.
- */
+/** The portfolio: every picture and video, where new ones are dropped in. */
 export default async function PortfolioDashboard() {
   const { portfolio } = await getContent();
-  const view = viewPortfolio(portfolio);
 
   const items = portfolio.items.map((item) => {
     const v = viewItem(item);
@@ -22,12 +16,10 @@ export default async function PortfolioDashboard() {
       id: item.id,
       kind: item.kind,
       thumb: v.thumb,
-      full: v.full,
+      loop: v.loop,
       width: item.width,
       height: item.height,
-      duration: item.duration,
-      caption: item.caption,
-      set: item.set,
+      alt: item.alt,
       hidden: item.hidden,
     };
   });
@@ -44,23 +36,10 @@ export default async function PortfolioDashboard() {
           portfolio.odiwr.com
           <Icon name="material-symbols:arrow-outward-rounded" />
         </a>
-        <span className="text-foreground/30">Drag to reorder</span>
+        <span className="text-foreground/30">Shuffled on every visit</span>
       </div>
 
-      <PortfolioSettings
-        title={portfolio.title}
-        subtitle={portfolio.subtitle}
-        sets={portfolio.sets}
-        focus={view.focus}
-        cover={
-          // A video's still; one with no still has nothing to aim at.
-          view.cover?.thumb
-            ? { src: view.cover.thumb, width: view.cover.width, height: view.cover.height }
-            : undefined
-        }
-      />
-
-      <PortfolioBoard items={items} sets={portfolio.sets} cover={view.cover?.id} />
+      <PortfolioBoard items={items} />
     </div>
   );
 }

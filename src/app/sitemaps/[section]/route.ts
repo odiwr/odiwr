@@ -1,7 +1,6 @@
 import { SITE } from "@/lib/site";
 import { getContent, publicClips, sectionWork, type Section } from "@/lib/content";
 import { clipSlides, slidePath } from "@/lib/cinema";
-import { viewPortfolio } from "@/lib/portfolio";
 
 /**
  * Per-subdomain sitemaps.
@@ -44,11 +43,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ sec
       ),
     ];
   } else if (section === "portfolio") {
-    // The gallery, and each set that has something in it.
-    urls = [
-      SITE.portfolioUrl,
-      ...viewPortfolio(content.portfolio).sets.map((s) => `${SITE.portfolioUrl}/${s.slug}`),
-    ];
+    // One page: the gallery.
+    urls = [SITE.portfolioUrl];
   } else if (config) {
     const items = sectionWork(content, config.section);
     urls = [config.origin, ...items.filter((w) => w.slug).map((w) => `${config.origin}/${w.slug}`)];

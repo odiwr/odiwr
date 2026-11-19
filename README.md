@@ -1,85 +1,86 @@
 # odiwr.com
 
-Personal site, plus a dashboard that edits it.
+I hate boring design. Ironic right? But why bother creating a product just for
+the end result to be a vibe coded mediocre mess of ideas? That has been my
+mindset ever since I began freelance web developing in 2021. Creators (and
+honestly, clients) overlook the small details that make a product worth buying,
+even if it's boring.
 
-## Hosts
+This is the code for my website, plus the dashboard I use to edit it. Anyways,
+welcome to my website.
 
-| Host | Serves |
+## What lives where
+
+| Address | What it is |
 | --- | --- |
-| `odiwr.com` | the landing page, work write-ups at `/[slug]`, `/dashboard` |
-| `projects.odiwr.com` | the projects listing |
-| `creative.odiwr.com` | the creative mosaic |
-| `wishlist.odiwr.com` | the wishlist — unlisted: not linked, not in a sitemap, noindex |
-| `cinema.odiwr.com` | clips from films and shows; each post at `/<slug>` on that host |
-| `portfolio.odiwr.com` | photographs and video in a Pixieset-style gallery; each set at `/<set>` on that host |
+| [odiwr.com](https://odiwr.com) | the home page, the blog, and write-ups at `/<slug>` |
+| [projects.odiwr.com](https://projects.odiwr.com) | my projects |
+| [creative.odiwr.com](https://creative.odiwr.com) | film and photography, as a mosaic |
+| [cinema.odiwr.com](https://cinema.odiwr.com) | favourite moments from films and shows |
+| [portfolio.odiwr.com](https://portfolio.odiwr.com) | photos and video, no words. Any shape fits, and it shuffles on every visit |
 
-Every subdomain is this same app: `src/proxy.ts` rewrites their root onto
-`/projects`, `/creative`, `/wishlist`, `/cinema` and `/portfolio` (the cinema's
-posts and the portfolio's sets too, not just their root), and gives each host its own
-`robots.txt` and `sitemap.xml`. DNS has to point them here.
+It's all one app. `src/proxy.ts` points each subdomain at its own page, so
+until DNS catches up they also work as paths: `/projects`, `/cinema`,
+`/portfolio` and so on.
 
-## Content
+## Stack
 
-Everything editable lives in **one JSON document in R2** (`site/content.json`),
-read through `src/lib/content.ts`. There is no database. The dashboard writes it;
-the site reads it through a short cache that a save clears.
+Next.js 16, React 19 and Tailwind 4. Everything I edit lives in one JSON
+document in Cloudflare R2 (no database), along with every upload. The dashboard
+at `/dashboard` is behind Google sign-in.
 
-Until a section has real entries it shows filler from `src/lib/filler.ts`, which
-disappears on its own once the first entry is published.
+## Run it
 
-## Dashboard
+```
+npm install
+npm run dev
+```
 
-`/dashboard`, behind Google sign-in restricted to `ADMIN_EMAILS`. Analytics reads
-GA4 through a service account; Work, Wishlist, Cinema, Blog and Media edit the
-document and the bucket. Cinema takes any number of clips at once: each becomes a
-post, with a still cut from it in the browser for its tile.
-
-Portfolio takes any number of photos and videos at once, of any shape. The
-browser reads each one's size, makes the grid's and the viewer's smaller copies
-(or a video's still), and uploads them straight to `portfolio/` in the bucket;
-the site then lays everything out in justified rows from those sizes alone
-(`src/lib/portfolio.ts`), so nothing needs cropping first. Sets, the cover and
-its focus point are set on the same tab.
+Then open [localhost:3000](http://localhost:3000). Without R2 keys the dashboard
+still works: it saves to `.local/` and `public/_local/` (both gitignored) instead
+of the bucket. Without a Google client, set `ADMIN_EMAILS` and it signs you
+straight in as the first address on that list.
 
 ## Environment
 
-Copy into `.env.local` — it is gitignored, and none of it belongs in the repo.
+Put these in `.env.local`. It's gitignored, and none of it belongs in the repo.
 
 ```
 NEXT_PUBLIC_SITE_URL           # optional; defaults to https://odiwr.com
-SESSION_SECRET                 # signs the dashboard cookie (PAYLOAD_SECRET also accepted)
-ADMIN_EMAILS                   # comma separated allow-list
-GOOGLE_CLIENT_ID               # OAuth client for the dashboard sign-in
+SESSION_SECRET                 # signs the dashboard cookie
+ADMIN_EMAILS                   # comma separated, who can sign in
+GOOGLE_CLIENT_ID               # dashboard sign-in
 GOOGLE_CLIENT_SECRET
-GOOGLE_SITE_VERIFICATION       # optional; Search Console meta tag
-NEXT_PUBLIC_GA_MEASUREMENT_ID  # GA4 web stream "G-…" id; without it no visits are recorded
-GA_PROPERTY_ID                 # GA4 numeric property id
+GOOGLE_SITE_VERIFICATION       # optional; Search Console
+NEXT_PUBLIC_GA_MEASUREMENT_ID  # GA4 "G-…" id
+GA_PROPERTY_ID                 # GA4 numeric property id, for the dashboard
 GOOGLE_SERVICE_ACCOUNT_EMAIL   # read-only access to that property
 GOOGLE_SERVICE_ACCOUNT_KEY
 R2_ENDPOINT                    # the content document and all uploads
 R2_BUCKET
 R2_ACCESS_KEY_ID
 R2_SECRET_ACCESS_KEY
-R2_PUBLIC_URL                  # public origin, e.g. https://media.odiwr.com
+R2_PUBLIC_URL                  # e.g. https://media.odiwr.com
 ```
 
-The OAuth client needs `<origin>/dashboard/auth/callback` registered as a
-redirect URI, for production and for localhost.
+The Google OAuth client needs `<origin>/dashboard/auth/callback` as a redirect
+URI, for production and for localhost.
 
 ## Generated files
 
-Each writes a module that is committed; re-run after changing its inputs.
+Committed, so only re-run these after changing what they read.
 
-| Command | Writes |
+| Command | Makes |
 | --- | --- |
-| `npm run icons` | every favicon size from `public/brand/catguy.svg` |
-| `npm run icons:data` | inline SVG for the icons found in `src/` |
+| `npm run icons` | every favicon size, from `public/brand/catguy.svg` |
+| `npm run icons:data` | the inline SVG for icons used in `src/` |
 | `npm run stacks` | the searchable tech-stack index |
-| `npm run fonts:subset` | the CJK and `@` font subsets, and their unicode-ranges |
-| `npm run ffmpeg:worker` | `public/ffmpeg/`, ffmpeg.wasm's worker served unbundled for the clip cutter |
+| `npm run fonts:subset` | the small CJK and `@` font files |
+| `npm run ffmpeg:worker` | `public/ffmpeg/`, for the clip cutter |
 
-## Bucket layout
+## Talk to me
 
-`npm run r2:plan` prints a reorganisation plan; `npm run r2:apply` performs it.
-Moves are copy-then-delete and cannot be undone, and assets are shared with the
-old site — read the header of `scripts/reorganize-r2.mjs` first.
+Anywhere online [@odiwr](https://github.com/odiwr) or
+[o@odiwr.com](mailto:o@odiwr.com).
+
+因为热爱

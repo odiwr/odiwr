@@ -1,4 +1,4 @@
-import { captureFrame } from "./capture";
+import { captureFrame, captureLoop } from "./capture";
 import type { NewPortfolioItem } from "@/app/dashboard/(app)/portfolio-actions";
 
 /**
@@ -10,7 +10,9 @@ import type { NewPortfolioItem } from "@/app/dashboard/(app)/portfolio-actions";
  *   viewer's (at most 2560 on its long edge), only where the original is
  *   bigger or heavier than that — a GIF is left whole, since a copy would stop
  *   it moving;
- * - for a video, takes a still from just into it, and its length;
+ * - for a video, takes a still from just into it, its length, and the loop
+ *   its tile plays: its first four seconds, muted and small (capture.ts, the
+ *   same as the cinema's covers), so the grid never streams the whole video;
  *
  * then uploads the lot straight to the bucket (api/portfolio).
  */
@@ -37,12 +39,30 @@ export function refusal(file: File): string | null {
   return null;
 }
 
+/** A server error with nothing to say for itself: the same request may well pass a moment later. */
+class Hiccup extends Error {}
+
 /**
  * Uploads one file and answers with its address: straight to the bucket
  * through a one-time address the server signs, or, on a dev server with no
  * bucket, to the server itself.
+ *
+ * Tried up to three times when the server fails without a reason. A dev server
+ * does that while it rebuilds, which writing an upload into public/ makes it
+ * do, so a batch of any size would otherwise lose files at random.
  */
 async function upload(file: Blob, name: string): Promise<string> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await uploadOnce(file, name);
+    } catch (error) {
+      if (!(error instanceof Hiccup) || attempt >= 3) throw error;
+      await new Promise((resolve) => window.setTimeout(resolve, 700 * attempt));
+    }
+  }
+}
+
+async function uploadOnce(file: Blob, name: string): Promise<string> {
   const type = file.type.split(";")[0];
   const ask = await fetch("/dashboard/api/portfolio", {
     method: "POST",
@@ -55,7 +75,10 @@ async function upload(file: Blob, name: string): Promise<string> {
     contentType?: string;
     error?: string;
   };
-  if (!ask.ok) throw new Error(plan.error ?? `Upload refused (${ask.status})`);
+  if (!ask.ok) {
+    if (ask.status >= 500 && !plan.error) throw new Hiccup(`Upload refused (${ask.status})`);
+    throw new Error(plan.error ?? `Upload refused (${ask.status})`);
+  }
 
   if (plan.upload && plan.url) {
     const put = await fetch(plan.upload, {
@@ -74,6 +97,7 @@ async function upload(file: Blob, name: string): Promise<string> {
   body.set("file", file instanceof File ? file : new File([file], name, { type }));
   const res = await fetch("/dashboard/api/portfolio", { method: "POST", body });
   const data = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
+  if (res.status >= 500 && !data.error) throw new Hiccup(`Upload failed (${res.status})`);
   if (!res.ok || !data.url) throw new Error(data.error ?? `Upload failed (${res.status})`);
   return data.url;
 }
@@ -158,15 +182,19 @@ export async function prepare(file: File, say: (step: Step) => void): Promise<Ne
         throw new Error("This browser can't read that video. Export it as an H.264 MP4.");
       }
       const duration = await videoLength(src);
+      // Recorded in real time, so this is the slow part: about four seconds.
+      const loop = await captureLoop(src, file.name.replace(/\.[^.]+$/, "")).catch(() => null);
       say("uploading");
-      const [video, poster] = await Promise.all([
+      const [video, poster, loopUrl] = await Promise.all([
         upload(file, file.name),
         frame.poster ? upload(frame.poster, named(file, "still", frame.poster)) : undefined,
+        loop ? upload(loop, loop.name) : undefined,
       ]);
       return {
         kind: "video",
         src: video,
         poster,
+        loop: loopUrl,
         width: frame.width,
         height: frame.height,
         duration: duration || undefined,

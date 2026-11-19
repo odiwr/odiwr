@@ -8,45 +8,19 @@ import type { Portfolio, PortfolioItem } from "./content";
  * No server imports, so the dashboard's client components can use it too.
  */
 
-/** Where the sets live: the subdomain in production, its rewrite target in development. */
-export const PORTFOLIO_BASE =
-  process.env.NODE_ENV === "production" ? SITE.portfolioUrl : "/portfolio";
-
-/** A set's address segment. The same rule as slugify in lib/content.ts, which is server-only. */
-export function setSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
 /** An item as the page needs it: which file goes where already decided. */
 export type ViewItem = {
   id: string;
   kind: "image" | "video";
-  /** What the grid shows: a small copy of the picture, or the video's still. Empty for a video with no still. */
+  /** The grid's still: a small copy of the picture, or the video's still. Empty for a video with no still. */
   thumb: string;
+  /** Video only: what its tile plays, muted and looping. */
+  loop?: string;
   /** What the viewer shows: the picture at screen size, or the video itself. */
   full: string;
   width: number;
   height: number;
-  duration?: number;
-  caption?: string;
-  /** Its set's slug. */
-  set?: string;
-};
-
-export type ViewSet = { name: string; slug: string };
-
-export type ViewPortfolio = {
-  title: string;
-  subtitle?: string;
-  cover?: ViewItem;
-  focus: { x: number; y: number };
-  /** Only sets something visible is filed under, in their saved order. */
-  sets: ViewSet[];
-  items: ViewItem[];
+  alt?: string;
 };
 
 export function viewItem(item: PortfolioItem): ViewItem {
@@ -55,60 +29,44 @@ export function viewItem(item: PortfolioItem): ViewItem {
     id: item.id,
     kind: item.kind,
     thumb: image ? (item.thumb ?? item.src) : (item.poster ?? ""),
+    loop: image ? undefined : (item.loop ?? item.src),
     full: image ? (item.large ?? item.src) : item.src,
     width: item.width,
     height: item.height,
-    duration: item.duration,
-    caption: item.caption,
-    set: item.set ? setSlug(item.set) : undefined,
+    alt: item.alt,
   };
 }
 
-export function viewPortfolio(portfolio: Portfolio): ViewPortfolio {
-  const visible = portfolio.items.filter((i) => !i.hidden);
-  const items = visible.map(viewItem);
-  const used = new Set(items.map((i) => i.set).filter(Boolean));
-
-  // The chosen cover may be hidden from the grid: a picture can open the page
-  // without being repeated in it.
-  const chosen = portfolio.items.find((i) => i.id === portfolio.cover);
-  const cover = chosen ?? visible.find((i) => i.kind === "image") ?? visible[0];
-
-  return {
-    title: portfolio.title,
-    subtitle: portfolio.subtitle,
-    cover: cover ? viewItem(cover) : undefined,
-    focus: portfolio.focus ?? { x: 50, y: 50 },
-    sets: portfolio.sets
-      .map((name) => ({ name, slug: setSlug(name) }))
-      .filter((s) => s.slug && used.has(s.slug)),
-    items,
-  };
+/** What the site shows: everything not hidden. */
+export function publicItems(portfolio: Portfolio): ViewItem[] {
+  return portfolio.items.filter((i) => !i.hidden).map(viewItem);
 }
 
-/** m:ss, for a video's tile. */
-export function clock(seconds: number): string {
-  const s = Math.max(0, Math.round(seconds));
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+/** A fresh order, every time it is asked. Fisher–Yates, so every order is as likely. */
+export function shuffle<T>(list: T[]): T[] {
+  const out = [...list];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
 }
 
-/** The page's description, canonical address and link preview, for the gallery or one set. */
-export function portfolioMetadata(view: ViewPortfolio, set?: ViewSet): Metadata {
-  const url = set ? `${SITE.portfolioUrl}/${set.slug}` : SITE.portfolioUrl;
-  const description = `${set ? `${set.name} — ` : ""}${view.title}${
-    view.subtitle ? `. ${view.subtitle}` : ""
-  }. Photographs and video by @odiwr.`;
-  // The cover's still, as an absolute address: previews ignore relative ones.
-  const still = view.cover?.kind === "image" ? view.cover.full : view.cover?.thumb;
+/** The page's description, canonical address and link preview. */
+export function portfolioMetadata(items: ViewItem[]): Metadata {
+  const description = "Photographs and video by @odiwr.";
+  // The newest picture, as an absolute address: previews ignore relative ones.
+  const first = items.find((i) => i.kind === "image") ?? items[0];
+  const still = first?.kind === "image" ? first.full : first?.thumb;
   const image = still ? new URL(still, SITE.url).toString() : undefined;
 
   return {
     description,
-    alternates: { canonical: url },
+    alternates: { canonical: SITE.portfolioUrl },
     openGraph: {
       title: SITE.name,
       description,
-      url,
+      url: SITE.portfolioUrl,
       ...(image ? { images: [{ url: image }] } : {}),
     },
     ...(image ? { twitter: { card: "summary_large_image", images: [image] } } : {}),
@@ -121,8 +79,8 @@ export function portfolioMetadata(view: ViewPortfolio, set?: ViewSet): Metadata 
 
 /**
  * Justified rows: every item at its own shape, uncropped, each row filling the
- * width exactly — the way a Pixieset gallery lays out. A new upload of any
- * shape just slots in; nothing has to be cut to fit.
+ * width exactly. A new upload of any shape just slots in; nothing has to be cut
+ * to fit, and a shuffled order fits as well as any other.
  *
  * Where the rows break depends on how wide the grid is, and that is only known
  * in the browser. Rather than measure it there (the grid would jump once the
@@ -136,6 +94,10 @@ export function portfolioMetadata(view: ViewPortfolio, set?: ViewSet): Metadata 
  * add up to the whole width, so the next item has nowhere to go but the next
  * line. Each row gives up EPSILON of a pixel so rounding can never push its
  * last item down.
+ *
+ * Each item also carries its row number in every band (--r0, --r1, …), which
+ * is what staggers the entrance: rows drop in top to bottom, the way the home
+ * page's blocks do, whatever the width.
  */
 
 export type Band = {
@@ -168,6 +130,8 @@ const SHORTEST = 0.5;
 const STRETCH_LAST = 1.25;
 const MOST_PER_ROW = 14;
 const EPSILON = 0.5;
+/** Rows after this one enter with it: the ones below are off screen by then anyway. */
+const LAST_STAGGER = 7;
 
 /**
  * Where the rows break, for one width: the best set of breaks over the whole
@@ -207,16 +171,17 @@ function rows(aspects: number[], width: number, target: number, gap: number) {
 }
 
 /**
- * Each item's width in every band, as CSS: [item][band]. A row that is filled
- * to the width shares it out by aspect (less the gaps), so the row is one
- * height; a last row with room to spare keeps the target height instead.
+ * Each item's custom properties: its width in every band, as CSS, and its row
+ * there. A row that is filled to the width shares it out by aspect (less the
+ * gaps), so the row is one height; a last row with room to spare keeps the
+ * target height instead.
  */
-export function justify(items: { width: number; height: number }[]): string[][] {
+export function justify(items: { width: number; height: number }[]): Record<string, string>[] {
   const aspects = items.map((i) => i.width / i.height);
-  const out = items.map(() => new Array<string>(BANDS.length));
+  const out = items.map(() => ({}) as Record<string, string>);
 
   BANDS.forEach((band, b) => {
-    for (const { start, end } of rows(aspects, band.at, band.row, band.gap)) {
+    rows(aspects, band.at, band.row, band.gap).forEach(({ start, end }, r) => {
       const count = end - start;
       let sum = 0;
       for (let i = start; i < end; i++) sum += aspects[i];
@@ -224,11 +189,12 @@ export function justify(items: { width: number; height: number }[]): string[][] 
       const open = end === items.length && height > band.row * STRETCH_LAST;
 
       for (let i = start; i < end; i++) {
-        out[i][b] = open
+        out[i][`--w${b}`] = open
           ? `${((aspects[i] * band.row * 100) / band.at).toFixed(4)}%`
           : `calc((100% - ${((count - 1) * band.gap + EPSILON).toFixed(1)}px) * ${(aspects[i] / sum).toFixed(6)})`;
+        out[i][`--r${b}`] = String(Math.min(r, LAST_STAGGER));
       }
-    }
+    });
   });
 
   return out;
@@ -237,9 +203,10 @@ export function justify(items: { width: number; height: number }[]): string[][] 
 /**
  * The stylesheet that switches bands: the first is the default, the rest
  * apply from their width up. It reads the grid's own width (the `pxs` container),
- * not the window's.
+ * not the window's. A row enters 60ms after the one above it, the same step as
+ * the home page's blocks (.enter in globals.css).
  */
 export const BAND_CSS = BANDS.map((band, b) => {
-  const rule = `.pxs-grid{gap:${band.gap}px}.pxs-cell{width:var(--w${b})}`;
+  const rule = `.pxs-grid{gap:${band.gap}px}.pxs-cell{width:var(--w${b});animation-delay:calc(40ms + var(--r${b}) * 60ms)}`;
   return b === 0 ? rule : `@container pxs (min-width:${band.min}px){${rule}}`;
 }).join("\n");
