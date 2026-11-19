@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="240" height="292" viewBox="0 0 240 292" role="img" aria-labelledby="t">
-<title id="t">Broken Hearts, by Skepta, Central Cee and Jorja Smith</title>
+<title id="t">Broken Hearts, by Skepta, Central Cee, Jorja Smith</title>
 <style>
-text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif}.ringtext{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace}
+text{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans',Helvetica,Arial,sans-serif}.ring{font-family:ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,monospace}
 .spin{transform-origin:120px 116px;animation:spin 3.2s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .title{fill:#1f2328}.artists{fill:#59636e}
@@ -14,14 +14,15 @@ text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helveti
   </radialGradient>
   <linearGradient id="rainbow" x1="0" y1="0" x2="1" y2="1">
     <stop offset="0" stop-color="#7dd3fc" stop-opacity="0"/>
-    <stop offset=".35" stop-color="#a78bfa" stop-opacity=".35"/>
-    <stop offset=".5" stop-color="#f9a8d4" stop-opacity=".4"/>
-    <stop offset=".65" stop-color="#fde68a" stop-opacity=".35"/>
+    <stop offset=".35" stop-color="#a78bfa" stop-opacity="0.35"/>
+    <stop offset=".5" stop-color="#f9a8d4" stop-opacity="0.4"/>
+    <stop offset=".65" stop-color="#fde68a" stop-opacity="0.35"/>
     <stop offset="1" stop-color="#86efac" stop-opacity="0"/>
   </linearGradient>
   <linearGradient id="glare" x1="0" y1="0" x2="1" y2="0">
     <stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
   </linearGradient>
+  <clipPath id="disc"><circle cx="120" cy="116" r="108"/></clipPath>
   <mask id="hole"><circle cx="120" cy="116" r="108" fill="#fff"/><circle cx="120" cy="116" r="11" fill="#000"/></mask>
   <path id="ring" d="M 120 116 m -37 0 a 37 37 0 1 1 74 0 a 37 37 0 1 1 -74 0"/>
 </defs>
@@ -31,7 +32,7 @@ text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helveti
     <circle cx="120" cy="116" r="52" fill="none" stroke="#000" stroke-opacity="0.06" stroke-width=".6"/><circle cx="120" cy="116" r="54.5" fill="none" stroke="#000" stroke-opacity="0.035" stroke-width=".6"/><circle cx="120" cy="116" r="57" fill="none" stroke="#000" stroke-opacity="0.035" stroke-width=".6"/><circle cx="120" cy="116" r="59.5" fill="none" stroke="#000" stroke-opacity="0.06" stroke-width=".6"/><circle cx="120" cy="116" r="62" fill="none" stroke="#000" stroke-opacity="0.035" stroke-width=".6"/><circle cx="120" cy="116" r="64.5" fill="none" stroke="#000" stroke-opacity="0.035" stroke-width=".6"/><circle cx="120" cy="116" r="67" fill="none" stroke="#000" stroke-opacity="0.06" stroke-width=".6"/><circle cx="120" cy="116" r="69.5" fill="none" stroke="#000" stroke-opacity="0.035" stroke-width=".6"/><circle cx="120" cy="116" r="72" fill="none" stroke="#000" stroke-opacity="0.035" stroke-width=".6"/><circle cx="120" cy="116" r="74.5" fill="none" stroke="#000" stroke-opacity="0.06" stroke-width=".6"/><circle cx="120" cy="116" r="77" fill="none" stroke="#000" stroke-opacity="0.035" stroke-width=".6"/><circle cx="120" cy="116" r="79.5" fill="none" stroke="#000" stroke-opacity="0.035" stroke-width=".6"/><circle cx="120" cy="116" r="82" fill="none" stroke="#000" stroke-opacity="0.06" stroke-width=".6"/><circle cx="120" cy="116" r="84.5" fill="none" stroke="#000" stroke-opacity="0.035" stroke-width=".6"/><circle cx="120" cy="116" r="87" fill="none" stroke="#000" stroke-opacity="0.035" stroke-width=".6"/><circle cx="120" cy="116" r="89.5" fill="none" stroke="#000" stroke-opacity="0.06" stroke-width=".6"/><circle cx="120" cy="116" r="92" fill="none" stroke="#000" stroke-opacity="0.035" stroke-width=".6"/><circle cx="120" cy="116" r="94.5" fill="none" stroke="#000" stroke-opacity="0.035" stroke-width=".6"/><circle cx="120" cy="116" r="97" fill="none" stroke="#000" stroke-opacity="0.06" stroke-width=".6"/><circle cx="120" cy="116" r="99.5" fill="none" stroke="#000" stroke-opacity="0.035" stroke-width=".6"/><circle cx="120" cy="116" r="102" fill="none" stroke="#000" stroke-opacity="0.035" stroke-width=".6"/><circle cx="120" cy="116" r="104.5" fill="none" stroke="#000" stroke-opacity="0.06" stroke-width=".6"/>
     <circle cx="120" cy="116" r="47" fill="#1f2328"/>
     <circle cx="120" cy="116" r="47" fill="none" stroke="#fff" stroke-opacity=".12"/>
-    <text class="ringtext" font-size="7" fill="#f0f6fc" fill-opacity=".9"><textPath href="#ring" textLength="232.5" lengthAdjust="spacing">BROKEN HEARTS · SKEPTA · CENTRAL CEE · JORJA SMITH · </textPath></text>
+    <text class="ring" font-size="7" fill="#f0f6fc" fill-opacity=".9"><textPath href="#ring" textLength="232.5" lengthAdjust="spacing">BROKEN HEARTS · SKEPTA · CENTRAL CEE · JORJA SMITH · </textPath></text>
     <circle cx="120" cy="116" r="20" fill="#e6ebf1" fill-opacity=".55"/>
   </g>
   <!-- The light on it stays put while it turns, as on a real disc. -->

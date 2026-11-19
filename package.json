@@ -12,6 +12,7 @@
     "fonts:subset": "node scripts/generate-font-subsets.mjs",
     "ffmpeg:worker": "node scripts/copy-ffmpeg-worker.mjs",
     "stacks": "node scripts/generate-stack-index.mjs",
+    "readme:cd": "node scripts/readme-cd.mjs",
     "r2:plan": "node --env-file=.env.local scripts/reorganize-r2.mjs",
     "r2:apply": "node --env-file=.env.local scripts/reorganize-r2.mjs --apply",
     "r2:folders": "node --env-file=.env.local scripts/r2-folders.mjs"
