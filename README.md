@@ -4,8 +4,10 @@ I hate boring design. Ironic right?
 
 [odiwr.com](https://odiwr.com)
 
-<a href="https://www.linkedin.com/in/odiwr/"><img height="32" src=".github/linkedin.svg" alt="LinkedIn"></a>
-<a href="https://instagram.com/odiwr"><img height="32" src=".github/instagram.svg" alt="Instagram"></a>
-<a href="https://open.spotify.com/user/31jonnrg5rhgd4s3f347ah6wwz4q"><img height="32" src=".github/spotify.svg" alt="Spotify"></a>
-
 因为热爱
+
+<br><br><br><br>
+
+<a href="https://www.linkedin.com/in/odiwr/"><img height="32" src=".github/linkedin.svg" alt="LinkedIn"></a>&nbsp;
+<a href="https://instagram.com/odiwr"><img height="32" src=".github/instagram.svg" alt="Instagram"></a>&nbsp;
+<a href="https://open.spotify.com/user/31jonnrg5rhgd4s3f347ah6wwz4q"><img height="32" src=".github/spotify.svg" alt="Spotify"></a>
