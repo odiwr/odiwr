@@ -29,6 +29,8 @@ export const SITE = {
   creativeUrl: "https://creative.odiwr.com",
   /** Clips from films and shows, each with its own page. */
   cinemaUrl: "https://cinema.odiwr.com",
+  /** Photographs and video, in a gallery that fits every shape. */
+  portfolioUrl: "https://portfolio.odiwr.com",
   /** Unlisted: not linked anywhere public, not in any sitemap, and noindex. */
   wishlistUrl: "https://wishlist.odiwr.com",
 
@@ -86,6 +88,7 @@ export const SUBDOMAIN_LINKS = {
   creative: process.env.NODE_ENV === "production" ? SITE.creativeUrl : "/creative",
   wishlist: process.env.NODE_ENV === "production" ? SITE.wishlistUrl : "/wishlist",
   cinema: process.env.NODE_ENV === "production" ? SITE.cinemaUrl : "/cinema",
+  portfolio: process.env.NODE_ENV === "production" ? SITE.portfolioUrl : "/portfolio",
 };
 
 /** Profile URLs by label, for anything that needs one by name. */

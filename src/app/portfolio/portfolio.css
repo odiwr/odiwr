@@ -1,0 +1,567 @@
+/**
+ * portfolio.odiwr.com.
+ *
+ * Its own sheet rather than a section of globals.css: it is a different
+ * material from the rest of the site — white, light type, everything spaced out
+ * in capitals, after a Pixieset gallery — and only this subdomain loads it.
+ *
+ * The grid's widths are not here. They depend on the items, so they are cut in
+ * lib/portfolio.ts and switched by the container queries the layout writes out
+ * (BAND_CSS); what is here is everything that does not change with them.
+ */
+
+/* The root layout's body is the dark site with a side margin; a body holding
+   the portfolio is white to every edge, the overscroll included. */
+html:has(.pxs),
+body:has(.pxs) {
+  background: #fff;
+  color-scheme: light;
+}
+
+body:has(.pxs) {
+  padding: 0;
+  color: #1f1f1f;
+}
+
+.pxs {
+  --pxs-ink: #1f1f1f;
+  --pxs-muted: #8c8c8c;
+  --pxs-line: #ececec;
+  --pxs-tile: #f3f3f3;
+  --pxs-pad: clamp(12px, 3vw, 40px);
+  --pxs-serif: var(--font-cormorant), "Cormorant Garamond", Georgia, serif;
+  --pxs-sans: var(--font-jost), "Jost", "Futura", "Helvetica Neue", Arial, sans-serif;
+
+  font-family: var(--pxs-sans);
+  font-weight: 300;
+  line-height: 1.6;
+  color: var(--pxs-ink);
+}
+
+.pxs ::selection {
+  background: var(--pxs-ink);
+  color: #fff;
+}
+
+@keyframes pxs-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pxs-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Cover                                                               */
+/* ------------------------------------------------------------------ */
+
+/* The whole first screen: the cover picture cropped to fill it, held on the
+   focus point chosen in the dashboard, with the title over it. */
+.pxs-cover {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 100svh;
+  min-height: 420px;
+  overflow: hidden;
+  background: #151515;
+  color: #fff;
+  text-align: center;
+}
+
+.pxs-cover > img,
+.pxs-cover > video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transform: scale(1.04);
+  transition:
+    opacity 1.2s ease,
+    transform 6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.pxs-cover > [data-loaded] {
+  opacity: 1;
+  transform: none;
+}
+
+/* Enough shade for white type on a bright picture. */
+.pxs-cover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(rgb(0 0 0 / 0.12), rgb(0 0 0 / 0.38));
+  pointer-events: none;
+}
+
+.pxs-cover-text {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 24px;
+  animation: pxs-rise 1.2s 0.2s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.pxs-cover h1 {
+  font-family: var(--pxs-serif);
+  font-weight: 300;
+  font-size: clamp(40px, 7.5vw, 104px);
+  line-height: 1.02;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pxs-cover h1,
+.pxs-cover p {
+  text-wrap: balance;
+}
+
+.pxs-cover p {
+  font-size: 12px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 520px) {
+  .pxs-cover p {
+    letter-spacing: 0.22em;
+  }
+
+  /* The footer carries the same link; the title needs the room. */
+  .pxs-home {
+    display: none;
+  }
+}
+
+.pxs-cover-button {
+  margin-top: 26px;
+  padding: 12px 30px;
+  border: 1px solid rgb(255 255 255 / 0.85);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  transition:
+    background-color 300ms ease,
+    color 300ms ease;
+}
+
+.pxs-cover-button:hover,
+.pxs-cover-button:focus-visible {
+  background: #fff;
+  color: var(--pxs-ink);
+}
+
+/* Nothing to put on the cover yet: the title on white. */
+.pxs-cover-plain {
+  height: auto;
+  min-height: 0;
+  padding: 120px 24px 64px;
+  background: #fff;
+  color: var(--pxs-ink);
+}
+
+.pxs-cover-plain::after {
+  display: none;
+}
+
+.pxs-cover-plain p {
+  color: var(--pxs-muted);
+}
+
+/* ------------------------------------------------------------------ */
+/* The bar                                                             */
+/* ------------------------------------------------------------------ */
+
+.pxs-bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgb(255 255 255 / 0.94);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--pxs-line);
+}
+
+.pxs-bar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px var(--pxs-pad);
+}
+
+.pxs-bar-title {
+  min-width: 0;
+}
+
+.pxs-bar-title span,
+.pxs-bar-title small {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+}
+
+.pxs-bar-title span {
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.3;
+  letter-spacing: 0.22em;
+}
+
+.pxs-bar-title small {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: var(--pxs-muted);
+}
+
+.pxs-bar-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 14px;
+  color: #555;
+}
+
+.pxs-icon {
+  display: inline-flex;
+  padding: 6px;
+  font-size: 22px;
+  transition: color 200ms ease;
+}
+
+.pxs-icon:hover,
+.pxs-icon:focus-visible,
+.pxs-home:hover,
+.pxs-home:focus-visible {
+  color: #000;
+}
+
+.pxs-home {
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  transition: color 200ms ease;
+}
+
+/* The sets. Scrolls sideways on a phone rather than wrapping. */
+.pxs-sets {
+  display: flex;
+  gap: 28px;
+  overflow-x: auto;
+  padding: 0 var(--pxs-pad) 12px;
+  scrollbar-width: none;
+}
+
+.pxs-sets::-webkit-scrollbar {
+  display: none;
+}
+
+.pxs-sets a {
+  display: block;
+  padding-bottom: 3px;
+  border-bottom: 1px solid transparent;
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--pxs-muted);
+  transition:
+    color 200ms ease,
+    border-color 200ms ease;
+}
+
+.pxs-sets a:hover {
+  color: var(--pxs-ink);
+}
+
+.pxs-sets a[aria-current] {
+  color: var(--pxs-ink);
+  border-color: var(--pxs-ink);
+}
+
+/* ------------------------------------------------------------------ */
+/* The grid                                                            */
+/* ------------------------------------------------------------------ */
+
+/* The container the bands are measured against (BAND_CSS). */
+.pxs-frame {
+  container: pxs / inline-size;
+  padding: clamp(10px, 2vw, 32px) var(--pxs-pad) 72px;
+}
+
+/* Rows, by wrapping: each row's widths add up to the whole line. */
+.pxs-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.pxs-cell {
+  position: relative;
+  display: block;
+  flex: none;
+  overflow: hidden;
+  background: var(--pxs-tile);
+}
+
+/* Same shape as the tile, so `cover` crops nothing. */
+.pxs-cell > img,
+.pxs-cell > video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition:
+    opacity 600ms ease,
+    filter 300ms ease;
+}
+
+.pxs-cell > [data-loaded] {
+  opacity: 1;
+}
+
+.pxs-cell:hover > img,
+.pxs-cell:focus-visible > img {
+  filter: brightness(0.9);
+}
+
+.pxs-cell:focus-visible {
+  outline: 2px solid var(--pxs-ink);
+  outline-offset: 2px;
+}
+
+/* A video's muted preview, over its still while the mouse rests on it. */
+.pxs-cell > .pxs-preview {
+  opacity: 0;
+  transition: opacity 250ms ease;
+}
+
+.pxs-cell > .pxs-preview[data-playing] {
+  opacity: 1;
+}
+
+.pxs-badge {
+  position: absolute;
+  left: 8px;
+  bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  color: #fff;
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.6));
+  pointer-events: none;
+}
+
+.pxs-empty {
+  padding: 96px 0;
+  text-align: center;
+  font-size: 12px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--pxs-muted);
+}
+
+.pxs-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 24px;
+  padding: 0 var(--pxs-pad) 56px;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--pxs-muted);
+}
+
+.pxs-footer a {
+  transition: color 200ms ease;
+}
+
+.pxs-footer a:hover {
+  color: var(--pxs-ink);
+}
+
+/* ------------------------------------------------------------------ */
+/* The viewer                                                          */
+/* ------------------------------------------------------------------ */
+
+/* White to every edge. The picture is as large as the space between the bars
+   and the arrows allows, at its own shape. */
+.pxs-lightbox {
+  --lb-top: 64px;
+  --lb-bottom: 64px;
+  --lb-side: 88px;
+
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: #fff;
+  animation: pxs-fade 250ms ease both;
+}
+
+.pxs-lb-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--lb-top);
+  padding: 0 max(14px, env(safe-area-inset-right)) 0 max(20px, env(safe-area-inset-left));
+}
+
+.pxs-lb-count {
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  color: var(--pxs-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.pxs-lb-actions {
+  display: flex;
+  gap: 6px;
+  color: #444;
+}
+
+.pxs-lb-stage {
+  position: absolute;
+  inset: var(--lb-top) var(--lb-side) var(--lb-bottom);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Sideways is a swipe; up and down and pinching stay the browser's. */
+  touch-action: pan-y pinch-zoom;
+}
+
+.pxs-lb-figure {
+  position: relative;
+  animation: pxs-fade 350ms ease both;
+}
+
+/* `contain`, worked out in CSS: as wide as the stage, unless that would make
+   it taller than the stage, in which case as tall. */
+.pxs-lb-frame {
+  position: relative;
+  aspect-ratio: var(--ar);
+  width: min(
+    calc(100vw - 2 * var(--lb-side)),
+    calc((100dvh - var(--lb-top) - var(--lb-bottom)) * var(--ar))
+  );
+}
+
+.pxs-lb-frame > img,
+.pxs-lb-frame > video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.pxs-lb-frame > video {
+  background: #000;
+}
+
+.pxs-lb-full {
+  opacity: 0;
+  transition: opacity 400ms ease;
+}
+
+.pxs-lb-full[data-loaded] {
+  opacity: 1;
+}
+
+.pxs-lb-figure figcaption {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  width: min(640px, 90vw);
+  transform: translateX(-50%);
+  padding-top: 14px;
+  text-align: center;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+  color: #555;
+}
+
+.pxs-lb-arrow {
+  position: absolute;
+  top: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--lb-side);
+  height: 160px;
+  transform: translateY(-50%);
+  font-size: 40px;
+  color: #555;
+  transition: color 200ms ease;
+}
+
+.pxs-lb-arrow:hover,
+.pxs-lb-arrow:focus-visible {
+  color: #000;
+}
+
+.pxs-lb-prev {
+  left: 0;
+}
+
+.pxs-lb-next {
+  right: 0;
+}
+
+/* A phone: edge to edge between the bars, and a swipe instead of arrows. */
+@media (max-width: 640px), (hover: none) and (pointer: coarse) {
+  .pxs-lightbox {
+    --lb-top: 52px;
+    --lb-bottom: 56px;
+    --lb-side: 0px;
+  }
+
+  .pxs-lb-arrow {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pxs-cover > img,
+  .pxs-cover > video {
+    transform: none;
+  }
+
+  .pxs-cover-text,
+  .pxs-lightbox,
+  .pxs-lb-figure {
+    animation: none;
+  }
+}

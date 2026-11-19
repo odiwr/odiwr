@@ -1,6 +1,7 @@
 import { SITE } from "@/lib/site";
 import { getContent, publicClips, sectionWork, type Section } from "@/lib/content";
 import { clipSlides, slidePath } from "@/lib/cinema";
+import { viewPortfolio } from "@/lib/portfolio";
 
 /**
  * Per-subdomain sitemaps.
@@ -23,7 +24,7 @@ const ORIGINS: Record<string, { origin: string; section: Section }> = {
 };
 
 export function generateStaticParams() {
-  return [...Object.keys(ORIGINS), "cinema"].map((section) => ({ section }));
+  return [...Object.keys(ORIGINS), "cinema", "portfolio"].map((section) => ({ section }));
 }
 
 export const dynamicParams = false;
@@ -41,6 +42,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ sec
       ...publicClips(content).flatMap((c) =>
         clipSlides(c).map((_, i) => `${SITE.cinemaUrl}/${slidePath(c.slug, i)}`)
       ),
+    ];
+  } else if (section === "portfolio") {
+    // The gallery, and each set that has something in it.
+    urls = [
+      SITE.portfolioUrl,
+      ...viewPortfolio(content.portfolio).sets.map((s) => `${SITE.portfolioUrl}/${s.slug}`),
     ];
   } else if (config) {
     const items = sectionWork(content, config.section);

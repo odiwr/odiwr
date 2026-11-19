@@ -173,6 +173,61 @@ export type Clip = {
   slides?: Slide[];
 };
 
+/**
+ * One picture or video on portfolio.odiwr.com.
+ *
+ * Its pixel size is read in the browser on upload and kept here, which is what
+ * lets the grid lay every shape out on the server (lib/portfolio.ts) without
+ * waiting for anything to load. The smaller copies are made in the browser on
+ * upload too (components/dashboard/portfolio-media.ts), so nothing is resized
+ * on a server or a paid image service.
+ */
+export type PortfolioItem = {
+  id: string;
+  kind: "image" | "video";
+  /** The file as uploaded: the full picture, or the video. */
+  src: string;
+  /**
+   * The grid's copy of a picture: at most 800 tall and 1600 wide. Absent when
+   * the original is already that small, and for a GIF, which a copy would freeze.
+   */
+  thumb?: string;
+  /** The viewer's copy of a picture: at most 2560 on its long edge. Absent when the original fits. */
+  large?: string;
+  /** Video only: a still from it, for the grid and link previews. */
+  poster?: string;
+  width: number;
+  height: number;
+  /** Video only, in seconds. Shown on its tile. */
+  duration?: number;
+  /** Shown under it in the viewer, and its alt text. */
+  caption?: string;
+  /** The name of the set it is filed under, one of Portfolio.sets. Absent is none. */
+  set?: string;
+  /** Kept in the dashboard, off the site. Absent is shown. */
+  hidden?: boolean;
+  /** ISO date, YYYY-MM-DD, of the upload. */
+  date: string;
+};
+
+/** portfolio.odiwr.com: the gallery, its cover, and its sets. */
+export type Portfolio = {
+  /** On the cover and at the top of the page. */
+  title: string;
+  /** The smaller line under it. */
+  subtitle?: string;
+  /** The item on the cover. Absent is the first picture in the grid. */
+  cover?: string;
+  /** Where the cover stays in view when it is cropped, in percent from the top left. */
+  focus?: { x: number; y: number };
+  /** Set names, in the order their tabs are shown. */
+  sets: string[];
+  /** In the order the grid shows them. */
+  items: PortfolioItem[];
+};
+
+export const EMPTY_PORTFOLIO: Portfolio = { title: "Portfolio", sets: [], items: [] };
+
 export type Content = {
   work: Work[];
   /** The one on the site now. */
@@ -186,6 +241,7 @@ export type Content = {
    */
   wishCategories: string[];
   clips: Clip[];
+  portfolio: Portfolio;
 };
 
 export const EMPTY_CONTENT: Content = {
@@ -195,6 +251,7 @@ export const EMPTY_CONTENT: Content = {
   wishlist: [],
   wishCategories: [],
   clips: [],
+  portfolio: EMPTY_PORTFOLIO,
 };
 
 const KEY = "site/content.json";
@@ -219,6 +276,7 @@ function normalise(raw: unknown): Content {
   const wishlist = Array.isArray(doc.wishlist) ? doc.wishlist : [];
   const wishCategories = Array.isArray(doc.wishCategories) ? doc.wishCategories : [];
   const clips = Array.isArray(doc.clips) ? doc.clips : [];
+  const portfolio = normalisePortfolio(doc.portfolio);
 
   // Documents written before the blog became one-live-post carried a `posts`
   // array. Newest becomes the live one, the rest become the archive.
@@ -231,6 +289,7 @@ function normalise(raw: unknown): Content {
       wishlist,
       wishCategories,
       clips,
+      portfolio,
     };
   }
 
@@ -254,6 +313,24 @@ function normalise(raw: unknown): Content {
     wishlist,
     wishCategories,
     clips,
+    portfolio,
+  };
+}
+
+/**
+ * The portfolio as stored, or an empty one for a document written before it
+ * existed. An item without a size is dropped: the grid cannot place it, and
+ * every upload records one.
+ */
+function normalisePortfolio(raw: unknown): Portfolio {
+  const p = (raw ?? {}) as Partial<Portfolio>;
+  return {
+    ...p,
+    title: typeof p.title === "string" && p.title.trim() ? p.title : EMPTY_PORTFOLIO.title,
+    sets: Array.isArray(p.sets) ? p.sets.filter((s) => typeof s === "string" && s.trim()) : [],
+    items: Array.isArray(p.items)
+      ? p.items.filter((i) => i && typeof i.src === "string" && i.width > 0 && i.height > 0)
+      : [],
   };
 }
 

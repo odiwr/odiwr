@@ -11,10 +11,11 @@ Personal site, plus a dashboard that edits it.
 | `creative.odiwr.com` | the creative mosaic |
 | `wishlist.odiwr.com` | the wishlist — unlisted: not linked, not in a sitemap, noindex |
 | `cinema.odiwr.com` | clips from films and shows; each post at `/<slug>` on that host |
+| `portfolio.odiwr.com` | photographs and video in a Pixieset-style gallery; each set at `/<set>` on that host |
 
 Every subdomain is this same app: `src/proxy.ts` rewrites their root onto
-`/projects`, `/creative`, `/wishlist` and `/cinema` (the cinema's posts too, not
-just its root), and gives each host its own
+`/projects`, `/creative`, `/wishlist`, `/cinema` and `/portfolio` (the cinema's
+posts and the portfolio's sets too, not just their root), and gives each host its own
 `robots.txt` and `sitemap.xml`. DNS has to point them here.
 
 ## Content
@@ -32,6 +33,13 @@ disappears on its own once the first entry is published.
 GA4 through a service account; Work, Wishlist, Cinema, Blog and Media edit the
 document and the bucket. Cinema takes any number of clips at once: each becomes a
 post, with a still cut from it in the browser for its tile.
+
+Portfolio takes any number of photos and videos at once, of any shape. The
+browser reads each one's size, makes the grid's and the viewer's smaller copies
+(or a video's still), and uploads them straight to `portfolio/` in the bucket;
+the site then lays everything out in justified rows from those sizes alone
+(`src/lib/portfolio.ts`), so nothing needs cropping first. Sets, the cover and
+its focus point are set on the same tab.
 
 ## Environment
 

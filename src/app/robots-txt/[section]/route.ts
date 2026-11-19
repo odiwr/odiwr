@@ -11,6 +11,7 @@ const ORIGINS: Record<string, string> = {
   projects: SITE.projectsUrl,
   creative: SITE.creativeUrl,
   cinema: SITE.cinemaUrl,
+  portfolio: SITE.portfolioUrl,
   // No wishlist: it is unlisted, and its page carries noindex instead.
 };
 
