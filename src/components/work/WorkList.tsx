@@ -1,6 +1,7 @@
 import SectionHeader from "./SectionHeader";
 import FilterableList from "./FilterableList";
 import type { Work } from "@/lib/content";
+import { stackTitle } from "@/lib/stack-index";
 
 /**
  * The listing on projects.odiwr.com.
@@ -9,6 +10,11 @@ import type { Work } from "@/lib/content";
  * does not feel like moving between sites.
  */
 export default function WorkList({ heading, items }: { heading: string; items: Work[] }) {
+  // Only the names this list uses go to the browser, not the whole index.
+  const titles = Object.fromEntries(
+    items.flatMap((item) => item.stack ?? []).map((slug) => [slug, stackTitle(slug)])
+  );
+
   return (
     <main className="page">
       <div className="page-grid">
@@ -18,7 +24,7 @@ export default function WorkList({ heading, items }: { heading: string; items: W
           {items.length === 0 ? (
             <p className="text-foreground/50">Nothing here yet.</p>
           ) : (
-            <FilterableList items={items} />
+            <FilterableList items={items} titles={titles} />
           )}
         </article>
 

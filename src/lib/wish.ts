@@ -184,9 +184,79 @@ export function wishBackground(
   return item.imageOverride ? undefined : item.imageBg;
 }
 
-/** The shop name shown under an item. */
-export function wishSite(item: Pick<WishItem, "site" | "href">): string {
-  return item.site || siteFromHost(item.href);
+/**
+ * Shops whose name cannot be read off their address: one word in the domain,
+ * or a capital in the middle. Keyed by the name as it otherwise comes out.
+ */
+const KNOWN_SHOPS: Record<string, string> = {
+  thenorthface: "The North Face",
+  brooksrunning: "Brooks Running",
+  ebay: "eBay",
+  remarkable: "reMarkable",
+};
+
+/**
+ * A pulled shop name cut to the shop: shops often declare their tagline with
+ * it ("Lofree | Fun 2㎡ Designer for Mechanical Keyboard", "YOKO SAKAMOTO |
+ * Official Website") or tack "-Store" on the end ("M5Stack-Store").
+ */
+function shortShopName(name: string): string {
+  const first = name.split(/\s+[|·–—-]\s+/)[0].replace(/-(store|shop)$/i, "").trim();
+  return first || name;
+}
+
+/**
+ * The shop name shown under an item and in the Store filter.
+ *
+ * One typed in the dashboard is shown exactly as typed. A pulled one, or one
+ * read off the address, is tidied first.
+ */
+export function wishSite(item: Pick<WishItem, "site" | "siteCustom" | "href">): string {
+  if (item.site && item.siteCustom) return item.site;
+  const name = item.site ? shortShopName(item.site) : siteFromHost(item.href);
+  return KNOWN_SHOPS[name.toLowerCase()] ?? name;
+}
+
+/**
+ * Query parameters that only say where a click came from, or whose affiliate
+ * it was: campaign tags, ad-click ids, search positions, someone else's
+ * referral code. None of them changes which product the page shows.
+ */
+const TRACKING = [
+  /^utm_/i,
+  /^(nbt|nb_.*)$/i,
+  /^(fbclid|gclid|gbraid|wbraid|msclkid|dclid|yclid|igshid|srsltid|mc_cid|mc_eid|_ga|_gl)$/i,
+  // Shopify search and sync tags.
+  /^(_pos|_fid|_ss|_sid)$/i,
+  // Amazon affiliate and search tags.
+  /^(tag|linkcode|camp|creative|creativeasin|subscriptionid|ascsubtag|ref_?|pf_rd_.*|pd_rd_.*|qid|sr|crid|sprefix|keywords|ie|dib|dib_tag|content-id)$/i,
+  // eBay and Etsy click tracking.
+  /^(_trksid|itmprp|itmmeta|amdata|mkevt|mkcid|mkrid|campid|toolid|logging_key|pro|mnm)$/i,
+  // A shop's own landing-page labels.
+  /^view$/i,
+];
+
+/**
+ * A shop link without the tracking: what was pasted, minus the parameters
+ * above, Amazon's /ref=… path segment, and any #fragment. Whatever picks the
+ * product (variant, colour, size) is left alone. Anything that is not a
+ * parseable web address comes back unchanged.
+ */
+export function cleanShopUrl(href: string): string {
+  let url: URL;
+  try {
+    url = new URL(href);
+  } catch {
+    return href;
+  }
+  if (!/^https?:$/.test(url.protocol)) return href;
+
+  for (const key of [...url.searchParams.keys()]) {
+    if (TRACKING.some((pattern) => pattern.test(key))) url.searchParams.delete(key);
+  }
+  if (/(^|\.)amazon\./i.test(url.hostname)) url.pathname = url.pathname.replace(/\/ref=[^/]*$/i, "");
+  url.hash = "";
+  return url.toString().replace(/\?$/, "");
 }
 
 /** 24.5 -> "$24.50", 1299 -> "$1,299". Cents only when there are some. */

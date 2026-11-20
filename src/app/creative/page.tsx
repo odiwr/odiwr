@@ -26,7 +26,8 @@ import { mosaic, CREATIVE_ASPECT, CREATIVE_SEED } from "@/lib/mosaic";
 const EDGE = 0.001;
 
 export const metadata: Metadata = {
-  description: SITE.description,
+  title: "Creative",
+  description: "Film and photography by @odiwr.",
   alternates: { canonical: SITE.creativeUrl },
   openGraph: { title: SITE.name, url: SITE.creativeUrl },
 };
@@ -52,19 +53,24 @@ export default async function CreativePage() {
               {posters.map((item: Work, i: number) => {
                 const tile = tiles[i];
                 const isVideo = /\.(mp4|webm)$/i.test(item.poster!);
+                const href = workHref(item);
+                // A poster with nowhere to go is a picture, not a link.
+                const Tile = href ? "a" : "div";
 
                 return (
-                  <a
+                  <Tile
                     key={item.id}
-                    href={workHref(item)}
-                    {...(isExternal(item)
-                      ? { target: "_blank", rel: "noreferrer noopener" }
+                    {...(href
+                      ? {
+                          href,
+                          ...(isExternal(item)
+                            ? { target: "_blank", rel: "noreferrer noopener" }
+                            : {}),
+                          "aria-label": item.blurb ? `${item.title} — ${item.blurb}` : item.title,
+                        }
                       : {})}
-                    aria-label={
-                      item.blurb ? `${item.title} — ${item.blurb}` : item.title
-                    }
                     data-caption={item.posterAlt || undefined}
-                    data-linked={item.href ? "" : undefined}
+                    data-linked={href ? "" : undefined}
                     className="mosaic-tile"
                     style={{
                       left: `${tile.x * 100}%`,
@@ -99,7 +105,7 @@ export default async function CreativePage() {
                         <img src={item.poster} alt={item.posterAlt ?? ""} loading="lazy" />
                       )}
                     </span>
-                  </a>
+                  </Tile>
                 );
               })}
             </CursorCaption>

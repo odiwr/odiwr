@@ -17,7 +17,7 @@ export default function SocialIcons({ className = "" }: { className?: string }) 
           key={p.label}
           href={p.href}
           aria-label={p.label}
-          className="text-foreground/50 transition-colors hover:text-accent"
+          className="hit text-foreground/50 transition-colors hover:text-accent"
           {...(p.href.startsWith("http") ? { target: "_blank", rel: "noreferrer noopener" } : {})}
         >
           <Icon name={p.icon} size="1.15em" />

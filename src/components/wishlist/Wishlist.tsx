@@ -10,6 +10,7 @@ import {
   wishBackground,
   wishImage,
   wishSite,
+  cleanShopUrl,
 } from "@/lib/wish";
 
 /**
@@ -462,7 +463,7 @@ function Tile({ item }: { item: WishItem }) {
 
   return (
     <a
-      href={item.href}
+      href={cleanShopUrl(item.href)}
       target="_blank"
       rel="noreferrer noopener"
       className="wish-tile group"

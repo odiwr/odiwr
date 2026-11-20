@@ -4,7 +4,7 @@ import SectionHeader from "@/components/work/SectionHeader";
 import StackIcons from "@/components/work/StackIcons";
 import { getContent, findWork, slugWork, type Content } from "@/lib/content";
 import { fillerWork } from "@/lib/filler";
-import { renderInline } from "@/lib/richtext";
+import { renderBlocks, renderInline } from "@/lib/richtext";
 import { SITE } from "@/lib/site";
 
 /**
@@ -56,14 +56,13 @@ export async function generateMetadata({
   if (!work) return {};
   // Placeholder pages are never meant to be found.
   if (work.id.startsWith("filler-")) return { robots: { index: false, follow: false } };
-  // The tab still says "odiwr" everywhere, by request — only the description
-  // and the canonical URL are per-page.
   // A custom card if the entry has one, otherwise the site-wide image resolved
   // by app/opengraph-image.tsx. Setting `images` here overrides that file for
   // this route only.
   const images = work.ogImage ? [{ url: work.ogImage, width: 1200, height: 630 }] : undefined;
 
   return {
+    title: work.title,
     description: work.blurb,
     alternates: { canonical: `/${work.slug}` },
     openGraph: {
@@ -114,14 +113,14 @@ export default async function WorkPage({ params }: { params: Promise<{ slug: str
               )}
             </div>
 
-            {(work.description
-              ? work.description.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean)
-              : PLACEHOLDER
-            ).map((text, i) => (
-              <p key={i} className={i ? "mt-7 text-foreground/80" : "text-foreground/80"}>
-                {renderInline(text, `b${i}`)}
-              </p>
-            ))}
+            {/* Paragraphs, and lists where lines start with "- ". */}
+            {work.description
+              ? renderBlocks(work.description, { className: "text-foreground/80" })
+              : PLACEHOLDER.map((text, i) => (
+                  <p key={i} className={i ? "mt-7 text-foreground/80" : "text-foreground/80"}>
+                    {renderInline(text, `b${i}`)}
+                  </p>
+                ))}
           </div>
 
           {work.stack?.length ? (

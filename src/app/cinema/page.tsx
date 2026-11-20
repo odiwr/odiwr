@@ -16,6 +16,7 @@ import { viewClip } from "@/lib/cinema";
  * subdomain here.
  */
 export const metadata: Metadata = {
+  title: "Cinema",
   description: "@odiwr's favourite moments from film and TV.",
   alternates: { canonical: SITE.cinemaUrl },
   openGraph: { title: SITE.name, url: SITE.cinemaUrl },

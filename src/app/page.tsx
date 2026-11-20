@@ -1,8 +1,9 @@
+import Link from "next/link";
 import Icon from "@/components/icons";
 import HandleMenu from "@/components/home/HandleMenu";
 import SocialIcons from "@/components/home/SocialIcons";
 import { SITE, SUBDOMAIN_LINKS } from "@/lib/site";
-import { getContent, displayDate, workHref } from "@/lib/content";
+import { getContent, displayDate, isExternal, workHref } from "@/lib/content";
 import { renderInline } from "@/lib/richtext";
 import { columnsFor } from "@/lib/filler";
 
@@ -15,9 +16,9 @@ import { columnsFor } from "@/lib/filler";
  * One type size throughout, by request — hierarchy is weight, colour and family
  * instead, which is why nothing here sets a text-size utility.
  *
- * The intro is the real copy. Everything else is still PLACEHOLDER — the blog
- * paragraphs and the entries are generic names with lorem ipsum, standing in for
- * what the backend will supply.
+ * The intro and the sign-off are written here. The columns and the blog come
+ * from the content document the dashboard edits (lib/content.ts); a column
+ * falls back to filler only while its section is empty (lib/filler.ts).
  */
 
 const OUT = { target: "_blank", rel: "noreferrer noopener" } as const;
@@ -34,7 +35,8 @@ const LINK =
  */
 const DESTINATIONS = [
   { label: "projects.odiwr.com", href: SUBDOMAIN_LINKS.projects },
-  // Barely there: findable by someone looking, not an invitation.
+  // Quiet: the shade of the headings, a step back from projects, and still
+  // readable (4.8:1 on the background; the 15% it used to be was 1.5:1).
   { label: "portfolio.odiwr.com", href: SUBDOMAIN_LINKS.portfolio, muted: true, newTab: true },
 ];
 
@@ -101,7 +103,7 @@ export default async function Home() {
                   href={d.href}
                   {...(d.newTab ? OUT : {})}
                   className={`inline-flex items-center gap-1.5 transition-colors hover:text-accent ${
-                    d.muted ? "text-foreground/15" : "text-foreground/80"
+                    d.muted ? "text-foreground/50" : "text-foreground/80"
                   }`}
                 >
                   <Icon
@@ -123,27 +125,35 @@ export default async function Home() {
                 <section key={col.heading} className="column">
                   <h2 className="text-foreground/50">{col.heading}</h2>
                   <div className="items">
-                    {col.items.map((item) => (
-                      <div key={item.id} className="entry">
-                        <a
-                          href={workHref(item)}
-                          {...(item.slug ? {} : OUT)}
-                          className={`inline-flex items-center gap-1.5 ${LINK}`}
-                        >
-                          {item.title}
-                          {/* A write-up opens here, in this tab: the sideways
-                              arrow, same as the subdomains. */}
-                          <Icon
-                            name={
-                              item.slug
-                                ? "material-symbols:arrow-right-alt-rounded"
-                                : "material-symbols:arrow-outward-rounded"
-                            }
-                          />
-                        </a>
-                        {item.blurb && <p className="text-foreground/50">{item.blurb}</p>}
-                      </div>
-                    ))}
+                    {col.items.map((item) => {
+                      const href = workHref(item);
+                      return (
+                        <div key={item.id} className="entry">
+                          {href ? (
+                            <a
+                              href={href}
+                              {...(isExternal(item) ? OUT : {})}
+                              className={`inline-flex items-center gap-1.5 ${LINK}`}
+                            >
+                              {item.title}
+                              {/* A write-up opens here, in this tab: the sideways
+                                  arrow, same as the subdomains. */}
+                              <Icon
+                                name={
+                                  isExternal(item)
+                                    ? "material-symbols:arrow-outward-rounded"
+                                    : "material-symbols:arrow-right-alt-rounded"
+                                }
+                              />
+                            </a>
+                          ) : (
+                            // Nowhere to send anyone yet: the name, unlinked.
+                            <span>{item.title}</span>
+                          )}
+                          {item.blurb && <p className="text-foreground/50">{item.blurb}</p>}
+                        </div>
+                      );
+                    })}
                   </div>
                 </section>
               ))}
@@ -162,6 +172,14 @@ export default async function Home() {
                   {renderInline(text, `p${i}`)}
                 </p>
               ))}
+              {content.archive.length > 0 && (
+                <p className="mt-3">
+                  <Link href="/blog" className={`inline-flex items-center gap-1.5 text-foreground/50 ${LINK}`}>
+                    Older posts
+                    <Icon name="material-symbols:arrow-right-alt-rounded" />
+                  </Link>
+                </p>
+              )}
             </section>
           )}
 
@@ -173,6 +191,13 @@ export default async function Home() {
                 {SITE.email}
               </a>
               .
+            </p>
+            <p className="mt-3 text-foreground/80">
+              Hiring? Skip straight to the{" "}
+              <Link href="/resume" className={`inline-flex items-center gap-1.5 ${LINK}`}>
+                résumé
+                <Icon name="material-symbols:arrow-right-alt-rounded" />
+              </Link>
             </p>
           </section>
 

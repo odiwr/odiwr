@@ -90,6 +90,15 @@ export function proxy(request: NextRequest) {
   const redirect = canonicalRedirect(request);
   if (redirect) return redirect;
 
+  // A backslash (usually "%5C", from a link mangled somewhere) names nothing
+  // here. Left alone, /feed.xml%5C reached the feed's route and failed there
+  // with a 500; sent to a path no page has, it gets the ordinary 404.
+  if (/%5c|\\/i.test(request.nextUrl.pathname)) {
+    const missing = request.nextUrl.clone();
+    missing.pathname = "/not-a-page";
+    return NextResponse.rewrite(missing);
+  }
+
   // Strip the port before reading the label, or "projects.localhost:3100" would
   // never match.
   const host = (request.headers.get("host") ?? "").split(":")[0];

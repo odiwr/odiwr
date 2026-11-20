@@ -61,6 +61,7 @@ export function portfolioMetadata(items: ViewItem[]): Metadata {
   const image = still ? new URL(still, SITE.url).toString() : undefined;
 
   return {
+    title: "Portfolio",
     description,
     alternates: { canonical: SITE.portfolioUrl },
     openGraph: {

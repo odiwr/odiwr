@@ -5,19 +5,16 @@ import { fontVariables } from "./fonts";
 import { SITE, PROFILE_URLS } from "@/lib/site";
 
 /**
- * Every page is titled "odiwr", by request.
- *
- * Stated as a plain string rather than a template, so a page that sets its own
- * title still cannot change what the tab says — `title.absolute` in a child
- * would override a template, but there is no template to override. Child pages
- * set only their description and canonical URL.
+ * The home page's tab says "odiwr". Every other page names itself first,
+ * "Projects — odiwr", so tabs, bookmarks and search results can tell the pages
+ * apart; a page sets only `title: "Projects"` and the template adds the rest.
  */
 export const metadata: Metadata = {
   // Open Graph and X both require ABSOLUTE image URLs. metadataBase is what
   // lets the relative paths below resolve, and without it Next warns at build
   // and the preview arrives with no image.
   metadataBase: new URL(SITE.url),
-  title: SITE.name,
+  title: { default: SITE.name, template: `%s — ${SITE.name}` },
   description: SITE.description,
   applicationName: SITE.name,
   authors: [{ name: SITE.fullName, url: SITE.url }],
@@ -102,7 +99,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         {/* The cursors are on this origin and are wanted immediately; opening
             the connection early saves the DNS and TLS round trips. */}
-        <link rel="preconnect" href="https://media.odiwr.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://media.odiwr.com" />
       </head>
       <body className="min-h-dvh bg-background text-foreground antialiased">
         {children}

@@ -56,7 +56,7 @@ function Row({ slug, onRemove }: { slug: string; onRemove: () => void }) {
         <Icon name="material-symbols:drag-indicator" size="1.25em" />
       </button>
 
-      <Brand slug={slug} />
+      <Brand slug={slug} title={stackTitle(slug)} />
       <span className="mr-auto">{stackTitle(slug)}</span>
 
       <button
@@ -155,7 +155,7 @@ export default function StackPicker({ name, initial }: { name: string; initial: 
                   onClick={() => add(slug)}
                   className="flex w-full items-center gap-3 px-3 py-1.5 text-left transition-colors hover:text-accent"
                 >
-                  <Brand slug={slug} />
+                  <Brand slug={slug} title={stackTitle(slug)} />
                   {stackTitle(slug)}
                 </button>
               </li>

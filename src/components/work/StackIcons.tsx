@@ -1,4 +1,5 @@
 import StackMark from "./StackMark";
+import { stackTitle } from "@/lib/stack-index";
 
 /**
  * The tech stack beside a project title.
@@ -12,7 +13,7 @@ export default function StackIcons({ stack }: { stack?: string[] }) {
   return (
     <span className="inline-flex items-center gap-2 text-foreground/40">
       {stack.map((slug) => (
-        <StackMark key={slug} slug={slug} />
+        <StackMark key={slug} slug={slug} title={stackTitle(slug)} />
       ))}
     </span>
   );

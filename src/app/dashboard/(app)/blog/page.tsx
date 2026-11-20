@@ -18,6 +18,16 @@ export default async function BlogPage() {
           <DateField name="date" value={post?.date ?? new Date().toISOString().slice(0, 10)} />
         </div>
 
+        <label className="label">
+          Title
+          <input
+            name="title"
+            className="field"
+            placeholder="For feed readers only. Blank uses the opening words."
+            defaultValue={post?.title ?? ""}
+          />
+        </label>
+
         <div className="label">
           Body
           <RichTextArea name="body" defaultValue={(post?.paragraphs ?? []).join("\n\n")} />

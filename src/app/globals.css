@@ -450,6 +450,71 @@ summary {
   animation-delay: 460ms;
 }
 
+/*
+ * The first two blocks (the heading, and the paragraph under it) only drop into
+ * place; they never start invisible. That paragraph is the largest thing on a
+ * phone's first screen, and a browser does not count text as shown while it is
+ * at opacity 0 -- fading it in held the page's "largest paint" back by seconds
+ * on a slow phone, for 100ms of fade nobody would miss. Everything below still
+ * fades in as before.
+ */
+@keyframes enter-drop {
+  from {
+    transform: translateY(-10px);
+  }
+  to {
+    transform: none;
+  }
+}
+
+/* Inside the query so reduced motion's `animation: none` still wins. */
+@media (prefers-reduced-motion: no-preference) {
+  .enter > *:nth-child(-n + 2) {
+    animation-name: enter-drop;
+  }
+}
+
+/**
+ * A list typed into a write-up or a post (renderBlocks in lib/richtext.tsx):
+ * an en dash where the bullet would be, in the faint colour, so the items line
+ * up with the text around them rather than hanging off a dot.
+ */
+.rich-list > li {
+  position: relative;
+  padding-left: 1.25em;
+}
+
+.rich-list > li + li {
+  margin-top: 0.25em;
+}
+
+.rich-list > li::before {
+  content: "–";
+  position: absolute;
+  left: 0;
+  color: color-mix(in srgb, var(--color-foreground) 40%, transparent);
+}
+
+/**
+ * A control drawn smaller than a fingertip, given a bigger target than it
+ * looks: an invisible margin that takes taps and clicks for it. Sized to stop
+ * short of its neighbours, so nothing is ever caught by the wrong one. The
+ * drawing and the layout do not change.
+ */
+.hit,
+.stack-filter,
+.wish-chip {
+  position: relative;
+}
+
+.hit::after,
+.stack-filter::after,
+.wish-chip::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+}
+
 /**
  * The creative mosaic.
  *
@@ -692,7 +757,8 @@ textarea.field {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  color: color-mix(in srgb, var(--color-foreground) 40%, transparent);
+  /* 55%: the faintest this grey can be and still read at 4.5:1. */
+  color: color-mix(in srgb, var(--color-foreground) 55%, transparent);
 }
 
 .label > .field,
@@ -1744,21 +1810,27 @@ textarea.field.blurb {
  * Five across, each as wide as that leaves; fewer as the screen narrows, so
  * they never get small.
  */
+/*
+ * Five across, three on a tablet, two on a phone -- or fewer, when there are
+ * fewer posts than that: the gallery sets --cols-* to the smaller of the two,
+ * so three posts fill the width as three big tiles rather than sitting in the
+ * corner of a row cut for five.
+ */
 .cinema-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--cols-lg, 5), minmax(0, 1fr));
   gap: 18px 6px;
 }
 
 @media (max-width: 1024px) {
   .cinema-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(var(--cols-md, 3), minmax(0, 1fr));
   }
 }
 
 @media (max-width: 639px) {
   .cinema-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(var(--cols-sm, 2), minmax(0, 1fr));
     gap: 14px 4px;
   }
 }
@@ -2055,4 +2127,32 @@ html[data-cinema-closing] body {
   padding: 24px;
   text-align: center;
   background: var(--color-background);
+}
+
+/**
+ * The résumé, printed: black on white, links as plain text, no way back and
+ * no download link, nothing animated. Everything else prints as it is.
+ */
+@media print {
+  body:has(.resume) {
+    background: #fff;
+  }
+
+  .resume,
+  .resume * {
+    color: #000 !important;
+    text-decoration-color: transparent !important;
+    animation: none !important;
+  }
+
+  .resume header a,
+  .resume .no-print,
+  .resume .top-fade,
+  .resume svg {
+    display: none !important;
+  }
+
+  .resume .rich-list > li::before {
+    color: #000;
+  }
 }

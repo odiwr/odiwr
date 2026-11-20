@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 /** Never indexed, and never linked from the site. */
 export const metadata: Metadata = {
+  title: "Dashboard",
   robots: { index: false, follow: false, nocache: true },
 };
 

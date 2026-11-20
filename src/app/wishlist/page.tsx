@@ -15,6 +15,7 @@ import Wishlist from "@/components/wishlist/Wishlist";
  * thing it adds is pictures, since the point of a wishlist is seeing the thing.
  */
 export const metadata: Metadata = {
+  title: "Wishlist",
   description: "@odiwr's literature, tech, and apparel wishlist.",
   robots: { index: false, follow: false, nocache: true },
   openGraph: { title: SITE.name, url: SITE.wishlistUrl },

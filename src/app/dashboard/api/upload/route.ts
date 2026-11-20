@@ -11,7 +11,9 @@ import { slugify } from "@/lib/content";
  * a megabyte by default, and these are GIFs and video.
  */
 
-const ALLOWED = /^(image\/(png|jpeg|gif|webp|avif|svg\+xml)|video\/(mp4|webm))$/;
+// No SVG: an SVG can carry script, and opened on its own at media.odiwr.com it
+// would run there. Every picture this site shows is a raster or a video.
+const ALLOWED = /^(image\/(png|jpeg|gif|webp|avif)|video\/(mp4|webm))$/;
 const MAX_BYTES = 64 * 1024 * 1024;
 
 export async function POST(request: NextRequest) {

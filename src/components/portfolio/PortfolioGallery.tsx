@@ -60,12 +60,24 @@ function useOnScreen(video: React.RefObject<HTMLVideoElement | null>) {
   }, [video]);
 }
 
+/**
+ * What a screen reader hears for an item: its alt text, from the dashboard.
+ * Until one is written, "Photograph 12 of 56", so the items are at least told
+ * apart rather than all being "Photograph".
+ */
+function itemName(item: ViewItem, index: number, count: number): string {
+  if (item.alt) return item.alt;
+  return `${item.kind === "video" ? "Video" : "Photograph"} ${index + 1} of ${count}`;
+}
+
 function Tile({
   item,
+  name,
   style,
   onOpen,
 }: {
   item: ViewItem;
+  name: string;
   style: Record<string, string>;
   onOpen: () => void;
 }) {
@@ -77,7 +89,7 @@ function Tile({
       href={`#${item.id}`}
       className="pxs-cell"
       style={{ aspectRatio: `${item.width} / ${item.height}`, ...style } as React.CSSProperties}
-      aria-label={item.alt || (item.kind === "video" ? "Video" : "Photograph")}
+      aria-label={name}
       onClick={(e) => {
         if (!plainClick(e)) return;
         e.preventDefault();
@@ -123,11 +135,13 @@ function Tile({
 
 function Viewer({
   item,
+  name,
   count,
   onStep,
   onClose,
 }: {
   item: ViewItem;
+  name: string;
   count: number;
   onStep: (delta: number) => void;
   onClose: () => void;
@@ -142,7 +156,7 @@ function Viewer({
   const style = { "--ar": item.width / item.height } as React.CSSProperties;
 
   return (
-    <div className="pxs-lightbox" role="dialog" aria-modal="true" aria-label={item.alt || "Viewer"}>
+    <div className="pxs-lightbox" role="dialog" aria-modal="true" aria-label={name}>
       <button ref={closeButton} type="button" className="pxs-lb-close" onClick={onClose} aria-label="Close">
         <Icon name="material-symbols:close-rounded" />
       </button>
@@ -176,7 +190,7 @@ function Viewer({
               <img
                 className="pxs-lb-full"
                 src={item.full}
-                alt={item.alt ?? ""}
+                alt={name}
                 ref={arrived}
                 onLoad={markLoaded}
                 onError={markLoaded}
@@ -310,12 +324,26 @@ export default function PortfolioGallery({ items }: { items: ViewItem[] }) {
       <div className="pxs-frame">
         <div className="pxs-grid">
           {items.map((item, i) => (
-            <Tile key={item.id} item={item} style={styles[i]} onOpen={() => show(i, true)} />
+            <Tile
+              key={item.id}
+              item={item}
+              name={itemName(item, i, items.length)}
+              style={styles[i]}
+              onOpen={() => show(i, true)}
+            />
           ))}
         </div>
       </div>
 
-      {current && <Viewer item={current} count={items.length} onStep={step} onClose={close} />}
+      {current && open !== null && (
+        <Viewer
+          item={current}
+          name={itemName(current, open, items.length)}
+          count={items.length}
+          onStep={step}
+          onClose={close}
+        />
+      )}
     </>
   );
 }

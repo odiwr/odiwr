@@ -46,7 +46,7 @@ export default function LoginForm({ google, devEmail }: { google: boolean; devEm
         </button>
       </form>
 
-      <div className="flex items-center gap-3 text-foreground/30" aria-hidden="true">
+      <div className="flex items-center gap-3 text-foreground/50" aria-hidden="true">
         <span className="h-px flex-1 bg-foreground/15" />
         or
         <span className="h-px flex-1 bg-foreground/15" />
@@ -66,7 +66,7 @@ export default function LoginForm({ google, devEmail }: { google: boolean; devEm
             <GoogleG />
             Login with Google
           </button>
-          <p className="text-center text-foreground/40">
+          <p className="text-center text-foreground/55">
             Local only: signs in as {devEmail}, no Google.
           </p>
         </form>

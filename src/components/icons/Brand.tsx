@@ -1,5 +1,3 @@
-import { stackTitle } from "@/lib/stack-index";
-
 /**
  * A brand mark, drawn as a mask rather than inline SVG.
  *
@@ -13,11 +11,14 @@ import { stackTitle } from "@/lib/stack-index";
  */
 export default function Brand({
   slug,
+  title,
   size = "1em",
   className = "",
 }: {
   /** "prefix:name", e.g. "simple-icons:rust". */
   slug: string;
+  /** Its name, read out in place of the picture (stackTitle in lib/stack-index.ts). */
+  title: string;
   size?: string;
   className?: string;
 }) {
@@ -26,7 +27,7 @@ export default function Brand({
   return (
     <span
       role="img"
-      aria-label={stackTitle(slug)}
+      aria-label={title}
       className={`inline-block shrink-0 bg-current align-[-0.125em] ${className}`}
       style={{
         width: size,

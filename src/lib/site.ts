@@ -34,7 +34,7 @@ const MAILTO = `mailto:${EMAIL}?subject=${encodeURIComponent("Hey Bill (from odi
 )}`;
 
 export const SITE = {
-  /** Shown as the browser tab title on every page, by request. */
+  /** The home page's tab title, and the end of every other page's. */
   name: "odiwr",
 
   /** Full name, as it reads at the top of the page. */
@@ -61,10 +61,11 @@ export const SITE = {
 
   /**
    * The meta description, the Open Graph description and the X card
-   * description, all from here.
+   * description, all from here. Says what the site actually shows; keep it
+   * under about 155 characters, where search results cut it off.
    */
   description:
-    "@odiwr's personal portfolio featuring embedded systems design, backend architecture, and C++ firmware projects. Studying ECE at Rutgers University.",
+    "Bill Odiwuor Kawaka (@odiwr), full-stack developer studying ECE at Rutgers. CTO of Memory Mission, maker of BestTime and ume. Allergic to boring design.",
 
   /** The one handle, per "anywhere online with @odiwr". */
   handle: "@odiwr",

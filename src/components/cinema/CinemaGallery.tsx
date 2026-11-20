@@ -10,7 +10,6 @@ import {
   type ViewClip,
   type ViewSlide,
 } from "@/lib/cinema";
-import { HOME_HREF } from "@/lib/site";
 import { cached, cool, hold, release, warm } from "./preload";
 import { makeStory, shareStory } from "./story";
 
@@ -38,8 +37,9 @@ import { makeStory, shareStory } from "./story";
  * one it merely crosses) has its post's clips fetched into memory, so opening
  * it plays at once; leaving without opening lets them go (preload.ts).
  *
- * Before anything, a first visit is asked whether clips may play with sound;
- * saying no leaves for the main site. The answer is kept in this browser only.
+ * Before anything, a first visit is asked whether clips may play with sound.
+ * Saying no plays them muted, with "Tap for sound" over an open clip for anyone
+ * who changes their mind. The answer is kept in this browser only.
  *
  * Share is for whoever keeps the place: it appears only for a browser signed
  * into the dashboard.
@@ -83,35 +83,39 @@ type Rect = { left: number; top: number; width: number; height: number };
 type Window = { start: number; end: number; above: number; below: number };
 
 /**
- * Whether sound has been allowed, as a tiny store: this browser's storage, with
+ * The answer to the sound prompt, as a tiny store: this browser's storage, with
  * a copy in memory so a browser that refuses storage still gets past the prompt
  * (and is simply asked again next visit).
  *
- * There is only one answer to keep. Saying no leaves for the main site rather
- * than watching in silence, so nothing here turns sound off again.
+ * "on" plays with sound, "off" plays muted, "" has not been asked yet.
  */
-let allowedMemory = false;
+type SoundAnswer = "on" | "off" | "";
+let answerMemory: SoundAnswer = "";
 const soundListeners = new Set<() => void>();
 
-function allowed(): boolean {
-  if (allowedMemory) return true;
+function soundAnswer(): SoundAnswer {
+  if (answerMemory) return answerMemory;
   try {
-    return localStorage.getItem(SOUND_KEY) === "on";
+    const stored = localStorage.getItem(SOUND_KEY);
+    return stored === "on" || stored === "off" ? stored : "";
   } catch {
     // Blocked storage reads as unanswered.
-    return false;
+    return "";
   }
 }
 
-function allow() {
-  allowedMemory = true;
+function answerSound(value: "on" | "off") {
+  answerMemory = value;
   try {
-    localStorage.setItem(SOUND_KEY, "on");
+    localStorage.setItem(SOUND_KEY, value);
   } catch {
     // Private window or blocked storage: the memory copy covers this visit.
   }
   soundListeners.forEach((listener) => listener());
 }
+
+const allow = () => answerSound("on");
+const decline = () => answerSound("off");
 
 function subscribeSound(listener: () => void) {
   soundListeners.add(listener);
@@ -345,13 +349,16 @@ function TrimmedVideo({
   onReady,
   onMeasure,
   onSilent,
+  quiet = false,
 }: {
   src: string;
   poster?: string;
   start: number;
   end: number;
-  /** False until sound is allowed: nothing plays before that. */
+  /** False until the sound prompt is answered: nothing plays before that. */
   active: boolean;
+  /** The visitor said no to sound: start muted, and offer the tap. */
+  quiet?: boolean;
   onReady: () => void;
   onMeasure: (width: number, height: number) => void;
   /** It had to start without sound, and a tap is needed to have it. */
@@ -377,6 +384,12 @@ function TrimmedVideo({
     park(front);
     park(back);
     if (!front) return;
+    if (quiet) {
+      front.muted = true;
+      onSilent();
+      front.play().catch(() => {});
+      return;
+    }
     front.muted = false;
     // A browser only plays sound from a click. Opening from a tile is one;
     // arriving at /slug directly is not, so that falls back to silent.
@@ -485,11 +498,14 @@ function ViewerMedia({
   onAspect,
   onStalled,
   onSilent,
+  quiet = false,
 }: {
   slide: ViewSlide;
   title: string;
-  /** False until sound is allowed: nothing plays before that. */
+  /** False until the sound prompt is answered: nothing plays before that. */
   active: boolean;
+  /** The visitor said no to sound: start muted, and offer the tap. */
+  quiet?: boolean;
   onAspect: (aspect: number) => void;
   onStalled: (stalled: boolean) => void;
   /** It had to start without sound, and a tap is needed to have it. */
@@ -514,6 +530,12 @@ function ViewerMedia({
   useEffect(() => {
     const video = full.current;
     if (!video || !active || slide.end !== undefined) return;
+    if (quiet) {
+      video.muted = true;
+      onSilent();
+      video.play().catch(() => {});
+      return;
+    }
     video.muted = false;
     // A browser only plays sound from a click. Opening from a tile is one;
     // arriving at /slug directly is not, so that falls back to silent.
@@ -591,6 +613,7 @@ function ViewerMedia({
             start={slide.start ?? 0}
             end={slide.end}
             active={active}
+            quiet={quiet}
             onMeasure={measure}
             onSilent={onSilent}
             onReady={() => {
@@ -628,7 +651,7 @@ export default function CinemaGallery({
   initialSlide?: number;
 }) {
   // Null on the server and in the first render, which has to match it.
-  const sound = useSyncExternalStore(subscribeSound, allowed, () => null);
+  const sound = useSyncExternalStore(subscribeSound, soundAnswer, () => null);
   // A /slug page renders already open, so the grid is never seen first. Where
   // the box goes needs the window, so it is placed right after mounting.
   const initialIndex = initialSlug ? clips.findIndex((c) => c.slug === initialSlug) : -1;
@@ -1044,8 +1067,8 @@ export default function CinemaGallery({
     wake();
   };
 
-  // Null in the first render, to match the server's; false puts the prompt up.
-  const ready = sound === true;
+  // Null in the first render, to match the server's; "" puts the prompt up.
+  const ready = sound === "on" || sound === "off";
   // The box only travels between slides of a post; opening and closing it is a
   // fade, so that is always on.
   const moves = animate
@@ -1062,7 +1085,7 @@ export default function CinemaGallery({
 
   return (
     <>
-      {sound === false && (
+      {sound === "" && (
         <div className="cinema-ask" role="dialog" aria-label="Sound">
           <p>Clips play with sound. Is that all right?</p>
           {/* Two equal columns, so both are as wide as the wider label. */}
@@ -1070,10 +1093,11 @@ export default function CinemaGallery({
             <button type="button" className="btn btn-primary" onClick={allow}>
               Allow
             </button>
-            {/* No quiet way in: sound is the point, so no leaves for the site. */}
-            <a href={HOME_HREF} className="btn text-center">
+            {/* Sound is the point, but not the price of entry: no plays them
+                muted, and an open clip offers "Tap for sound". */}
+            <button type="button" className="btn" onClick={decline}>
               No thanks
-            </a>
+            </button>
           </div>
         </div>
       )}
@@ -1083,6 +1107,11 @@ export default function CinemaGallery({
           ref={list}
           className="cinema-grid"
           style={{
+            ...({
+              "--cols-lg": Math.max(1, Math.min(clips.length, 5)),
+              "--cols-md": Math.max(1, Math.min(clips.length, 3)),
+              "--cols-sm": Math.max(1, Math.min(clips.length, 2)),
+            } as React.CSSProperties),
             opacity: expanded ? 0 : 1,
             transition: fade,
             paddingTop: win?.above,
@@ -1146,6 +1175,7 @@ export default function CinemaGallery({
                   slide={post.slides[slide] ?? post.slides[0]}
                   title={post.title}
                   active={ready}
+                  quiet={sound === "off"}
                   onAspect={(a) => onAspect(index, slide, a)}
                   onStalled={setStalled}
                   onSilent={() => setSilent(true)}

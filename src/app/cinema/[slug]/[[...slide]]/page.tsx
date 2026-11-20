@@ -58,6 +58,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const video = loop ? new URL(loop, SITE.url).toString() : undefined;
 
   return {
+    title: clip.title,
     description,
     alternates: { canonical: url },
     openGraph: {

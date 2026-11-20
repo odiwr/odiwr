@@ -63,6 +63,11 @@ export type Post = {
   id: string;
   /** ISO date, YYYY-MM-DD. */
   date: string;
+  /**
+   * What a feed reader lists it as. Never shown on the site. Absent, the post's
+   * opening phrase stands in for it (postTitle in lib/posts.ts).
+   */
+  title?: string;
   paragraphs: string[];
 };
 
@@ -543,15 +548,8 @@ export function uniqueClipSlug(content: Content, base: string, id?: string): str
   return slug;
 }
 
-/** Where an entry points, whether it lives here or somewhere else. */
-export function workHref(item: Pick<Work, "slug" | "href">): string {
-  return item.slug ? `/${item.slug}` : (item.href ?? "#");
-}
-
-/** Off-site entries open in a new tab; write-ups hosted here do not. */
-export function isExternal(item: Pick<Work, "slug" | "href">): boolean {
-  return !item.slug && !!item.href;
-}
+// In their own file so client components can use them without importing this one.
+export { workHref, isExternal } from "./links";
 
 /** m.dd.yyyy, the form the landing page uses. */
 export function displayDate(iso: string): string {

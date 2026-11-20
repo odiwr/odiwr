@@ -1,5 +1,4 @@
 import Brand from "@/components/icons/Brand";
-import { stackTitle } from "@/lib/stack-index";
 
 /**
  * A stack mark with its name on hover.
@@ -11,13 +10,16 @@ import { stackTitle } from "@/lib/stack-index";
  * No JavaScript: hover and focus-visible both reveal it, so it is reachable by
  * keyboard. It is aria-hidden because the mark already carries the same name as
  * its label — a screen reader should hear it once, not twice.
+ *
+ * The name is passed in (stackTitle in lib/stack-index.ts, called on the
+ * server) so this can sit inside a client component without the index.
  */
-export default function StackMark({ slug }: { slug: string }) {
+export default function StackMark({ slug, title }: { slug: string; title: string }) {
   return (
     <span className="stack-mark">
-      <Brand slug={slug} />
+      <Brand slug={slug} title={title} />
       <span className="stack-tip" aria-hidden="true">
-        {stackTitle(slug)}
+        {title}
       </span>
     </span>
   );

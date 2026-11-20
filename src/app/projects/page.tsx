@@ -11,7 +11,8 @@ import WorkList from "@/components/work/WorkList";
  * the two paths are never treated as two pages.
  */
 export const metadata: Metadata = {
-  description: SITE.description,
+  title: "Projects",
+  description: "Things @odiwr has built: web apps, a Discord bot, open-source components and games.",
   alternates: { canonical: SITE.projectsUrl },
   openGraph: { title: SITE.name, url: SITE.projectsUrl },
 };

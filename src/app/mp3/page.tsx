@@ -14,6 +14,7 @@ import { SITE } from "@/lib/site";
  * already where everything else lives.
  */
 export const metadata: Metadata = {
+  title: "mp3",
   description: "A CRT television playing MilkDrop, wired to a jukebox.",
   alternates: { canonical: `${SITE.projectsUrl}/mp3` },
   openGraph: { title: SITE.name, url: `${SITE.projectsUrl}/mp3` },

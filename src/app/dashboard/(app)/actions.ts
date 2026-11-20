@@ -174,6 +174,7 @@ export async function savePost(form: FormData) {
   const post: Post = {
     id: content.post?.id ?? newId(),
     date: str(form, "date") || new Date().toISOString().slice(0, 10),
+    title: opt(str(form, "title")),
     paragraphs,
   };
 

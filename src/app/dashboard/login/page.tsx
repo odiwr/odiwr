@@ -33,7 +33,7 @@ export default async function LoginPage({
             <Icon name="material-symbols:arrow-left-alt-rounded" />
             Back
           </Link>
-          <span className="font-medium">Dashboard</span>
+          <h1 className="font-medium">Dashboard</h1>
         </header>
 
         {error && <p className="text-accent">{MESSAGES[error] ?? "Sign-in failed."}</p>}
