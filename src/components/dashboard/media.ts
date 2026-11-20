@@ -65,7 +65,13 @@ async function run<T>(job: (ffmpeg: FFmpeg, said: string[]) => Promise<T>): Prom
   let ffmpeg: FFmpeg | null = null;
   const said: string[] = [];
   try {
-    const { FFmpeg } = await import("@ffmpeg/ffmpeg");
+    // Served unbundled from this site, like the worker below
+    // (scripts/copy-ffmpeg-worker.mjs): Turbopack will not build the package,
+    // which starts its worker from a URL only known at run time.
+    const entry = `${window.location.origin}/ffmpeg/index.js`;
+    const { FFmpeg } = (await import(
+      /* webpackIgnore: true */ /* turbopackIgnore: true */ entry
+    )) as typeof import("@ffmpeg/ffmpeg");
     ffmpeg = new FFmpeg();
     ffmpeg.on("log", ({ message }) => {
       said.push(message);
