@@ -192,13 +192,6 @@ export default async function Home() {
               </a>
               .
             </p>
-            <p className="mt-3 text-foreground/80">
-              Hiring? Skip straight to the{" "}
-              <Link href="/resume" className={`inline-flex items-center gap-1.5 ${LINK}`}>
-                résumé
-                <Icon name="material-symbols:arrow-right-alt-rounded" />
-              </Link>
-            </p>
           </section>
 
           {/* "Because of love" -- doing it out of passion rather than for the

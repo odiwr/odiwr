@@ -15,7 +15,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // origins and carry their own sitemaps.
   const fixed: MetadataRoute.Sitemap = [
     { url: SITE.url, lastModified: now, changeFrequency: "monthly", priority: 1 },
-    { url: `${SITE.url}/resume`, lastModified: now, changeFrequency: "monthly", priority: 0.9 },
     { url: `${SITE.url}/blog`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
   ];
 

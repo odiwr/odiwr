@@ -2128,31 +2128,3 @@ html[data-cinema-closing] body {
   text-align: center;
   background: var(--color-background);
 }
-
-/**
- * The résumé, printed: black on white, links as plain text, no way back and
- * no download link, nothing animated. Everything else prints as it is.
- */
-@media print {
-  body:has(.resume) {
-    background: #fff;
-  }
-
-  .resume,
-  .resume * {
-    color: #000 !important;
-    text-decoration-color: transparent !important;
-    animation: none !important;
-  }
-
-  .resume header a,
-  .resume .no-print,
-  .resume .top-fade,
-  .resume svg {
-    display: none !important;
-  }
-
-  .resume .rich-list > li::before {
-    color: #000;
-  }
-}
